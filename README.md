@@ -6,3 +6,12 @@ A programming language that will be used for Amplus2/Adscriptum.
 There probably won't be any binary expressions. Instead,
 there will be built-in functions named after generally used
 binary operators.
+
+## Built-in functions
+
+### +, -, *, /, %
+These functions basically just do what their operator does.
+
+### llvm-ir
+Equivalent to the asm "function" in c.
+
