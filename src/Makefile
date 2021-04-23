@@ -1,5 +1,5 @@
 CXX = clang++
-CXX_FLAGS = -Wextra
+CXX_FLAGS = -Wall -Wextra
 CXX_FILES = main.cc
 
 OUT_DIR = ../build
