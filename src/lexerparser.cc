@@ -92,7 +92,7 @@ std::vector<Expr*> Parser::parse() {
             tmpT = lexer.nextT();
 
             // TODO: Allow functions/lambdas and function calls as parameters 
-            // parse function call arguments/parameters
+            // parse the function call's arguments/parameters
             while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
                 tmpExprs.push_back(tokenToExpr(tmpT));
                 tmpT = lexer.nextT();
