@@ -52,7 +52,7 @@ Token Lexer::nextT() {
         idx += 1;
         while (isDigit(text[++idx])) tmpStr += text[idx];
         return Token(TT_FLOAT, tmpStr);
-    } else if (text[idx + 1] == '.') error("expected digit after '.'");
+    } else if (text[idx + 1] == '.') error(ERROR_LEXER, "expected digit after '.'");
 
     // handle identifiers
     while (!isWhitespace(text[idx + 1]) && idx + 1 < text.size())
