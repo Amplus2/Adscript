@@ -4,20 +4,23 @@ public:
 };
 
 class IntExpr : public Expr {
-public:
+private:
     const int val;
+public:
     IntExpr(const int val) : val(val) {}
 };
 
 class FloatExpr : public Expr {
-public:
+private:
     const float val;
+public:
     FloatExpr(const float val) : val(val) {}
 };
 
 class VarExpr : public Expr {
-public:
+private:
     const std::string id;
+public:
     VarExpr(const std::string& id) : id(id) {}
 };
 
