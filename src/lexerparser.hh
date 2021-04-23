@@ -20,5 +20,5 @@ class Parser {
 private:
     TokenType cacheTT;
 public:
-    std::vector<Expr*> parse();
+    std::vector<Expr*> parse(const Lexer *lexer);
 };
