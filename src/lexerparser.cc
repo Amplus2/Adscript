@@ -12,8 +12,10 @@ bool isWhitespace(char c) {
 }
 
 Token Lexer::nextT() {
+    // section declaration for goto statement we need later on
     nextT_start:
 
+    // skip whitespaces
     while (isWhitespace(text[idx + 1]) && idx + 3 < text.size())
         idx += 1;
     
@@ -38,7 +40,7 @@ Token Lexer::nextT() {
     case ')': return Token(TT_PO, ")");
     }
     
-    // var for temporary string storage
+    // helper variable for temporary string storage
     std::string tmpStr;
 
     // handle integers and front part of floats
@@ -72,33 +74,42 @@ Expr* tokenToExpr(Token t) {
 std::vector<Expr*> Parser::parse() {
     std::vector<Expr*> result;
 
+    // helper variables
     Token tmpT = lexer.nextT();
     std::string tmpStr;
     std::vector<Expr*> tmpExprs;
 
     while (tmpT.tt != TT_EOF) {
+        // handle function calls
         if (tmpT.tt == TT_PO) {
+            // eat up '(' and get identifier
             tmpT = lexer.nextT();
             if (tmpT.tt != TT_ID)
                 error(ERROR_PARSER, "expected identifier");
             tmpStr = tmpT.val;
 
-            // TODO: Allow functions/lambdas as parameters 
+            // TODO: Allow functions/lambdas as parameters
+            // parse function call arguments/parameters
             while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
                 tmpExprs.push_back(tokenToExpr(tmpT));
                 tmpT = lexer.nextT();
             }
 
+            // error if eof is reched before end of function call
             if (tmpT.tt == TT_EOF)
                 error(ERROR_PARSER, "unexpected end of file");
 
+            // add function call to parse result
             result.push_back(new FunctionCall(tmpStr, tmpExprs));
             
+            // reset helper variables
             tmpStr = "";
             tmpExprs = {};
         }
+
+        // eat up remaining token
         tmpT = lexer.nextT();
     }
 
-    return {};
+    return result;
 }
