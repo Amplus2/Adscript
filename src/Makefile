@@ -1,6 +1,6 @@
 CXX = clang++
 CXX_FLAGS = -Wall -Wextra
-CXX_FILES = main.cc
+CXX_FILES = main.cc lexerparser.cc
 
 OUT_DIR = ../build
 
