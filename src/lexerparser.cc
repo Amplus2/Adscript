@@ -95,7 +95,7 @@ std::vector<Expr*> Parser::parse() {
                 tmpT = lexer.nextT();
             }
 
-            // error if eof is reched before end of function call
+            // error if eof is reached before end of function call
             if (tmpT.tt == TT_EOF)
                 error(ERROR_PARSER, "unexpected end of file");
 
