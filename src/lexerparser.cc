@@ -88,6 +88,9 @@ std::vector<Expr*> Parser::parse() {
                 error(ERROR_PARSER, "expected identifier");
             tmpStr = tmpT.val;
 
+            // eat up identifier
+            tmpT = lexer.nextT();
+
             // TODO: Allow functions/lambdas as parameters
             // parse function call arguments/parameters
             while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
