@@ -60,6 +60,45 @@ Token Lexer::nextT() {
     return Token(TT_ID, tmpStr);
 }
 
+Expr* tokenToExpr(Token t) {
+    switch (t.tt) {
+    case TT_ID:     return new IdExpr(t.val);
+    case TT_INT:    return new IntExpr(std::stoi(t.val));
+    case TT_FLOAT:  return new FloatExpr(std::stof(t.val));
+    default:        return nullptr;
+    }
+}
+
 std::vector<Expr*> Parser::parse() {
+    std::vector<Expr*> result;
+
+    Token tmpT = lexer.nextT();
+    std::string tmpStr;
+    std::vector<Expr*> tmpExprs;
+
+    while (tmpT.tt != TT_EOF) {
+        if (tmpT.tt == TT_PO) {
+            tmpT = lexer.nextT();
+            if (tmpT.tt != TT_ID)
+                error(ERROR_PARSER, "expected identifier");
+            tmpStr = tmpT.val;
+
+            // TODO: Allow functions/lambdas as parameters 
+            while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
+                tmpExprs.push_back(tokenToExpr(tmpT));
+                tmpT = lexer.nextT();
+            }
+
+            if (tmpT.tt == TT_EOF)
+                error(ERROR_PARSER, "unexpected end of file");
+
+            result.push_back(new FunctionCall(tmpStr, tmpExprs));
+            
+            tmpStr = "";
+            tmpExprs = {};
+        }
+        tmpT = lexer.nextT();
+    }
+
     return {};
 }

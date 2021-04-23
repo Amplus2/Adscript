@@ -1,9 +1,13 @@
+#ifndef AST_HH_
+#define AST_HH_
+
 #include <string>
 #include <vector>
 
 class Expr {
 public:
     virtual ~Expr() = default;
+    virtual std::string toStr() = 0;
 };
 
 class IntExpr : public Expr {
@@ -11,6 +15,7 @@ private:
     const int val;
 public:
     IntExpr(const int val) : val(val) {}
+    std::string toStr() override;
 };
 
 class FloatExpr : public Expr {
@@ -18,13 +23,16 @@ private:
     const float val;
 public:
     FloatExpr(const float val) : val(val) {}
+    std::string toStr() override;
 };
 
-class VarExpr : public Expr {
+class IdExpr : public Expr {
 private:
-    const std::string id;
+    const std::string val;
 public:
-    VarExpr(const std::string& id) : id(id) {}
+    IdExpr(const std::string  val) : val(val) {}
+    std::string toStr() override;
+    std::string getVal();
 };
 
 class Function : public Expr {
@@ -34,6 +42,7 @@ private:
 public:
     Function(std::vector<std::string>& args, std::vector<Expr*>& body)
         : args(args), body(body) {}
+    std::string toStr() override;
 };
 
 class FunctionCall : public Expr {
@@ -43,4 +52,7 @@ private:
 public:
     FunctionCall(const std::string& calleeId, const std::vector<Expr*>& args)
         : calleeId(calleeId), args(args) {}
+    std::string toStr() override;
 };
+
+#endif

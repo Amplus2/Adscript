@@ -1,9 +1,9 @@
+#include "ast.hh"
 #include "utils.hh"
 
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
 
 std::string etToStr(ErrorType et) {
     switch (et) {
@@ -29,4 +29,18 @@ std::string readFile(const std::string& filename) {
     std::stringstream sstream;
     sstream << ifstream.rdbuf();
     return sstream.str();
+}
+
+std::string strVectorToStr(const std::vector<std::string>& vector) {
+    std::string result = "{ ";
+    for (size_t i = 0; i < vector.size() - 1; i++)
+        result += vector.at(i) + ", ";
+    return result + vector.at(vector.size() - 1) + " }";
+}
+
+std::string exprVectorToStr(const std::vector<Expr*>& vector) {
+    std::vector<std::string> tmp;
+    for (size_t i = 0; i < vector.size(); i++) 
+        tmp.push_back(vector.at(i)->toStr());
+    return strVectorToStr(tmp);
 }

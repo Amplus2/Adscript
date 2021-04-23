@@ -16,8 +16,8 @@ enum TokenType {
 
 class Token {
 public:
-    const TokenType tt;
-    const std::string val;
+    TokenType tt;
+    std::string val;
     Token() : tt(TT_ERR), val(std::string()) {}
     Token(TokenType tt, std::string val) : tt(tt), val(val) {}
 };
@@ -33,8 +33,7 @@ public:
 
 class Parser {
 private:
-    Token lastT;
-    const Lexer lexer;
+    Lexer lexer;
 public:
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<Expr*> parse();
