@@ -4,7 +4,22 @@
 #include "ast.hh"
 
 enum TokenType {
-    // TODO: define token types
+    TT_PO,
+    TT_PC,
+    TT_ID,
+    TT_INT,
+    TT_FLOAT,
+    TT_EOF,
+    
+    TT_ERR,
+};
+
+class Token {
+public:
+    const TokenType tt;
+    const std::string val;
+    Token() : tt(TT_ERR), val(std::string()) {}
+    Token(TokenType tt, std::string val) : tt(tt), val(val) {}
 };
 
 class Lexer {
@@ -13,12 +28,14 @@ private:
     std::string text;
 public:
     Lexer(const std::string& text) : idx(0), text(text) {}
-    TokenType nextTT();
+    Token nextT();
 };
 
 class Parser {
 private:
-    TokenType cacheTT;
+    Token lastT;
+    const Lexer lexer;
 public:
-    std::vector<Expr*> parse(const Lexer *lexer);
+    Parser(const Lexer& lexer) : lexer(lexer) {}
+    std::vector<Expr*> parse();
 };

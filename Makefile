@@ -1,4 +1,4 @@
 SRC_DIR = src
 
 default:
-	make -C src
+	make -C $(SRC_DIR)

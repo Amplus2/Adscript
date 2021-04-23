@@ -1,3 +1,6 @@
+#include <string>
+#include <vector>
+
 class Expr {
 public:
     virtual ~Expr() = default;

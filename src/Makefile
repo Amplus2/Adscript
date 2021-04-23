@@ -1,6 +1,6 @@
 CXX = clang++
-CXX_FLAGS = -Wall -Wextra
-CXX_FILES = main.cc lexerparser.cc
+CXX_FLAGS = -Wall -Wextra -O3
+CXX_FILES = main.cc utils.cc ast.cc lexerparser.cc
 
 OUT_DIR = ../build
 OUT_NAME = adscript
