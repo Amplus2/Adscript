@@ -16,5 +16,5 @@ These functions basically just do what their operator does.
 Equivalent to the asm "function" in c.
 
 ### All c std library functions
-As long as you have the c std library on your system, you
+As long as you have gcc on your system, you
 probably will be able to use it.
