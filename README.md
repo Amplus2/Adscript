@@ -1,7 +1,35 @@
 # Adscript
 A programming language that will be used for Amplus2/Adscriptum.
 
+## Syntax
+### Primitive expressions
+Integers, floating point values and identifiers are primitive expressions.
+
+### Function calls
+```adscript
+(<identifier> <parameters>)
+```
+
+```adscript
+
+```
+
+### Functions
+```adscript
+([<parameters>]
+    <body>)
+```
+
+```adscript
+([int a int b]
+    (ret (+ a b)))
+```
+
 ## General
+### Expressions
+In Adscriptum, functions, function calls and primitive expressions
+are expressions.
+
 ### Binary expressions
 There probably won't be any binary expressions. Instead,
 there will be built-in functions named after generally used

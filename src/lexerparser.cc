@@ -107,13 +107,22 @@ Expr* tokenToExpr(Token t) {
 
 
 Expr* Parser::parseExpr(Token& tmpT) {
-    if (tmpT.tt == TT_PO)
-        return parseFunctionCall(tmpT);
-    else if (tmpT.tt == TT_BRO)
-        return parseFunction(tmpT);
+    if (tmpT.tt == TT_PO) {
+        tmpT = lexer.nextT();
+        if (tmpT.tt == TT_EOF)
+            error(ERROR_PARSER, "unexpected end of file");
+        else if (tmpT.tt == TT_BRO)
+            return parseFunction(tmpT);
+        else if (tmpT.tt == TT_ID)
+            return parseFunctionCall(tmpT);
+        
+        // error if '(' isn't followed by fun or funcall
+        parseError("identifier or '['", tmpT.val);
+        return 0;
+    }
     else {
         Expr* tmp = tokenToExpr(tmpT);
-        if (!tmp) error(ERROR_PARSER, "unexpected parse error");
+        if (!tmp) parseError("primitive expression", tmpT.val);
         return tmp;
     }
 }
@@ -147,11 +156,6 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up ']'
     tmpT = lexer.nextT();
 
-    if (tmpT.tt != TT_PO) parseError("'('", tmpT.val);
-
-    // eat up '('
-    tmpT = lexer.nextT();
-
     // parse body
     std::vector<Expr*> body;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
@@ -168,9 +172,6 @@ Expr* Parser::parseFunction(Token& tmpT) {
 }
 
 Expr* Parser::parseFunctionCall(Token& tmpT) {
-    // eat up '('
-    tmpT = lexer.nextT();
-
     // error if function call dos not start with id
     if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
 
