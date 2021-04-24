@@ -11,6 +11,10 @@ bool isWhitespace(char c) {
     return (c >= 0 && c <= 32) || c == ',';
 }
 
+bool isSpecialChar(char c) {
+    return c == '(' || c == ')' || c == '[' || c == ']';
+}
+
 Token Lexer::nextT() {
     // section declaration for goto statement we need later on
     nextT_start:
@@ -77,7 +81,7 @@ Token Lexer::nextT() {
         error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, text[idx]) + "'");
 
     // handle identifiers
-    while (!isWhitespace(text[idx]) && idx < text.size())
+    while (!isWhitespace(text[idx]) && !isSpecialChar(text[idx]) && idx < text.size())
         tmpStr += text[idx++];
     return Token(TT_ID, tmpStr);
 }
@@ -125,11 +129,15 @@ Expr* Parser::parseFunction(Token& tmpT) {
         PrimType pt = strToPT(tmpT.val);
         if (pt == TYPE_ERR) parseError("data type", tmpT.val);
 
-        // gat argument/parameter id
+        // eat up data type
         tmpT = lexer.nextT();
+
+        // get argument/parameter id
         if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
 
         args.push_back(std::pair<TypeAST*, std::string>(new PrimTypeAST(pt), tmpT.val));
+
+        // eat up identifier
         tmpT = lexer.nextT();
     }
 
@@ -140,6 +148,9 @@ Expr* Parser::parseFunction(Token& tmpT) {
     tmpT = lexer.nextT();
 
     if (tmpT.tt != TT_PO) parseError("'('", tmpT.val);
+
+    // eat up '('
+    tmpT = lexer.nextT();
 
     // parse body
     std::vector<Expr*> body;

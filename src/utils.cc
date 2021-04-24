@@ -37,6 +37,7 @@ std::string readFile(const std::string& filename) {
 }
 
 std::string strVectorToStr(const std::vector<std::string>& vector) {
+    if (vector.size() <= 0) return "{ }";
     std::string result = "{ ";
     for (size_t i = 0; i < vector.size() - 1; i++)
         result += vector.at(i) + ", ";
