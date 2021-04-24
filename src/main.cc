@@ -12,5 +12,6 @@ int main (int argc, char **argv) {
 
     Parser parser(Lexer(readFile(argv[1])));
     auto exprs = parser.parse();
+
     return 0;
 }

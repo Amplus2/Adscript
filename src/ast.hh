@@ -35,12 +35,34 @@ public:
     std::string getVal();
 };
 
+class TypeAST {
+public:
+    virtual ~TypeAST() = default;
+    virtual std::string toStr() = 0;
+};
+
+
+enum PrimType {
+    TYPE_ERR,
+
+    TYPE_INT,
+    TYPE_FLOAT,
+};
+
+class PrimTypeAST : public TypeAST {
+private:
+    PrimType type;
+public:
+    PrimTypeAST(PrimType type) : type(type) {}
+    std::string toStr() override;
+};
+
 class Function : public Expr {
 private:
-    const std::vector<std::string> args;
+    const std::vector<std::pair<TypeAST*, std::string>> args;
     const std::vector<Expr*> body;
 public:
-    Function(std::vector<std::string>& args, std::vector<Expr*>& body)
+    Function(std::vector<std::pair<TypeAST*, std::string>>& args, std::vector<Expr*>& body)
         : args(args), body(body) {}
     std::string toStr() override;
 };

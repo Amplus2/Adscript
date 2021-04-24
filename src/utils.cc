@@ -40,7 +40,14 @@ std::string strVectorToStr(const std::vector<std::string>& vector) {
 
 std::string exprVectorToStr(const std::vector<Expr*>& vector) {
     std::vector<std::string> tmp;
-    for (size_t i = 0; i < vector.size(); i++) 
+    for (size_t i = 0; i < vector.size(); i++)
         tmp.push_back(vector.at(i)->toStr());
+    return strVectorToStr(tmp);
+}
+
+std::string argVectorToStr(const std::vector<std::pair<TypeAST*, std::string>>& vector) {
+    std::vector<std::string> tmp;
+    for (size_t i = 0; i < vector.size(); i++)
+        tmp.push_back(vector.at(i).second + ": " + vector.at(i).first->toStr());
     return strVectorToStr(tmp);
 }

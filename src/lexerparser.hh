@@ -4,14 +4,17 @@
 #include "ast.hh"
 
 enum TokenType {
-    TT_PO,
-    TT_PC,
-    TT_ID,
-    TT_INT,
-    TT_FLOAT,
-    TT_EOF,
-    
     TT_ERR,
+
+    TT_PO,      // '('
+    TT_PC,      // ')'
+    TT_BRO,     // '['
+    TT_BRC,     // ']'
+
+    TT_ID,      // [.^[0-9]]+
+    TT_INT,     // [0-9]+
+    TT_FLOAT,   // [0-9]*'.'[0-9]+
+    TT_EOF,     // end of file
 };
 
 class Token {
@@ -29,11 +32,16 @@ private:
 public:
     Lexer(const std::string& text) : idx(0), text(text) {}
     Token nextT();
+    void reset();
 };
 
 class Parser {
 private:
     Lexer lexer;
+    
+    Expr* parseExpr(Token& tmpT);
+    Expr* parseFunction(Token& tmpT);
+    Expr* parseFunctionCall(Token& tmpT);
 public:
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<Expr*> parse();
