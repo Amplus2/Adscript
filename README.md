@@ -1,5 +1,6 @@
 # Adscript
-A programming language that will be used for Amplus2/Adscriptum.
+A high-performance, [s-expressions](https://en.wikipedia.org/wiki/S-expression)
+based programming language that is natively compiled.
 
 ## Syntax
 ### Primitive expressions
@@ -23,18 +24,13 @@ Integers, floating point values and identifiers are primitive expressions.
 
 ```adscript
 ([int a int b]
-    (ret (+ a b)))
+    (+ a b))
 ```
 
 ## General
 ### Expressions
-In Adscriptum, functions, function calls and primitive expressions
+In Adscript, functions, function calls and primitive expressions
 are expressions.
-
-### Binary expressions
-There probably won't be any binary expressions. Instead,
-there will be built-in functions named after generally used
-binary operators.
 
 ## Built-in functions
 
@@ -44,6 +40,7 @@ These functions basically just do what their operator does.
 ### llvm-ir
 Equivalent to the asm "function" in c.
 
-### All c std library functions
+### All C standard library functions
 As long as you have gcc on your system, you
 probably will be able to use it.
+<!--TODO: It should work as long as ld and libc are present.-->
