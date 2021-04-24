@@ -16,6 +16,11 @@ std::string etToStr(ErrorType et) {
 
 void error(ErrorType et, const std::string& msg) {
     std::cout << etToStr(et) << ": " << msg << std::endl;
+    exit(1);
+}
+
+void parseError(const std::string& expected, const std::string& got) {
+    error(ERROR_PARSER, "expected " + expected + ", got '" + got + "'");
 }
 
 void printUsage() {

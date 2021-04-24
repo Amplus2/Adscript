@@ -13,6 +13,7 @@ enum ErrorType {
 };
 
 void error(ErrorType et, const std::string& msg);
+void parseError(const std::string& expected, const std::string& got);
 
 void printUsage();
 

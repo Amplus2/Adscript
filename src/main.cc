@@ -3,6 +3,10 @@
 
 #include <iostream>
 
+void printAST(const std::vector<Expr*>& ast) {
+    for (auto& expr : ast) std::cout << expr->toStr() << std::endl;
+}
+
 int main (int argc, char **argv) {
 
     if (argc != 2) {
@@ -10,8 +14,13 @@ int main (int argc, char **argv) {
         return 1;
     }
 
-    Parser parser(Lexer(readFile(argv[1])));
+    std::string text = readFile(argv[1]);
+    Lexer lexer(text);
+    Parser parser(lexer);
+
     auto exprs = parser.parse();
+
+    printAST(exprs);
 
     return 0;
 }

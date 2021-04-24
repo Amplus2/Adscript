@@ -15,10 +15,8 @@ Token Lexer::nextT() {
     // section declaration for goto statement we need later on
     nextT_start:
 
-    if (idx != 0) idx += 1;
-
     // eat up whitespaces
-    while (isWhitespace(text[idx]) && idx + 2 < text.size())
+    while (isWhitespace(text[idx]) && idx < text.size())
         idx += 1;
     
     // handle comments
@@ -38,7 +36,7 @@ Token Lexer::nextT() {
     }
 
     // handle end of file
-    if (idx + 1 >= text.size())
+    if (idx >= text.size())
         return Token(TT_EOF, std::string());
 
     // handle parentheses and brackets
@@ -51,7 +49,7 @@ Token Lexer::nextT() {
         return Token(TT_PC, ")");
     case '[':
         idx += 1;
-        return Token(TT_BRC, "[");
+        return Token(TT_BRO, "[");
     case ']':
         idx += 1;
         return Token(TT_BRC, "]");
@@ -62,16 +60,21 @@ Token Lexer::nextT() {
 
     // handle integers and front part of floats
     if (isDigit(text[idx])) {
-        idx += 1;
+        while (isDigit(text[idx])) tmpStr += text[idx++];
         if (text[idx] != '.') return Token(TT_INT, tmpStr);
     }
     
     // handle floats
-    if (text[idx] == '.' && isDigit(text[idx + 2])) {
-        idx += 1;
-        while (isDigit(text[idx++])) tmpStr += text[idx];
+    if (text[idx] == '.' && isDigit(text[idx + 1])) {
+        // append '.' to tmpStr
+        tmpStr += text[idx++];
+
+        // append all digits after the '.' to tmpStr
+        while (isDigit(text[idx])) tmpStr += text[idx++];
+
         return Token(TT_FLOAT, tmpStr);
-    } else if (text[idx] == '.') error(ERROR_LEXER, "expected digit after '.'");
+    } else if (text[idx] == '.')
+        error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, text[idx]) + "'");
 
     // handle identifiers
     while (!isWhitespace(text[idx]) && idx < text.size())
@@ -90,7 +93,6 @@ PrimType strToPT(const std::string& s) {
 }
 
 Expr* tokenToExpr(Token t) {
-    std::cout << "token :'" << t.val << "'" << std::endl;
     switch (t.tt) {
     case TT_ID:     return new IdExpr(t.val);
     case TT_INT:    return new IntExpr(std::stoi(t.val));
@@ -121,13 +123,11 @@ Expr* Parser::parseFunction(Token& tmpT) {
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
         // get argument/parameter type
         PrimType pt = strToPT(tmpT.val);
-        if (pt == TYPE_ERR)
-            error(ERROR_PARSER, "expected type");
+        if (pt == TYPE_ERR) parseError("data type", tmpT.val);
 
         // gat argument/parameter id
         tmpT = lexer.nextT();
-        if (tmpT.tt != TT_ID)
-            error(ERROR_PARSER, "expected id");
+        if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
 
         args.push_back(std::pair<TypeAST*, std::string>(new PrimTypeAST(pt), tmpT.val));
         tmpT = lexer.nextT();
@@ -136,11 +136,10 @@ Expr* Parser::parseFunction(Token& tmpT) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    // eat up ')'
+    // eat up ']'
     tmpT = lexer.nextT();
 
-    if (tmpT.tt != TT_PO)
-        error(ERROR_PARSER, "expected '('");
+    if (tmpT.tt != TT_PO) parseError("'('", tmpT.val);
 
     // parse body
     std::vector<Expr*> body;
@@ -162,10 +161,13 @@ Expr* Parser::parseFunctionCall(Token& tmpT) {
     tmpT = lexer.nextT();
 
     // error if function call dos not start with id
-    if (tmpT.tt != TT_ID) error(ERROR_PARSER, "expected id");
+    if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
 
     // store the calllee's id into temporary variable
     std::string id = tmpT.val;
+
+    // eat up identifier
+    tmpT = lexer.nextT();
 
     // parse arguments/parameters
     std::vector<Expr*> args;

@@ -22,19 +22,17 @@ std::string PrimTypeAST::toStr() {
 }
 
 std::string Function::toStr() {
-    return std::string() + "{"
-        + "\n\tFunction: {"
-        + "\n\t\targs: " + argVectorToStr(args)
-        + "\n\t\tbody: " + exprVectorToStr(body)
-        + "\n\t}\n}";
+    return std::string() + "fn: { "
+        + "args: " + argVectorToStr(args)
+        + ", body: " + exprVectorToStr(body)
+        + " }";
 }
 
 std::string FunctionCall::toStr() {
-    return std::string() + "{"
-        + "\n\tFunctionCall: {"
-        + "\n\t\tid: " + calleeId
-        + "\n\t\targs: " + exprVectorToStr(args)
-        + "\n\t}\n}";
+    return std::string() + "fncall: { "
+        + "id: '" + calleeId + "'"
+        + ", args: " + exprVectorToStr(args)
+        + " }";
 }
 
 
