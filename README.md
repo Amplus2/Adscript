@@ -11,7 +11,8 @@ Integers, floating point values and identifiers are primitive expressions.
 ```
 
 ```adscript
-
+(+ 40 2)
+(var a 42)
 ```
 
 ### Functions
