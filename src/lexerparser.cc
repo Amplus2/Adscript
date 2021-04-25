@@ -111,14 +111,22 @@ Expr* Parser::parseExpr(Token& tmpT) {
         tmpT = lexer.nextT();
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
-        else if (tmpT.tt == TT_BRO)
-            return parseFunction(tmpT);
-        else if (tmpT.tt == TT_ID)
-            return parseFunctionCall(tmpT);
+        else if (tmpT.tt == TT_ID) {
+            std::string tmpStr = tmpT.val;
+
+            // eat up identifier
+            tmpT = lexer.nextT();
+
+            if (tmpT.tt == TT_EOF)
+                error(ERROR_PARSER, "unexpected end of file");
+            else if (tmpT.tt == TT_BRO)
+                error(ERROR_PARSER, "functions can only be defined at the top level");
+            else return parseFunctionCall(tmpT, tmpStr);
+        }
         
         // error if '(' isn't followed by fun or funcall
-        parseError("identifier or '['", tmpT.val);
-        return 0;
+        parseError("identifier", tmpT.val);
+        return nullptr;
     }
     else {
         Expr* tmp = tokenToExpr(tmpT);
@@ -127,7 +135,32 @@ Expr* Parser::parseExpr(Token& tmpT) {
     }
 }
 
-Expr* Parser::parseFunction(Token& tmpT) {
+Expr* Parser::parseTopLevelExpr(Token& tmpT) {
+    if (tmpT.tt == TT_PO) {
+        tmpT = lexer.nextT();
+        if (tmpT.tt == TT_EOF)
+            error(ERROR_PARSER, "unexpected end of file");
+        else if (tmpT.tt == TT_ID) {
+            std::string tmpStr = tmpT.val;
+
+            // eat up identifier
+            tmpT = lexer.nextT();
+
+            if (tmpT.tt == TT_EOF)
+                error(ERROR_PARSER, "unexpected end of file");
+            else if (tmpT.tt == TT_BRO)
+                return parseFunction(tmpT, tmpStr);
+            else return parseFunctionCall(tmpT, tmpStr);
+        }
+        
+        // error if '(' isn't followed by fun or funcall
+        parseError("identifier", tmpT.val);
+    }
+    parseError("top level expression", tmpT.val);
+    return nullptr;
+}
+
+Expr* Parser::parseFunction(Token& tmpT, const std::string& id) {
     // eat up '['
     tmpT = lexer.nextT();
 
@@ -156,6 +189,13 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up ']'
     tmpT = lexer.nextT();
 
+    PrimType pt = strToPT(tmpT.val);
+    if (pt == TYPE_ERR) parseError("return type", tmpT.val);
+    TypeAST *retType = new PrimTypeAST(pt);
+
+    // eat up return type
+    tmpT = lexer.nextT();
+
     // parse body
     std::vector<Expr*> body;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
@@ -168,19 +208,10 @@ Expr* Parser::parseFunction(Token& tmpT) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    return new Function(args, body);
+    return new Function(id, args, retType, body);
 }
 
-Expr* Parser::parseFunctionCall(Token& tmpT) {
-    // error if function call dos not start with id
-    if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
-
-    // store the calllee's id into temporary variable
-    std::string id = tmpT.val;
-
-    // eat up identifier
-    tmpT = lexer.nextT();
-
+Expr* Parser::parseFunctionCall(Token& tmpT, const std::string& calleeId) {
     // parse arguments/parameters
     std::vector<Expr*> args;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
@@ -193,7 +224,7 @@ Expr* Parser::parseFunctionCall(Token& tmpT) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    return new FunctionCall(id, args);
+    return new FunctionCall(calleeId, args);
 }
 
 std::vector<Expr*> Parser::parse() {

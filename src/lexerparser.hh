@@ -38,10 +38,11 @@ public:
 class Parser {
 private:
     Lexer lexer;
-    
+
     Expr* parseExpr(Token& tmpT);
-    Expr* parseFunction(Token& tmpT);
-    Expr* parseFunctionCall(Token& tmpT);
+    Expr* parseTopLevelExpr(Token& tmpT);
+    Expr* parseFunction(Token& tmpT, const std::string& id);
+    Expr* parseFunctionCall(Token& tmpT, const std::string& calleeId);
 public:
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<Expr*> parse();

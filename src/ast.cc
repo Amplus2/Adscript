@@ -1,5 +1,10 @@
 #include "ast.hh"
-#include"utils.hh"
+#include "utils.hh"
+
+#include <iostream>
+
+#include <llvm/IR/Verifier.h>
+#include <llvm/Transforms/Utils/Cloning.h>
 
 std::string IntExpr::toStr() {
     return std::to_string(val);
@@ -23,7 +28,9 @@ std::string PrimTypeAST::toStr() {
 
 std::string Function::toStr() {
     return std::string() + "fn: { "
-        + "args: " + argVectorToStr(args)
+        + "id: '" + id + "'"
+        + ", args: " + argVectorToStr(args)
+        + ", type: " + retType->toStr()
         + ", body: " + exprVectorToStr(body)
         + " }";
 }
@@ -40,5 +47,98 @@ std::string IdExpr::getVal() {
     return val;
 }
 
+llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
+    switch (type) {
+        case TYPE_INT: return llvm::Type::getInt32Ty(ctx);
+        case TYPE_FLOAT: return llvm::Type::getFloatTy(ctx);
+        default: error(ERROR_COMPILER, "unknown type name");
+    }
+    return nullptr;
+}
 
-// TODO: create llvm IR code generation methods
+llvm::Value* IntExpr::llvmValue(CompileContext ctx) {
+    return llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(ctx.mod->getContext()), val);
+}
+
+llvm::Value* FloatExpr::llvmValue(CompileContext ctx) {
+    return llvm::ConstantFP::get(llvm::IntegerType::getFloatTy(ctx.mod->getContext()), val);
+}
+
+llvm::Value* IdExpr::llvmValue(CompileContext ctx) {
+    if (ctx.vars.count(val) <= 0)
+        error(ERROR_COMPILER, "undefined reference to '" + val + "'");
+    return ctx.builder->CreateLoad(ctx.vars[val].first, ctx.vars[val].second);
+}
+
+llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::StringRef id, llvm::Type *type) {
+    llvm::IRBuilder<> builder(&(f->getEntryBlock()), f->getEntryBlock().begin());
+    return builder.CreateAlloca(type, nullptr, id);
+} 
+
+llvm::Value* Function::llvmValue(CompileContext ctx) {
+    std::vector<llvm::Type*> ftArgs;
+    for (auto& arg : args)
+        ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
+    
+    llvm::FunctionType *ft =
+        llvm::FunctionType::get(retType->llvmType(ctx.mod->getContext()), ftArgs, false);
+
+    llvm::Function *f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, id, ctx.mod);
+
+    if (body.size() <= 0) return f;
+
+    llvm::BasicBlock *tmpBB = ctx.builder->GetInsertBlock();
+    ctx.builder->SetInsertPoint(llvm::BasicBlock::Create(ctx.mod->getContext(), "entry", f));
+
+    size_t i = 0;
+    for (auto& arg : f->args()) {
+        arg.setName(args[i].second);
+
+        llvm::AllocaInst *alloca = createAlloca(f, arg.getName(), ftArgs[i]);
+
+        ctx.builder->CreateStore(&arg, alloca);
+
+        ctx.vars[args[i++].second] = std::pair<llvm::Type*, llvm::Value*>(arg.getType(), alloca);
+    }
+
+    for (auto& expr : body)
+        expr->llvmValue(ctx);
+    
+    ctx.vars.clear();
+
+    ctx.builder->SetInsertPoint(tmpBB);
+
+    if (llvm::verifyFunction(*f))
+        error(ERROR_COMPILER, "error in function '" + id + "'");
+
+    return f;
+}
+
+llvm::Value* FunctionCall::llvmValue(CompileContext ctx) {
+    llvm::Function *f = ctx.mod->getFunction(calleeId);
+
+    if (!f) error(ERROR_COMPILER, "undefined reference to '" + calleeId + "'");
+
+    if (args.size() > f->arg_size())
+        error(ERROR_COMPILER, "too many arguments for function '" + calleeId + "'");
+    else if (args.size() < f->arg_size())
+        error(ERROR_COMPILER, "too few arguments for function '" + calleeId + "'");
+
+    std::vector<llvm::Value*> callArgs;
+
+    size_t i = 0;
+    for (auto& arg : f->args()) {
+        llvm::Value *v = args[i++]->llvmValue(ctx);
+        if (v->getType()->getPointerTo() == arg.getType()->getPointerTo())
+            error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
+        callArgs.push_back(v);
+    }
+
+    std::cout << "before create call" << std::endl;
+
+    llvm::Value *v = ctx.builder->CreateCall(f, callArgs);
+
+    std::cout << "after create call" << std::endl;
+
+    return v;
+}

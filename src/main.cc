@@ -1,5 +1,6 @@
 #include "utils.hh"
 #include "lexerparser.hh"
+#include "compiler.hh"
 
 #include <iostream>
 
@@ -21,6 +22,8 @@ int main (int argc, char **argv) {
     auto exprs = parser.parse();
 
     printAST(exprs);
+
+    compile(argv[1], exprs);
 
     return 0;
 }
