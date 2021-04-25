@@ -5,7 +5,7 @@
 
 ;;(abc 1 2)
 
-(main)
+;;(main)
 
 ;;(fadd [float a, float b] float
 ;;    (abc a b))
