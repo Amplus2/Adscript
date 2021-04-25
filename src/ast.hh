@@ -27,8 +27,9 @@ public:
 };
 
 class IntExpr : public Expr {
-public:
+private:
     const int val;
+public:
 
     IntExpr(const int val) : val(val) {}
 
@@ -37,8 +38,9 @@ public:
 };
 
 class FloatExpr : public Expr {
-public:
+private:
     const float val;
+public:
 
     FloatExpr(const float val) : val(val) {}
 
@@ -54,6 +56,26 @@ public:
 
     std::string toStr() override;
     std::string getVal();
+    llvm::Value* llvmValue(CompileContext ctx) override;
+};
+
+enum BinExprType {
+    BINEXPR_ADD,
+    BINEXPR_SUB,
+    BINEXPR_MUL,
+    BINEXPR_DIV,
+    BINEXPR_MOD,
+};
+
+class BinExpr : public Expr {
+private:
+    BinExprType type;
+    Expr *left, *right;
+public:
+    BinExpr(BinExprType type, Expr *left, Expr *right)
+        : type(type), left(left), right(right) {}
+
+    std::string toStr() override;
     llvm::Value* llvmValue(CompileContext ctx) override;
 };
 

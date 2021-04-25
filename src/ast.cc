@@ -18,6 +18,10 @@ std::string IdExpr::toStr() {
     return val;
 }
 
+std::string BinExpr::toStr() {
+    return "BinExpr";
+}
+
 std::string PrimTypeAST::toStr() {
     switch (type) {
     case TYPE_INT: return "int";
@@ -49,9 +53,9 @@ std::string IdExpr::getVal() {
 
 llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
-        case TYPE_INT: return llvm::Type::getInt32Ty(ctx);
-        case TYPE_FLOAT: return llvm::Type::getFloatTy(ctx);
-        default: error(ERROR_COMPILER, "unknown type name");
+    case TYPE_INT: return llvm::Type::getInt32Ty(ctx);
+    case TYPE_FLOAT: return llvm::Type::getFloatTy(ctx);
+    default: error(ERROR_COMPILER, "unknown type name");
     }
     return nullptr;
 }
@@ -68,6 +72,40 @@ llvm::Value* IdExpr::llvmValue(CompileContext ctx) {
     if (ctx.vars.count(val) <= 0)
         error(ERROR_COMPILER, "undefined reference to '" + val + "'");
     return ctx.builder->CreateLoad(ctx.vars[val].first, ctx.vars[val].second);
+}
+
+bool llvmTypeEqual(llvm::Value *v, llvm::Type *t) {
+    return v->getType()->getPointerTo() == t->getPointerTo();
+}
+
+llvm::Value* BinExpr::llvmValue(CompileContext ctx) {
+    llvm::Value *leftV = left->llvmValue(ctx);
+    llvm::Value *rightV = right->llvmValue(ctx);
+
+    if (leftV->getType()->getPointerTo() != rightV->getType()->getPointerTo())
+        error(ERROR_COMPILER, "operand types do not match");
+    
+    if (llvmTypeEqual(leftV, llvm::Type::getInt32Ty(ctx.mod->getContext()))) {
+        switch (type) {
+        case BINEXPR_ADD: return ctx.builder->CreateAdd(leftV, rightV);
+        case BINEXPR_SUB: return ctx.builder->CreateSub(leftV, rightV);
+        case BINEXPR_MUL: return ctx.builder->CreateMul(leftV, rightV);
+        case BINEXPR_DIV: return ctx.builder->CreateSDiv(leftV, rightV);
+        case BINEXPR_MOD: return ctx.builder->CreateSRem(leftV, rightV);
+        }
+    } else if (llvmTypeEqual(leftV, llvm::Type::getFloatTy(ctx.mod->getContext()))) {
+        switch (type) {
+        case BINEXPR_ADD: return ctx.builder->CreateFAdd(leftV, rightV);
+        case BINEXPR_SUB: return ctx.builder->CreateFSub(leftV, rightV);
+        case BINEXPR_MUL: return ctx.builder->CreateFMul(leftV, rightV);
+        case BINEXPR_DIV: return ctx.builder->CreateFDiv(leftV, rightV);
+        case BINEXPR_MOD: return ctx.builder->CreateFRem(leftV, rightV);
+        }
+    }
+
+    error(ERROR_COMPILER, "unknown type name in expression");
+
+    return nullptr;
 }
 
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::StringRef id, llvm::Type *type) {
@@ -112,8 +150,6 @@ llvm::Value* Function::llvmValue(CompileContext ctx) {
     
     ctx.vars.clear();
 
-    ctx.builder->SetInsertPoint(tmpBB);
-
     if (llvm::verifyFunction(*f))
         error(ERROR_COMPILER, "error in function '" + id + "'");
 
@@ -142,7 +178,7 @@ llvm::Value* FunctionCall::llvmValue(CompileContext ctx) {
         if (callArgs[i++]->getType()->getPointerTo() != arg.getType()->getPointerTo())
             error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
 
-    llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs, "calltmp");
+    llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs);
 
     return call;
 }

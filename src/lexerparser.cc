@@ -41,7 +41,7 @@ Token Lexer::nextT() {
 
     // handle end of file
     if (idx >= text.size())
-        return Token(TT_EOF, std::string());
+        return Token(TT_EOF, "eof");
 
     // handle parentheses and brackets
     switch (text[idx]) {
@@ -112,16 +112,18 @@ Expr* Parser::parseExpr(Token& tmpT) {
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
         else if (tmpT.tt == TT_ID) {
-            std::string tmpStr = tmpT.val;
+            if (!tmpT.val.compare("+"))
+                return parseBinExpr(tmpT, BINEXPR_ADD);
+            else if (!tmpT.val.compare("-"))
+                return parseBinExpr(tmpT, BINEXPR_SUB);
+            else if (!tmpT.val.compare("*"))
+                return parseBinExpr(tmpT, BINEXPR_MUL);
+            else if (!tmpT.val.compare("/"))
+                return parseBinExpr(tmpT, BINEXPR_DIV);
+            else if (!tmpT.val.compare("%"))
+                return parseBinExpr(tmpT, BINEXPR_MOD);
 
-            // eat up identifier
-            tmpT = lexer.nextT();
-
-            if (tmpT.tt == TT_EOF)
-                error(ERROR_PARSER, "unexpected end of file");
-            else if (tmpT.tt == TT_BRO)
-                error(ERROR_PARSER, "functions can only be defined at the top level");
-            else return parseFunctionCall(tmpT, tmpStr);
+            return parseFunctionCall(tmpT);
         }
         
         // error if '(' isn't followed by fun or funcall
@@ -143,14 +145,10 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
         else if (tmpT.tt == TT_ID) {
             std::string tmpStr = tmpT.val;
 
-            // eat up identifier
-            tmpT = lexer.nextT();
-
-            if (tmpT.tt == TT_EOF)
-                error(ERROR_PARSER, "unexpected end of file");
-            else if (tmpT.tt == TT_BRO)
-                return parseFunction(tmpT, tmpStr);
-            else return parseFunctionCall(tmpT, tmpStr);
+            if (!tmpT.val.compare("defn"))
+                return parseFunction(tmpT);
+            
+            parseError("built-in top-level function call identifier", tmpT.val);
         }
         
         // error if '(' isn't followed by fun or funcall
@@ -160,7 +158,42 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
     return nullptr;
 }
 
-Expr* Parser::parseFunction(Token& tmpT, const std::string& id) {
+Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
+    // eat up operator
+    tmpT = lexer.nextT();
+
+    std::vector<Expr*> exprs;
+    while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
+        exprs.push_back(parseExpr(tmpT));
+
+        // eat up remaining token
+        tmpT = lexer.nextT();
+    }
+
+    if (tmpT.tt == TT_EOF)
+        error(ERROR_PARSER, "unexpected end of file");
+    
+    if (exprs.size() < 2)
+        error(ERROR_PARSER, "expected at least 2 arguments");
+    
+    Expr *tmpExpr = new BinExpr(bet, exprs[0], exprs[1]);
+    for (size_t i = 2; i < exprs.size(); i++)
+        tmpExpr = new BinExpr(bet, tmpExpr, exprs[i]);
+    
+    return tmpExpr;
+}
+
+Expr* Parser::parseFunction(Token& tmpT) {
+    // eat up 'defn'
+    tmpT = lexer.nextT();
+
+    std::string id = tmpT.val;
+
+    // eat up identifier
+    tmpT = lexer.nextT();
+
+    if (tmpT.tt != TT_BRO) parseError("'['", tmpT.val);
+
     // eat up '['
     tmpT = lexer.nextT();
 
@@ -211,7 +244,15 @@ Expr* Parser::parseFunction(Token& tmpT, const std::string& id) {
     return new Function(id, args, retType, body);
 }
 
-Expr* Parser::parseFunctionCall(Token& tmpT, const std::string& calleeId) {
+Expr* Parser::parseFunctionCall(Token& tmpT) {
+    if (!tmpT.val.compare("defn"))
+        error(ERROR_PARSER, "functions can only be defined at the top level");
+
+    std::string calleeId = tmpT.val;
+
+    // eat up identifier
+    tmpT = lexer.nextT();
+
     // parse arguments/parameters
     std::vector<Expr*> args;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
