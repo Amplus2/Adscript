@@ -101,8 +101,10 @@ llvm::Value* Function::llvmValue(CompileContext ctx) {
         ctx.vars[args[i++].second] = std::pair<llvm::Type*, llvm::Value*>(arg.getType(), alloca);
     }
 
-    for (auto& expr : body)
-        expr->llvmValue(ctx);
+    for (size_t i = 0; i < body.size() - 1; i++)
+        body[i]->llvmValue(ctx);
+    
+    ctx.builder->CreateRet(body[body.size() - 1]->llvmValue(ctx));
     
     ctx.vars.clear();
 
