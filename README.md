@@ -18,12 +18,12 @@ Integers, floating point values and identifiers are primitive expressions.
 
 ### Functions
 ```adscript
-([<parameters>] <return type>
+(<id> [<parameters>] <return type>
     <body>)
 ```
 
 ```adscript
-([int a int b] int
+(iadd [int a int b] int
     (- a b)     ;; this is useless
     (* a b)     ;; this is also useless
     (+ a b))    ;; this is returned
