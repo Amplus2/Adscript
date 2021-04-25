@@ -142,7 +142,6 @@ llvm::Value* FunctionCall::llvmValue(CompileContext ctx) {
         if (callArgs[i++]->getType()->getPointerTo() != arg.getType()->getPointerTo())
             error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
 
-    // ! this is where an error occurs
     llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs, "calltmp");
 
     return call;

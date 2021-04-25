@@ -1,9 +1,9 @@
 ;;(+ 1 (+ 2 3)) ;; this is a comment
 ;;(+ 4 (+ 5 6))
 
-;;(abc [int a int b] int 42)
+(abc [int a int b] int 42)
 
-;;(abc 1 2)
+(abc 1 2)
 
 ;;(main)
 
