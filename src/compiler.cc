@@ -29,13 +29,13 @@ void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
     mod->setModuleIdentifier(moduleId);
 }
 
-void runMPM(llvm::Module *mod) {
+inline void runMPM(llvm::Module *mod) {
     llvm::PassBuilder passBuilder;
 
-    llvm::ModuleAnalysisManager     mam(true);
-    llvm::CGSCCAnalysisManager      gam(true);
-    llvm::FunctionAnalysisManager   fam(true);
-    llvm::LoopAnalysisManager       lam(true);
+    llvm::ModuleAnalysisManager     mam;
+    llvm::CGSCCAnalysisManager      gam;
+    llvm::FunctionAnalysisManager   fam;
+    llvm::LoopAnalysisManager       lam;
 
     passBuilder.registerModuleAnalyses  (mam);
     passBuilder.registerCGSCCAnalyses   (gam);
@@ -48,6 +48,10 @@ void runMPM(llvm::Module *mod) {
         llvm::PassBuilder::OptimizationLevel::O3);
     
     mpm.run(*mod, mam);
+
+    mod->print(llvm::errs(), 0);
+
+    std::cout << "ran mpm (inner)" << std::endl;
 }
 
 void compileModuleToFile(llvm::Module *mod) {
@@ -63,10 +67,12 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
 
     for (auto& expr : exprs)
         expr->llvmValue(CompileContext(mod, builder));
-    
-    mod->print(llvm::errs(), 0);
 
     runMPM(mod);
 
-    mod->print(llvm::errs(), 0);
+    std::cout << "ran mpm (outer)" << std::endl;
+
+    std::free(ctx);
+    std::free(mod);
+    std::free(builder);
 }
