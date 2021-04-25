@@ -23,6 +23,8 @@ int main (int argc, char **argv) {
 
     // printAST(exprs);
 
+    std::cout << std::string("abc").find_last_of('/') << std::endl;
+
     compile(argv[1], exprs);
 
     return 0;
