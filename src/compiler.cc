@@ -13,12 +13,12 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
 
     llvm::Function *mainFunc = llvm::Function::Create(
         llvm::FunctionType::get(llvm::Type::getVoidTy(*ctx), {}, false),
-        llvm::Function::InternalLinkage,
+        llvm::Function::ExternalLinkage,
         "main",
         mod
     );
 
-    llvm::BasicBlock *mainBB = llvm::BasicBlock::Create(*ctx, "entry", mainFunc);
+    llvm::BasicBlock *mainBB = llvm::BasicBlock::Create(*ctx, "", mainFunc);
 
     builder->SetInsertPoint(mainBB);
 

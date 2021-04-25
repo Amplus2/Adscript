@@ -236,7 +236,7 @@ std::vector<Expr*> Parser::parse() {
     std::vector<Expr*> tmpExprs;
 
     while (tmpT.tt != TT_EOF) {
-        result.push_back(parseExpr(tmpT));
+        result.push_back(parseTopLevelExpr(tmpT));
 
         // eat up remaining token
         tmpT = lexer.nextT();

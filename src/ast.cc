@@ -85,10 +85,14 @@ llvm::Value* Function::llvmValue(CompileContext ctx) {
 
     llvm::Function *f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, id, ctx.mod);
 
-    if (body.size() <= 0) return f;
+    if (body.size() <= 0) {
+        size_t i = 0;
+        for (auto& arg : f->args()) arg.setName(args[i].second);
+        return f;
+    }
 
     llvm::BasicBlock *tmpBB = ctx.builder->GetInsertBlock();
-    ctx.builder->SetInsertPoint(llvm::BasicBlock::Create(ctx.mod->getContext(), "entry", f));
+    ctx.builder->SetInsertPoint(llvm::BasicBlock::Create(ctx.mod->getContext(), "", f));
 
     size_t i = 0;
     for (auto& arg : f->args()) {
@@ -128,19 +132,21 @@ llvm::Value* FunctionCall::llvmValue(CompileContext ctx) {
 
     std::vector<llvm::Value*> callArgs;
 
-    size_t i = 0;
-    for (auto& arg : f->args()) {
-        llvm::Value *v = args[i++]->llvmValue(ctx);
-        if (v->getType()->getPointerTo() == arg.getType()->getPointerTo())
-            error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
-        callArgs.push_back(v);
+    for (size_t i = 0; i < args.size(); i++) {
+        callArgs.push_back(args[i]->llvmValue(ctx));
+        if (!callArgs.back()) error(ERROR_COMPILER, "unexpected compilation error");
     }
+
+    size_t i = 0;
+    for (auto& arg : f->args())
+        if (callArgs[i++]->getType()->getPointerTo() != arg.getType()->getPointerTo())
+            error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
 
     std::cout << "before create call" << std::endl;
 
-    llvm::Value *v = ctx.builder->CreateCall(f, callArgs);
+    llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs, "calltmp");
 
     std::cout << "after create call" << std::endl;
 
-    return v;
+    return call;
 }
