@@ -21,7 +21,7 @@ int main (int argc, char **argv) {
 
     auto exprs = parser.parse();
 
-    printAST(exprs);
+    // printAST(exprs);
 
     compile(argv[1], exprs);
 

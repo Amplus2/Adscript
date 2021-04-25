@@ -142,11 +142,8 @@ llvm::Value* FunctionCall::llvmValue(CompileContext ctx) {
         if (callArgs[i++]->getType()->getPointerTo() != arg.getType()->getPointerTo())
             error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
 
-    std::cout << "before create call" << std::endl;
-
+    // ! this is where an error occurs
     llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs, "calltmp");
-
-    std::cout << "after create call" << std::endl;
 
     return call;
 }
