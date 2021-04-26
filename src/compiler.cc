@@ -124,9 +124,9 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
     for (auto& expr : exprs)
         expr->llvmValue(CompileContext(mod, builder));
 
-    runMPM(mod);
-
     mod->print(llvm::errs(), 0);
+    
+    runMPM(mod);
 
     compileModuleToFile(mod);
 

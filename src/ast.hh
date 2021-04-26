@@ -65,6 +65,19 @@ enum BinExprType {
     BINEXPR_MUL,
     BINEXPR_DIV,
     BINEXPR_MOD,
+
+    BINEXPR_OR,
+    BINEXPR_AND,
+    BINEXPR_XOR,
+
+    BINEXPR_EQ,
+    BINEXPR_NEQ,
+    BINEXPR_LT,
+    BINEXPR_GT,
+    BINEXPR_LTEQ,
+    BINEXPR_GTEQ,
+    BINEXPR_LOR,
+    BINEXPR_LAND,
 };
 
 class BinExpr : public Expr {

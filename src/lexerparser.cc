@@ -112,23 +112,28 @@ Expr* Parser::parseExpr(Token& tmpT) {
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
         else if (tmpT.tt == TT_ID) {
-            if (!tmpT.val.compare("+"))
-                return parseBinExpr(tmpT, BINEXPR_ADD);
-            else if (!tmpT.val.compare("-"))
-                return parseBinExpr(tmpT, BINEXPR_SUB);
-            else if (!tmpT.val.compare("*"))
-                return parseBinExpr(tmpT, BINEXPR_MUL);
-            else if (!tmpT.val.compare("/"))
-                return parseBinExpr(tmpT, BINEXPR_DIV);
-            else if (!tmpT.val.compare("%"))
-                return parseBinExpr(tmpT, BINEXPR_MOD);
-            else if (!tmpT.val.compare("if"))
-                return parseIfExpr(tmpT);
+            if (!tmpT.val.compare("+"))         return parseBinExpr(tmpT, BINEXPR_ADD);
+            else if (!tmpT.val.compare("-"))    return parseBinExpr(tmpT, BINEXPR_SUB);
+            else if (!tmpT.val.compare("*"))    return parseBinExpr(tmpT, BINEXPR_MUL);
+            else if (!tmpT.val.compare("/"))    return parseBinExpr(tmpT, BINEXPR_DIV);
+            else if (!tmpT.val.compare("%"))    return parseBinExpr(tmpT, BINEXPR_MOD);
+            else if (!tmpT.val.compare("|"))    return parseBinExpr(tmpT, BINEXPR_OR);
+            else if (!tmpT.val.compare("&"))    return parseBinExpr(tmpT, BINEXPR_AND);
+            else if (!tmpT.val.compare("^"))    return parseBinExpr(tmpT, BINEXPR_XOR);
+            else if (!tmpT.val.compare("="))    return parseBinExpr(tmpT, BINEXPR_EQ);
+            else if (!tmpT.val.compare("!="))   return parseBinExpr(tmpT, BINEXPR_NEQ);
+            else if (!tmpT.val.compare("<"))    return parseBinExpr(tmpT, BINEXPR_LT);
+            else if (!tmpT.val.compare(">"))    return parseBinExpr(tmpT, BINEXPR_GT);
+            else if (!tmpT.val.compare("<="))   return parseBinExpr(tmpT, BINEXPR_LTEQ);
+            else if (!tmpT.val.compare(">="))   return parseBinExpr(tmpT, BINEXPR_GTEQ);
+            else if (!tmpT.val.compare("or"))   return parseBinExpr(tmpT, BINEXPR_LOR);
+            else if (!tmpT.val.compare("and"))  return parseBinExpr(tmpT, BINEXPR_LAND);
+            else if (!tmpT.val.compare("if"))   return parseIfExpr(tmpT);
 
             return parseFunctionCall(tmpT);
         }
         
-        // error if '(' isn't followed by fun or funcall
+        // error if '(' isn't followed by a funcall
         parseError("identifier", tmpT.val);
         return nullptr;
     }

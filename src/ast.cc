@@ -20,11 +20,24 @@ std::string IdExpr::toStr() {
 
 std::string betToStr(BinExprType bet) {
     switch (bet) {
-    case BINEXPR_ADD: return "+";
-    case BINEXPR_SUB: return "-";
-    case BINEXPR_MUL: return "*";
-    case BINEXPR_DIV: return "/";
-    case BINEXPR_MOD: return "%";
+    case BINEXPR_ADD:   return "+";
+    case BINEXPR_SUB:   return "-";
+    case BINEXPR_MUL:   return "*";
+    case BINEXPR_DIV:   return "/";
+    case BINEXPR_MOD:   return "%";
+
+    case BINEXPR_OR:    return "|";
+    case BINEXPR_AND:   return "&";
+    case BINEXPR_XOR:   return "^";
+
+    case BINEXPR_EQ:    return "=";
+    case BINEXPR_NEQ:   return "!=";
+    case BINEXPR_LT:    return "<";
+    case BINEXPR_GT:    return ">";
+    case BINEXPR_LTEQ:  return "<=";
+    case BINEXPR_GTEQ:  return ">=";
+    case BINEXPR_LOR:   return "or";
+    case BINEXPR_LAND:  return "and";
     }
 }
 
@@ -114,22 +127,31 @@ llvm::Value* BinExpr::llvmValue(CompileContext ctx) {
 
     if (leftV->getType()->getPointerTo() != rightV->getType()->getPointerTo())
         error(ERROR_COMPILER, "binary expression operand types do not match");
+
+    switch (type) {
+    case BINEXPR_OR: return ctx.builder->CreateOr(leftV, rightV);
+    case BINEXPR_AND: return ctx.builder->CreateAnd(leftV, rightV);
+    case BINEXPR_XOR: return ctx.builder->CreateXor(leftV, rightV);
+    default: ;
+    }
     
-    if (llvmTypeEqual(leftV, llvm::Type::getInt32Ty(ctx.mod->getContext()))) {
+    if (leftV->getType()->getPointerTo()->isIntegerTy()) {
         switch (type) {
         case BINEXPR_ADD: return ctx.builder->CreateAdd(leftV, rightV);
         case BINEXPR_SUB: return ctx.builder->CreateSub(leftV, rightV);
         case BINEXPR_MUL: return ctx.builder->CreateMul(leftV, rightV);
         case BINEXPR_DIV: return ctx.builder->CreateSDiv(leftV, rightV);
         case BINEXPR_MOD: return ctx.builder->CreateSRem(leftV, rightV);
+        default: ;
         }
-    } else if (llvmTypeEqual(leftV, llvm::Type::getFloatTy(ctx.mod->getContext()))) {
+    } else if (leftV->getType()->getPointerTo()->isFloatTy()) {
         switch (type) {
         case BINEXPR_ADD: return ctx.builder->CreateFAdd(leftV, rightV);
         case BINEXPR_SUB: return ctx.builder->CreateFSub(leftV, rightV);
         case BINEXPR_MUL: return ctx.builder->CreateFMul(leftV, rightV);
         case BINEXPR_DIV: return ctx.builder->CreateFDiv(leftV, rightV);
         case BINEXPR_MOD: return ctx.builder->CreateFRem(leftV, rightV);
+        default: ;
         }
     }
 
@@ -145,7 +167,6 @@ llvm::Value* IfExpr::llvmValue(CompileContext ctx) {
         condV = ctx.builder->CreateICmpNE(condV, constInt(ctx, 0));
     else if (llvmTypeEqual(condV, llvm::Type::getFloatTy(ctx.mod->getContext())))
         condV = ctx.builder->CreateFCmpUNE(condV, constFP(ctx, 0));
-
 
     llvm::Value *trueV = exprTrue->llvmValue(ctx);
     llvm::Value *falseV = exprFalse->llvmValue(ctx);
