@@ -29,7 +29,7 @@ Maps are to be defined.
 
 ### Functions
 ```adscript
-(defn [<keywords>] <id> [<parameters>] [<return type>]
+(defn [<keywords>] <id> <parameters> <return type>
     <body>)
 ```
 
