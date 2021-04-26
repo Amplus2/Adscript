@@ -144,42 +144,16 @@ llvm::Value* IfExpr::llvmValue(CompileContext ctx) {
     if (llvmTypeEqual(condV, llvm::Type::getInt32Ty(ctx.mod->getContext())))
         condV = ctx.builder->CreateICmpNE(condV, constInt(ctx, 0));
     else if (llvmTypeEqual(condV, llvm::Type::getFloatTy(ctx.mod->getContext())))
-        condV = ctx.builder->CreateFCmpONE(condV, constFP(ctx, 0));
-    
-    llvm::Function *f = ctx.builder->GetInsertBlock()->getParent();
+        condV = ctx.builder->CreateFCmpUNE(condV, constFP(ctx, 0));
 
-    llvm::BasicBlock *ifBB = llvm::BasicBlock::Create(ctx.mod->getContext());
-    llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(ctx.mod->getContext());
-    llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(ctx.mod->getContext());
 
-    ctx.builder->CreateCondBr(condV, ifBB, elseBB);
-
-    ctx.builder->SetInsertPoint(ifBB);
     llvm::Value *trueV = exprTrue->llvmValue(ctx);
-
-    ctx.builder->CreateBr(mergeBB);
-    ifBB = ctx.builder->GetInsertBlock();
-
-    f->getBasicBlockList().push_back(elseBB);
-    ctx.builder->SetInsertPoint(elseBB);
     llvm::Value *falseV = exprFalse->llvmValue(ctx);
 
     if (trueV->getType()->getPointerTo() != falseV->getType()->getPointerTo())
         error(ERROR_COMPILER, "conditional expression operand types do not match");
 
-    ctx.builder->CreateBr(mergeBB);
-    elseBB = ctx.builder->GetInsertBlock();
-
-    f->getBasicBlockList().push_back(elseBB);
-
-    ctx.builder->SetInsertPoint(mergeBB);
-
-    llvm::PHINode *pn = ctx.builder->CreatePHI(trueV->getType()->getPointerTo(), 2);
-
-    pn->addIncoming(trueV, ifBB);
-    pn->addIncoming(falseV, elseBB);
-
-    return pn;
+    return ctx.builder->CreateSelect(condV, trueV, falseV);
 }
 
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::StringRef id, llvm::Type *type) {

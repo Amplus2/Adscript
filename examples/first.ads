@@ -2,7 +2,7 @@
 ;;(+ 4 (+ 5 6))
 
 (defn abc [] float
-    42.0)
+    (if 1 42.0 10.0))
 
 (defn iadd [int a int b] int
     (+ a b))
