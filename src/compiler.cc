@@ -51,7 +51,10 @@ inline void runMPM(llvm::Module *mod) {
 
     mod->print(llvm::errs(), 0);
 
-    std::cout << "ran mpm (inner)" << std::endl;
+    mam.clear();
+    gam.clear();
+    fam.clear();
+    lam.clear();
 }
 
 void compileModuleToFile(llvm::Module *mod) {
@@ -69,8 +72,6 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
         expr->llvmValue(CompileContext(mod, builder));
 
     runMPM(mod);
-
-    std::cout << "ran mpm (outer)" << std::endl;
 
     std::free(ctx);
     std::free(mod);
