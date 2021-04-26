@@ -1,11 +1,21 @@
+#include "utils.hh"
 #include "compiler.hh"
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/PassManager.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 #include <llvm/Passes/PassBuilder.h>
+
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+
+#include <llvm/Support/Host.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/TargetRegistry.h>
 
 #include <memory>
 #include <iostream>
@@ -49,7 +59,7 @@ inline void runMPM(llvm::Module *mod) {
     
     mpm.run(*mod, mam);
 
-    mod->print(llvm::errs(), 0);
+    //mod->print(llvm::errs(), 0);
 
     mam.clear();
     gam.clear();
@@ -58,7 +68,52 @@ inline void runMPM(llvm::Module *mod) {
 }
 
 void compileModuleToFile(llvm::Module *mod) {
-    // TODO: Add object file compilation
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
+    llvm::InitializeAllAsmPrinters();
+
+    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+    mod->setTargetTriple(targetTriple);
+
+    std::string err;
+    const llvm::Target *target = llvm::TargetRegistry::lookupTarget(targetTriple, err);
+
+    if (!target) error(ERROR_COMPILER, err);
+
+    llvm::TargetOptions options;
+    llvm::Optional<llvm::Reloc::Model> relocModel;
+    llvm::TargetMachine *targetMachine = target->createTargetMachine(
+        targetTriple,
+        llvm::sys::getHostCPUName(), "",
+        options,
+        relocModel
+    );
+
+    mod->setDataLayout(targetMachine->createDataLayout());
+
+    std::string outputFilename = mod->getModuleIdentifier() + ".o";
+
+    std::error_code ec;
+    llvm::raw_fd_ostream dest(outputFilename, ec, llvm::sys::fs::OF_None);
+
+    if (ec) error(ERROR_COMPILER, ec.message());
+
+    llvm::legacy::PassManager pm;
+    bool objResult = targetMachine->addPassesToEmitFile(pm, dest, nullptr, llvm::CGFT_ObjectFile);
+    
+    if (objResult) error(ERROR_COMPILER, "cannot write to file '" + outputFilename + "'");
+
+    pm.run(*mod);
+    dest.flush();
+
+    int linkResult = system(("gcc " + outputFilename + " -o " + mod->getModuleIdentifier()).c_str());
+
+    if (linkResult) error(ERROR_COMPILER, "error while linking '" + outputFilename + "'");
+
+    if (std::remove(outputFilename.c_str()))
+        error(ERROR_DEFAULT, "cannot remove '" + outputFilename + "'");
 }
 
 void compile(const std::string& filename, std::vector<Expr*>& exprs) {
@@ -72,6 +127,8 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
         expr->llvmValue(CompileContext(mod, builder));
 
     runMPM(mod);
+
+    compileModuleToFile(mod);
 
     std::free(ctx);
     std::free(mod);

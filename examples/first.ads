@@ -4,11 +4,12 @@
 (defn iadd [int a int b] int
     (+ a b))
 
-(defn fadd [float a float b] float)
+(defn fadd [float a float b] float
+    (+ a b))
 
 (defn main [] int
-    (fadd 40.1 3.9)
-    0)
+    (fadd 40.1 1.9)
+    (iadd 40 2))
 
 
 ;;(main)
