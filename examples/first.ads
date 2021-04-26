@@ -1,6 +1,9 @@
 ;;(+ 1 (+ 2 3)) ;; this is a comment
 ;;(+ 4 (+ 5 6))
 
+(defn abc [] float
+    42.0)
+
 (defn iadd [int a int b] int
     (+ a b))
 

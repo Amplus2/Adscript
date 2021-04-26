@@ -34,7 +34,7 @@ Maps are to be defined.
 ```
 
 ```adscript
-(defn :export iadd [int a int b] int
+(defn iadd [int a int b] int
     (- a b)     ;; this is useless
     (* a b)     ;; this is also useless
     (+ a b))    ;; this is returned
