@@ -31,7 +31,7 @@ Integers, floating point values and identifiers are primitive expressions.
 
 ## General
 ### Expressions
-In Adscript, functions, function calls and primitive expressions
+In Adscript, function calls and primitive expressions
 are expressions.
 
 ## Built-in functions
