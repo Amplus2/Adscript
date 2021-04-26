@@ -18,8 +18,30 @@ std::string IdExpr::toStr() {
     return val;
 }
 
+std::string betToStr(BinExprType bet) {
+    switch (bet) {
+    case BINEXPR_ADD: return "+";
+    case BINEXPR_SUB: return "-";
+    case BINEXPR_MUL: return "*";
+    case BINEXPR_DIV: return "/";
+    case BINEXPR_MOD: return "%";
+    }
+}
+
 std::string BinExpr::toStr() {
-    return "BinExpr";
+    return std::string() + "BinExpr: { "
+        + "op: " + betToStr(type)
+        + ", left: " + left->toStr()
+        + ", right: " + right->toStr()
+        + " }";
+}
+
+std::string IfExpr::toStr() {
+    return std::string() + "IfExpr: {"
+        + "cond: " + cond->toStr()
+        + ", exprTrue: " + exprTrue->toStr()
+        + ", exprFalse: " + exprFalse->toStr()
+        + " }";
 }
 
 std::string PrimTypeAST::toStr() {
@@ -31,7 +53,7 @@ std::string PrimTypeAST::toStr() {
 }
 
 std::string Function::toStr() {
-    return std::string() + "fn: { "
+    return std::string() + "Function: { "
         + "id: '" + id + "'"
         + ", args: " + argVectorToStr(args)
         + ", type: " + retType->toStr()
@@ -40,7 +62,7 @@ std::string Function::toStr() {
 }
 
 std::string FunctionCall::toStr() {
-    return std::string() + "fncall: { "
+    return std::string() + "FunctionCall: { "
         + "id: '" + calleeId + "'"
         + ", args: " + exprVectorToStr(args)
         + " }";
@@ -49,6 +71,14 @@ std::string FunctionCall::toStr() {
 
 std::string IdExpr::getVal() {
     return val;
+}
+
+llvm::Value* constInt(CompileContext ctx, int val) {
+    return llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(ctx.mod->getContext()), val);
+}
+
+llvm::Value* constFP(CompileContext ctx, float val) {
+    return llvm::ConstantFP::get(llvm::IntegerType::getFloatTy(ctx.mod->getContext()), val);
 }
 
 llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
@@ -61,11 +91,11 @@ llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
 }
 
 llvm::Value* IntExpr::llvmValue(CompileContext ctx) {
-    return llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(ctx.mod->getContext()), val);
+    return constInt(ctx, val);
 }
 
 llvm::Value* FloatExpr::llvmValue(CompileContext ctx) {
-    return llvm::ConstantFP::get(llvm::IntegerType::getFloatTy(ctx.mod->getContext()), val);
+    return constFP(ctx, val);
 }
 
 llvm::Value* IdExpr::llvmValue(CompileContext ctx) {
@@ -83,7 +113,7 @@ llvm::Value* BinExpr::llvmValue(CompileContext ctx) {
     llvm::Value *rightV = right->llvmValue(ctx);
 
     if (leftV->getType()->getPointerTo() != rightV->getType()->getPointerTo())
-        error(ERROR_COMPILER, "operand types do not match");
+        error(ERROR_COMPILER, "binary expression operand types do not match");
     
     if (llvmTypeEqual(leftV, llvm::Type::getInt32Ty(ctx.mod->getContext()))) {
         switch (type) {
@@ -106,6 +136,50 @@ llvm::Value* BinExpr::llvmValue(CompileContext ctx) {
     error(ERROR_COMPILER, "unknown type name in expression");
 
     return nullptr;
+}
+
+llvm::Value* IfExpr::llvmValue(CompileContext ctx) {
+    llvm::Value *condV = cond->llvmValue(ctx);
+
+    if (llvmTypeEqual(condV, llvm::Type::getInt32Ty(ctx.mod->getContext())))
+        condV = ctx.builder->CreateICmpNE(condV, constInt(ctx, 0));
+    else if (llvmTypeEqual(condV, llvm::Type::getFloatTy(ctx.mod->getContext())))
+        condV = ctx.builder->CreateFCmpONE(condV, constFP(ctx, 0));
+    
+    llvm::Function *f = ctx.builder->GetInsertBlock()->getParent();
+
+    llvm::BasicBlock *ifBB = llvm::BasicBlock::Create(ctx.mod->getContext());
+    llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(ctx.mod->getContext());
+    llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(ctx.mod->getContext());
+
+    ctx.builder->CreateCondBr(condV, ifBB, elseBB);
+
+    ctx.builder->SetInsertPoint(ifBB);
+    llvm::Value *trueV = exprTrue->llvmValue(ctx);
+
+    ctx.builder->CreateBr(mergeBB);
+    ifBB = ctx.builder->GetInsertBlock();
+
+    f->getBasicBlockList().push_back(elseBB);
+    ctx.builder->SetInsertPoint(elseBB);
+    llvm::Value *falseV = exprFalse->llvmValue(ctx);
+
+    if (trueV->getType()->getPointerTo() != falseV->getType()->getPointerTo())
+        error(ERROR_COMPILER, "conditional expression operand types do not match");
+
+    ctx.builder->CreateBr(mergeBB);
+    elseBB = ctx.builder->GetInsertBlock();
+
+    f->getBasicBlockList().push_back(elseBB);
+
+    ctx.builder->SetInsertPoint(mergeBB);
+
+    llvm::PHINode *pn = ctx.builder->CreatePHI(trueV->getType()->getPointerTo(), 2);
+
+    pn->addIncoming(trueV, ifBB);
+    pn->addIncoming(falseV, elseBB);
+
+    return pn;
 }
 
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::StringRef id, llvm::Type *type) {

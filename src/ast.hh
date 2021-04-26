@@ -79,6 +79,17 @@ public:
     llvm::Value* llvmValue(CompileContext ctx) override;
 };
 
+class IfExpr : public Expr {
+private:
+    Expr *cond, *exprTrue, *exprFalse;
+public:
+    IfExpr(Expr *cond, Expr *exprTrue, Expr *exprFalse)
+        : cond(cond), exprTrue(exprTrue), exprFalse(exprFalse) {}
+
+    std::string toStr() override;
+    llvm::Value* llvmValue(CompileContext ctx) override;
+};
+
 class TypeAST {
 public:
     virtual ~TypeAST() = default;

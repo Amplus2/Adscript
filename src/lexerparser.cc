@@ -122,6 +122,8 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 return parseBinExpr(tmpT, BINEXPR_DIV);
             else if (!tmpT.val.compare("%"))
                 return parseBinExpr(tmpT, BINEXPR_MOD);
+            else if (!tmpT.val.compare("if"))
+                return parseIfExpr(tmpT);
 
             return parseFunctionCall(tmpT);
         }
@@ -181,6 +183,28 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
         tmpExpr = new BinExpr(bet, tmpExpr, exprs[i]);
     
     return tmpExpr;
+}
+
+Expr* Parser::parseIfExpr(Token& tmpT) {
+    // eat up 'if'
+    tmpT = lexer.nextT();
+
+    Expr *cond = parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = lexer.nextT();
+
+    Expr *exprTrue = parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = lexer.nextT();
+
+    Expr *exprFalse = parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = lexer.nextT();
+
+    return new IfExpr(cond, exprTrue, exprFalse);
 }
 
 Expr* Parser::parseFunction(Token& tmpT) {

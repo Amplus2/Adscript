@@ -39,7 +39,7 @@ void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
     mod->setModuleIdentifier(moduleId);
 }
 
-inline void runMPM(llvm::Module *mod) {
+void runMPM(llvm::Module *mod) {
     llvm::PassBuilder passBuilder;
 
     llvm::ModuleAnalysisManager     mam;
@@ -58,8 +58,6 @@ inline void runMPM(llvm::Module *mod) {
         llvm::PassBuilder::OptimizationLevel::O3);
     
     mpm.run(*mod, mam);
-
-    //mod->print(llvm::errs(), 0);
 
     mam.clear();
     gam.clear();
@@ -127,6 +125,8 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
         expr->llvmValue(CompileContext(mod, builder));
 
     runMPM(mod);
+
+    mod->print(llvm::errs(), 0);
 
     compileModuleToFile(mod);
 

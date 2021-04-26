@@ -42,6 +42,7 @@ private:
     Expr* parseExpr(Token& tmpT);
     Expr* parseTopLevelExpr(Token& tmpT);
     Expr* parseBinExpr(Token& tmpT, BinExprType bet);
+    Expr* parseIfExpr(Token& tmpT);
     Expr* parseFunction(Token& tmpT);
     Expr* parseFunctionCall(Token& tmpT);
 public:
