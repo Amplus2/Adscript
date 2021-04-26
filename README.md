@@ -3,8 +3,19 @@ A high-performance, [s-expressions](https://en.wikipedia.org/wiki/S-expression)
 based programming language that is natively compiled.
 
 ## Syntax
-### Primitive expressions
-Integers, floating point values and identifiers are primitive expressions.
+### Lists, Arrays, Maps
+
+| Example  | Elements     | Implementation        |
+|----------|--------------|-----------------------|
+| `(1 2)`  | Heterogenous | Singly-linked list    |
+| `#(1 2)` | Homogenous   | Singly-linked list    |
+| `[1 2]`  | Heterogenous | Vector/Growable array |
+| `#[1 2]` | Homogenous   | Vector/Growable array |
+
+If you want to use a heterogenous singly-linked list as a literal, you will have
+to _quote_ it: `'(1 2 3)`
+
+Maps are to be defined.
 
 ### Function calls
 ```adscript
@@ -18,26 +29,30 @@ Integers, floating point values and identifiers are primitive expressions.
 
 ### Functions
 ```adscript
-(<id> [<parameters>] <return type>
+(defn [<keywords>] <id> [<parameters>] [<return type>]
     <body>)
 ```
 
 ```adscript
-(iadd [int a int b] int
+(defn :export iadd [int a int b] int
     (- a b)     ;; this is useless
     (* a b)     ;; this is also useless
     (+ a b))    ;; this is returned
 ```
 
-## General
-### Expressions
-In Adscript, functions, function calls and primitive expressions
-are expressions.
-
 ## Built-in functions
 
 ### +, -, *, /, %
 These functions basically just do what their operator does.
+
+### defn
+Defines a function globally, as described above.
+
+### let
+Defines a "final variable"/"run time constant", works like `let` in Clojure.
+
+### var
+Defines a variable that can be changed later.
 
 ### llvm-ir
 Equivalent to the asm "function" in c.
