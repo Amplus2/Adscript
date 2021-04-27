@@ -23,7 +23,7 @@ class Expr {
 public:
     virtual ~Expr() = default;
     virtual std::string toStr() = 0;
-    virtual llvm::Value* llvmValue(CompileContext ctx) = 0;
+    virtual llvm::Value* llvmValue(CompileContext& ctx) = 0;
 };
 
 class IntExpr : public Expr {
@@ -34,29 +34,28 @@ public:
     IntExpr(const int val) : val(val) {}
 
     std::string toStr() override;
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class FloatExpr : public Expr {
 private:
     const float val;
 public:
-
     FloatExpr(const float val) : val(val) {}
 
     std::string toStr() override;
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class IdExpr : public Expr {
-public:
+private:
     const std::string val;
-
+public:
     IdExpr(const std::string  val) : val(val) {}
 
     std::string toStr() override;
     std::string getVal();
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 enum BinExprType {
@@ -78,6 +77,19 @@ enum BinExprType {
     BINEXPR_GTEQ,
     BINEXPR_LOR,
     BINEXPR_LAND,
+    BINEXPR_LXOR,
+};
+
+class UExpr : public Expr {
+private:
+    BinExprType type;
+    Expr *expr;
+public:
+    UExpr(BinExprType type, Expr *expr)
+        : type(type), expr(expr) {}
+
+    std::string toStr() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class BinExpr : public Expr {
@@ -89,7 +101,7 @@ public:
         : type(type), left(left), right(right) {}
 
     std::string toStr() override;
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class IfExpr : public Expr {
@@ -100,7 +112,7 @@ public:
         : cond(cond), exprTrue(exprTrue), exprFalse(exprFalse) {}
 
     std::string toStr() override;
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class TypeAST {
@@ -141,7 +153,7 @@ public:
         : id(id), args(args), retType(retType), body(body) {}
 
     std::string toStr() override;
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class FunctionCall : public Expr {
@@ -153,7 +165,7 @@ public:
         : calleeId(calleeId), args(args) {}
 
     std::string toStr() override;
-    llvm::Value* llvmValue(CompileContext ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 

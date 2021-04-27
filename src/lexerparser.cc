@@ -128,6 +128,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare(">="))   return parseBinExpr(tmpT, BINEXPR_GTEQ);
             else if (!tmpT.val.compare("or"))   return parseBinExpr(tmpT, BINEXPR_LOR);
             else if (!tmpT.val.compare("and"))  return parseBinExpr(tmpT, BINEXPR_LAND);
+            else if (!tmpT.val.compare("xor"))  return parseBinExpr(tmpT, BINEXPR_LXOR);
             else if (!tmpT.val.compare("if"))   return parseIfExpr(tmpT);
 
             return parseFunctionCall(tmpT);
@@ -179,14 +180,16 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
 
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
-    
-    if (exprs.size() < 2)
+
+    if (exprs.size() == 1)
+        return new UExpr(bet, exprs[0]);
+    else if (exprs.size() < 1)
         error(ERROR_PARSER, "expected at least 2 arguments");
-    
+
     Expr *tmpExpr = new BinExpr(bet, exprs[0], exprs[1]);
     for (size_t i = 2; i < exprs.size(); i++)
         tmpExpr = new BinExpr(bet, tmpExpr, exprs[i]);
-    
+
     return tmpExpr;
 }
 
