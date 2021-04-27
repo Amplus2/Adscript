@@ -7,8 +7,6 @@ based programming language that is natively compiled.
 
 | Example  | Elements     | Implementation        |
 |----------|--------------|-----------------------|
-| `(1 2)`  | Heterogenous | Singly-linked list    |
-| `#(1 2)` | Homogenous   | Singly-linked list    |
 | `[1 2]`  | Heterogenous | Vector/Growable array |
 | `#[1 2]` | Homogenous   | Vector/Growable array |
 
