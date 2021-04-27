@@ -91,16 +91,22 @@ void Lexer::reset() {
 }
 
 PrimType strToPT(const std::string& s) {
-    if (!s.compare("int")) return TYPE_INT;
+    // general types
+    if (!s.compare("int")) return TYPE_I32;
+    else if (!s.compare("long")) return TYPE_I64;
     else if (!s.compare("float")) return TYPE_FLOAT;
+    else if (!s.compare("double")) return TYPE_FLOAT;
+    // specific types
+    else if (!s.compare("i32")) return TYPE_I32;
+    else if (!s.compare("i64")) return TYPE_I64;
     return TYPE_ERR;
 }
 
 Expr* tokenToExpr(Token t) {
     switch (t.tt) {
     case TT_ID:     return new IdExpr(t.val);
-    case TT_INT:    return new IntExpr(std::stoi(t.val));
-    case TT_FLOAT:  return new FloatExpr(std::stof(t.val));
+    case TT_INT:    return new IntExpr(std::stol(t.val));
+    case TT_FLOAT:  return new FloatExpr(std::stod(t.val));
     default:        return nullptr;
     }
 }
@@ -112,24 +118,30 @@ Expr* Parser::parseExpr(Token& tmpT) {
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
         else if (tmpT.tt == TT_ID) {
-            if (!tmpT.val.compare("+"))         return parseBinExpr(tmpT, BINEXPR_ADD);
-            else if (!tmpT.val.compare("-"))    return parseBinExpr(tmpT, BINEXPR_SUB);
-            else if (!tmpT.val.compare("*"))    return parseBinExpr(tmpT, BINEXPR_MUL);
-            else if (!tmpT.val.compare("/"))    return parseBinExpr(tmpT, BINEXPR_DIV);
-            else if (!tmpT.val.compare("%"))    return parseBinExpr(tmpT, BINEXPR_MOD);
-            else if (!tmpT.val.compare("|"))    return parseBinExpr(tmpT, BINEXPR_OR);
-            else if (!tmpT.val.compare("&"))    return parseBinExpr(tmpT, BINEXPR_AND);
-            else if (!tmpT.val.compare("^"))    return parseBinExpr(tmpT, BINEXPR_XOR);
-            else if (!tmpT.val.compare("="))    return parseBinExpr(tmpT, BINEXPR_EQ);
-            else if (!tmpT.val.compare("!="))   return parseBinExpr(tmpT, BINEXPR_NEQ);
-            else if (!tmpT.val.compare("<"))    return parseBinExpr(tmpT, BINEXPR_LT);
-            else if (!tmpT.val.compare(">"))    return parseBinExpr(tmpT, BINEXPR_GT);
-            else if (!tmpT.val.compare("<="))   return parseBinExpr(tmpT, BINEXPR_LTEQ);
-            else if (!tmpT.val.compare(">="))   return parseBinExpr(tmpT, BINEXPR_GTEQ);
-            else if (!tmpT.val.compare("or"))   return parseBinExpr(tmpT, BINEXPR_LOR);
-            else if (!tmpT.val.compare("and"))  return parseBinExpr(tmpT, BINEXPR_LAND);
-            else if (!tmpT.val.compare("xor"))  return parseBinExpr(tmpT, BINEXPR_LXOR);
-            else if (!tmpT.val.compare("if"))   return parseIfExpr(tmpT);
+            if (!tmpT.val.compare("+"))             return parseBinExpr(tmpT, BINEXPR_ADD);
+            else if (!tmpT.val.compare("-"))        return parseBinExpr(tmpT, BINEXPR_SUB);
+            else if (!tmpT.val.compare("*"))        return parseBinExpr(tmpT, BINEXPR_MUL);
+            else if (!tmpT.val.compare("/"))        return parseBinExpr(tmpT, BINEXPR_DIV);
+            else if (!tmpT.val.compare("%"))        return parseBinExpr(tmpT, BINEXPR_MOD);
+            else if (!tmpT.val.compare("|"))        return parseBinExpr(tmpT, BINEXPR_OR);
+            else if (!tmpT.val.compare("&"))        return parseBinExpr(tmpT, BINEXPR_AND);
+            else if (!tmpT.val.compare("^"))        return parseBinExpr(tmpT, BINEXPR_XOR);
+            else if (!tmpT.val.compare("="))        return parseBinExpr(tmpT, BINEXPR_EQ);
+            else if (!tmpT.val.compare("!="))       return parseBinExpr(tmpT, BINEXPR_NEQ);
+            else if (!tmpT.val.compare("<"))        return parseBinExpr(tmpT, BINEXPR_LT);
+            else if (!tmpT.val.compare(">"))        return parseBinExpr(tmpT, BINEXPR_GT);
+            else if (!tmpT.val.compare("<="))       return parseBinExpr(tmpT, BINEXPR_LTEQ);
+            else if (!tmpT.val.compare(">="))       return parseBinExpr(tmpT, BINEXPR_GTEQ);
+            else if (!tmpT.val.compare("or"))       return parseBinExpr(tmpT, BINEXPR_LOR);
+            else if (!tmpT.val.compare("and"))      return parseBinExpr(tmpT, BINEXPR_LAND);
+            else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
+            else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
+            else if (!tmpT.val.compare("i32"))      return parseCastExpr(tmpT, TYPE_I32);
+            else if (!tmpT.val.compare("i64"))      return parseCastExpr(tmpT, TYPE_I64);
+            else if (!tmpT.val.compare("int"))      return parseCastExpr(tmpT, TYPE_I32);
+            else if (!tmpT.val.compare("long"))     return parseCastExpr(tmpT, TYPE_I64);
+            else if (!tmpT.val.compare("float"))    return parseCastExpr(tmpT, TYPE_FLOAT);
+            else if (!tmpT.val.compare("double"))   return parseCastExpr(tmpT, TYPE_DOUBLE);
 
             return parseFunctionCall(tmpT);
         }
@@ -181,7 +193,7 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    if (exprs.size() == 1)
+    if (exprs.size() == 1 && bet >= BINEXPR_ADD && bet <= BINEXPR_SUB)
         return new UExpr(bet, exprs[0]);
     else if (exprs.size() < 1)
         error(ERROR_PARSER, "expected at least 2 arguments");
@@ -191,6 +203,18 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
         tmpExpr = new BinExpr(bet, tmpExpr, exprs[i]);
 
     return tmpExpr;
+}
+
+Expr* Parser::parseCastExpr(Token& tmpT, PrimType pt) {
+    // eat up cast type
+    tmpT = lexer.nextT();
+
+    Expr *expr = parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = lexer.nextT();
+
+    return new CastExpr(new PrimTypeAST(pt), expr);
 }
 
 Expr* Parser::parseIfExpr(Token& tmpT) {

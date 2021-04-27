@@ -119,6 +119,7 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
     llvm::Module *mod = new llvm::Module(filename, *ctx);
     llvm::IRBuilder<> *builder = new llvm::IRBuilder<>(*ctx);
 
+
     addFilenameToModuleInfo(filename, mod);
 
     CompileContext cctx(mod, builder);
@@ -127,7 +128,7 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
 
     runMPM(mod);
 
-    mod->print(llvm::errs(), 0);
+    //mod->print(llvm::errs(), 0);
 
     compileModuleToFile(mod);
 

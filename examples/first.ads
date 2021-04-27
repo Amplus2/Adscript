@@ -7,5 +7,5 @@
 (defn fadd [float a float b] float
     (+ a b))
 
-(defn main [int a] int
-    (abc a))
+(defn main [int a] i64
+    (long (int (double (float 10.0)))))

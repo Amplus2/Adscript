@@ -28,7 +28,7 @@ public:
 
 class IntExpr : public Expr {
 private:
-    const int val;
+    const int64_t val;
 public:
 
     IntExpr(const int val) : val(val) {}
@@ -39,7 +39,7 @@ public:
 
 class FloatExpr : public Expr {
 private:
-    const float val;
+    const double val;
 public:
     FloatExpr(const float val) : val(val) {}
 
@@ -126,8 +126,10 @@ public:
 enum PrimType {
     TYPE_ERR,
 
-    TYPE_INT,
+    TYPE_I32,
+    TYPE_I64,
     TYPE_FLOAT,
+    TYPE_DOUBLE,
 };
 
 class PrimTypeAST : public TypeAST {
@@ -140,13 +142,24 @@ public:
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
 };
 
-class Function : public Expr {
+class CastExpr : public Expr {
+private:
+    TypeAST *type;
+    Expr *expr;
 public:
+    CastExpr(TypeAST *type, Expr *expr) : type(type), expr(expr) {}
+
+    std::string toStr() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+};
+
+class Function : public Expr {
+private:
     const std::string id;
     const std::vector<std::pair<TypeAST*, std::string>> args;
     TypeAST *retType;
     const std::vector<Expr*> body;
-
+public:
     Function(const std::string& id, 
                 std::vector<std::pair<TypeAST*, std::string>>& args,
                 TypeAST *retType, std::vector<Expr*>& body)

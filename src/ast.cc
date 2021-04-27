@@ -6,6 +6,8 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
+// AST toStr methods
+
 std::string IntExpr::toStr() {
     return std::to_string(val);
 }
@@ -67,10 +69,19 @@ std::string IfExpr::toStr() {
 
 std::string PrimTypeAST::toStr() {
     switch (type) {
-    case TYPE_INT: return "int";
+    case TYPE_I32: return "i32";
+    case TYPE_I64: return "i64";
     case TYPE_FLOAT: return "float";
+    case TYPE_DOUBLE: return "double";
     default: return "err";
     }
+}
+
+std::string CastExpr::toStr() {
+    return std::string() + "Cast { "
+        + "type: " + type->toStr()
+        + ", expr: " + expr->toStr()
+        + " }";
 }
 
 std::string Function::toStr() {
@@ -89,25 +100,48 @@ std::string FunctionCall::toStr() {
         + " }";
 }
 
-
 std::string IdExpr::getVal() {
     return val;
 }
 
-llvm::Value* constInt(CompileContext& ctx, int val) {
-    return llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(ctx.mod->getContext()), val);
+// AST llvm Methods
+
+llvm::Value* constInt(CompileContext& ctx, int64_t val) {
+    return llvm::ConstantInt::get(llvm::IntegerType::getInt64Ty(ctx.mod->getContext()), val);
 }
 
-llvm::Value* constFP(CompileContext& ctx, float val) {
-    return llvm::ConstantFP::get(llvm::IntegerType::getFloatTy(ctx.mod->getContext()), val);
+llvm::Value* constFP(CompileContext& ctx, double val) {
+    return llvm::ConstantFP::get(llvm::IntegerType::getDoubleTy(ctx.mod->getContext()), val);
 }
 
 llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
-    case TYPE_INT: return llvm::Type::getInt32Ty(ctx);
+    case TYPE_I32: return llvm::Type::getInt32Ty(ctx);
+    case TYPE_I64: return llvm::Type::getInt64Ty(ctx);
     case TYPE_FLOAT: return llvm::Type::getFloatTy(ctx);
+    case TYPE_DOUBLE: return llvm::Type::getFloatTy(ctx);
     default: error(ERROR_COMPILER, "unknown type name");
     }
+    return nullptr;
+}
+
+bool llvmTypeEqual(llvm::Value *v, llvm::Type *t) {
+    return v->getType()->getPointerTo() == t->getPointerTo();
+}
+
+llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
+    if (v->getType()->getPointerTo() == t->getPointerTo()) return v;
+
+    if (v->getType()->isIntegerTy()) {
+        if (t->isIntegerTy()) return ctx.builder->CreateIntCast(v, t, true);
+        else if (t->isFloatingPointTy()) return ctx.builder->CreateSIToFP(v, t); 
+    } else if (v->getType()->isFloatingPointTy()) {
+        if (t->isIntegerTy()) return ctx.builder->CreateFPToSI(v, t);
+        else if (t->isFloatingPointTy()) return ctx.builder->CreateFPCast(v, t);
+    }
+
+    error(ERROR_COMPILER, "unable to create cast");
+
     return nullptr;
 }
 
@@ -125,20 +159,16 @@ llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateLoad(ctx.vars[val].first, ctx.vars[val].second);
 }
 
-bool llvmTypeEqual(llvm::Value *v, llvm::Type *t) {
-    return v->getType()->getPointerTo() == t->getPointerTo();
-}
-
 llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
     llvm::Value *v = expr->llvmValue(ctx);
 
     switch (type) {
     case BINEXPR_ADD: return v;
     case BINEXPR_SUB: {
-        if (llvmTypeEqual(v, llvm::Type::getInt32Ty(ctx.mod->getContext())))
-            return ctx.builder->CreateSub(constInt(ctx, 0), v);
-        else if (llvmTypeEqual(v, llvm::Type::getFloatTy(ctx.mod->getContext())))
-            return ctx.builder->CreateFSub(constFP(ctx, 0), v);
+        if (v->getType()->isIntegerTy())
+            return ctx.builder->CreateSub(cast(ctx, constInt(ctx, 0), v->getType()), v);
+        else if (v->getType()->isFloatingPointTy())
+            return ctx.builder->CreateFSub(cast(ctx, constFP(ctx, 0), v->getType()), v);
     }
     default: ;
     }
@@ -148,31 +178,52 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
     return nullptr;
 }
 
+llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
+    if (v->getType()->isIntegerTy() &&
+        !llvmTypeEqual(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
+        return ctx.builder->CreateICmpNE(v, constInt(ctx, 0));
+    else if (v->getType()->isFloatingPointTy())
+        return ctx.builder->CreateFCmpUNE(v, constFP(ctx, 0));
+
+    error(ERROR_COMPILER, "unable to create logical value");
+
+    return nullptr;
+}
+
 llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
     llvm::Value *leftV = left->llvmValue(ctx);
     llvm::Value *rightV = right->llvmValue(ctx);
 
     if (type >= BINEXPR_LOR && type <= BINEXPR_LXOR) {
-        if (llvmTypeEqual(leftV, llvm::Type::getInt32Ty(ctx.mod->getContext())))
-            leftV = ctx.builder->CreateICmpNE(leftV, constInt(ctx, 0));
-        else if (llvmTypeEqual(rightV, llvm::Type::getFloatTy(ctx.mod->getContext())))
-            rightV = ctx.builder->CreateFCmpUNE(rightV, constFP(ctx, 0));
-    }
+        leftV = createLogicalVal(ctx, leftV);
+        rightV = createLogicalVal(ctx, rightV);
 
-    if (leftV->getType()->getPointerTo() != rightV->getType()->getPointerTo())
-        error(ERROR_COMPILER, "binary expression operand types do not match");
+        switch (type) {
+        case BINEXPR_LOR:   return ctx.builder->CreateOr(leftV, rightV);
+        case BINEXPR_LAND:  return ctx.builder->CreateAnd(leftV, rightV);
+        case BINEXPR_LXOR:  return ctx.builder->CreateXor(leftV, rightV);
+        default: ;
+        }
+    } else if (leftV->getType()->isIntegerTy() && rightV->getType()->isIntegerTy()) {
+        llvm::Type *calcIntType = llvm::Type::getInt64Ty(ctx.mod->getContext());
+
+        leftV = cast(ctx, leftV, calcIntType);
+        rightV = cast(ctx, rightV, calcIntType);
+    } else if (leftV->getType()->isFloatingPointTy() && rightV->getType()->isFloatingPointTy()) {
+        llvm::Type *calcFPType = llvm::Type::getDoubleTy(ctx.mod->getContext());
+
+        leftV = cast(ctx, leftV, calcFPType);
+        rightV = cast(ctx, rightV, calcFPType);
+    } else error(ERROR_COMPILER, "binary expression operand types do not match");
 
     switch (type) {
-    case BINEXPR_LOR:
     case BINEXPR_OR:    return ctx.builder->CreateOr(leftV, rightV);
-    case BINEXPR_LAND:
     case BINEXPR_AND:   return ctx.builder->CreateAnd(leftV, rightV);
-    case BINEXPR_LXOR:
     case BINEXPR_XOR:   return ctx.builder->CreateXor(leftV, rightV);
     default: ;
     }
 
-    if (llvmTypeEqual(leftV, llvm::Type::getInt32Ty(ctx.mod->getContext()))) {
+    if (leftV->getType()->isIntegerTy()) {
         switch (type) {
         case BINEXPR_ADD: return ctx.builder->CreateAdd(leftV, rightV);
         case BINEXPR_SUB: return ctx.builder->CreateSub(leftV, rightV);
@@ -181,7 +232,7 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
         case BINEXPR_MOD: return ctx.builder->CreateSRem(leftV, rightV);
         default: ;
         }
-    } else if (llvmTypeEqual(leftV, llvm::Type::getFloatTy(ctx.mod->getContext()))) {
+    } else if (leftV->getType()->isFloatingPointTy()) {
         switch (type) {
         case BINEXPR_ADD: return ctx.builder->CreateFAdd(leftV, rightV);
         case BINEXPR_SUB: return ctx.builder->CreateFSub(leftV, rightV);
@@ -200,10 +251,10 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
 llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
     llvm::Value *condV = cond->llvmValue(ctx);
 
-    if (llvmTypeEqual(condV, llvm::Type::getInt32Ty(ctx.mod->getContext())))
-        condV = ctx.builder->CreateICmpNE(condV, constInt(ctx, 0));
-    else if (llvmTypeEqual(condV, llvm::Type::getFloatTy(ctx.mod->getContext())))
-        condV = ctx.builder->CreateFCmpUNE(condV, constFP(ctx, 0));
+    if (condV->getType()->isIntegerTy())
+        return ctx.builder->CreateICmpNE(condV, cast(ctx, constInt(ctx, 0), condV->getType()));
+    else if (condV->getType()->isFloatingPointTy())
+        return ctx.builder->CreateFCmpUNE(condV, cast(ctx, constFP(ctx, 0), condV->getType()));
 
     llvm::Value *trueV = exprTrue->llvmValue(ctx);
     llvm::Value *falseV = exprFalse->llvmValue(ctx);
@@ -212,6 +263,10 @@ llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
         error(ERROR_COMPILER, "conditional expression operand types do not match");
 
     return ctx.builder->CreateSelect(condV, trueV, falseV);
+}
+
+llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {
+    return cast(ctx, expr->llvmValue(ctx), type->llvmType(ctx.mod->getContext()));
 }
 
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::StringRef id, llvm::Type *type) {
@@ -251,7 +306,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     for (size_t i = 0; i < body.size() - 1; i++)
         body[i]->llvmValue(ctx);
     
-    ctx.builder->CreateRet(body[body.size() - 1]->llvmValue(ctx));
+    ctx.builder->CreateRet(cast(ctx, body[body.size() - 1]->llvmValue(ctx), f->getReturnType()));
     
     ctx.vars.clear();
 
