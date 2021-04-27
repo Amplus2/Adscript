@@ -126,6 +126,8 @@ public:
 enum PrimType {
     TYPE_ERR,
 
+    TYPE_I8,
+    TYPE_I16,
     TYPE_I32,
     TYPE_I64,
     TYPE_FLOAT,

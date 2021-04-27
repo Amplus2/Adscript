@@ -136,10 +136,13 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("and"))      return parseBinExpr(tmpT, BINEXPR_LAND);
             else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
             else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
-            else if (!tmpT.val.compare("i32"))      return parseCastExpr(tmpT, TYPE_I32);
-            else if (!tmpT.val.compare("i64"))      return parseCastExpr(tmpT, TYPE_I64);
-            else if (!tmpT.val.compare("int"))      return parseCastExpr(tmpT, TYPE_I32);
-            else if (!tmpT.val.compare("long"))     return parseCastExpr(tmpT, TYPE_I64);
+            else if (!tmpT.val.compare("i8")
+                    || !tmpT.val.compare("char"))   return parseCastExpr(tmpT, TYPE_I8);
+            else if (!tmpT.val.compare("i16"))      return parseCastExpr(tmpT, TYPE_I16);
+            else if (!tmpT.val.compare("i32")
+                    || !tmpT.val.compare("int"))    return parseCastExpr(tmpT, TYPE_I32);
+            else if (!tmpT.val.compare("i64")
+                    || !tmpT.val.compare("long"))   return parseCastExpr(tmpT, TYPE_I64);
             else if (!tmpT.val.compare("float"))    return parseCastExpr(tmpT, TYPE_FLOAT);
             else if (!tmpT.val.compare("double"))   return parseCastExpr(tmpT, TYPE_DOUBLE);
 

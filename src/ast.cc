@@ -116,6 +116,8 @@ llvm::Value* constFP(CompileContext& ctx, double val) {
 
 llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
+    case TYPE_I8: return llvm::Type::getInt8Ty(ctx);
+    case TYPE_I16: return llvm::Type::getInt16Ty(ctx);
     case TYPE_I32: return llvm::Type::getInt32Ty(ctx);
     case TYPE_I64: return llvm::Type::getInt64Ty(ctx);
     case TYPE_FLOAT: return llvm::Type::getFloatTy(ctx);
@@ -225,20 +227,34 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
 
     if (leftV->getType()->isIntegerTy()) {
         switch (type) {
-        case BINEXPR_ADD: return ctx.builder->CreateAdd(leftV, rightV);
-        case BINEXPR_SUB: return ctx.builder->CreateSub(leftV, rightV);
-        case BINEXPR_MUL: return ctx.builder->CreateMul(leftV, rightV);
-        case BINEXPR_DIV: return ctx.builder->CreateSDiv(leftV, rightV);
-        case BINEXPR_MOD: return ctx.builder->CreateSRem(leftV, rightV);
+        case BINEXPR_ADD:   return ctx.builder->CreateAdd(leftV, rightV);
+        case BINEXPR_SUB:   return ctx.builder->CreateSub(leftV, rightV);
+        case BINEXPR_MUL:   return ctx.builder->CreateMul(leftV, rightV);
+        case BINEXPR_DIV:   return ctx.builder->CreateSDiv(leftV, rightV);
+        case BINEXPR_MOD:   return ctx.builder->CreateSRem(leftV, rightV);
+
+        case BINEXPR_EQ:    return ctx.builder->CreateICmpEQ(leftV, rightV);
+        case BINEXPR_NEQ:   return ctx.builder->CreateICmpNE(leftV, rightV);
+        case BINEXPR_LT:    return ctx.builder->CreateICmpULT(leftV, rightV);
+        case BINEXPR_GT:    return ctx.builder->CreateICmpUGT(leftV, rightV);
+        case BINEXPR_LTEQ:  return ctx.builder->CreateICmpULE(leftV, rightV);
+        case BINEXPR_GTEQ:  return ctx.builder->CreateICmpUGE(leftV, rightV);
         default: ;
         }
     } else if (leftV->getType()->isFloatingPointTy()) {
         switch (type) {
-        case BINEXPR_ADD: return ctx.builder->CreateFAdd(leftV, rightV);
-        case BINEXPR_SUB: return ctx.builder->CreateFSub(leftV, rightV);
-        case BINEXPR_MUL: return ctx.builder->CreateFMul(leftV, rightV);
-        case BINEXPR_DIV: return ctx.builder->CreateFDiv(leftV, rightV);
-        case BINEXPR_MOD: return ctx.builder->CreateFRem(leftV, rightV);
+        case BINEXPR_ADD:   return ctx.builder->CreateFAdd(leftV, rightV);
+        case BINEXPR_SUB:   return ctx.builder->CreateFSub(leftV, rightV);
+        case BINEXPR_MUL:   return ctx.builder->CreateFMul(leftV, rightV);
+        case BINEXPR_DIV:   return ctx.builder->CreateFDiv(leftV, rightV);
+        case BINEXPR_MOD:   return ctx.builder->CreateFRem(leftV, rightV);
+
+        case BINEXPR_EQ:    return ctx.builder->CreateFCmpUEQ(leftV, rightV);
+        case BINEXPR_NEQ:   return ctx.builder->CreateFCmpUNE(leftV, rightV);
+        case BINEXPR_LT:    return ctx.builder->CreateFCmpULT(leftV, rightV);
+        case BINEXPR_GT:    return ctx.builder->CreateFCmpUGT(leftV, rightV);
+        case BINEXPR_LTEQ:  return ctx.builder->CreateFCmpULE(leftV, rightV);
+        case BINEXPR_GTEQ:  return ctx.builder->CreateFCmpUGE(leftV, rightV);
         default: ;
         }
     }

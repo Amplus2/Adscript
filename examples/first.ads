@@ -8,4 +8,5 @@
     (+ a b))
 
 (defn main [int a] i64
-    (long (int (double (float 10.0)))))
+    (long (int (double (float 10.0))))
+    (i64 (= 3 3)))
