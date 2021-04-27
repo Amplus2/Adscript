@@ -10,9 +10,6 @@ based programming language that is natively compiled.
 | `[1 2]`  | Heterogenous | Vector/Growable array |
 | `#[1 2]` | Homogenous   | Vector/Growable array |
 
-If you want to use a heterogenous singly-linked list as a literal, you will have
-to _quote_ it: `'(1 2 3)`
-
 Maps are to be defined.
 
 ### Function calls
