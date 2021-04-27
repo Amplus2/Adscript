@@ -1,5 +1,5 @@
 CXX_PRE_FLAGS ?= -O3 -s -flto -Wall
-CXX_POST_FLAGS += `llvm-config --cxxflags --ldflags --system-libs --libs all`
+CXX_POST_FLAGS = `llvm-config --cxxflags --ldflags --system-libs --libs all`
 
 BUILD_DIR = ../build
 
