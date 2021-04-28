@@ -60,9 +60,9 @@ Token Lexer::nextT() {
     case '~':
         idx += 1;
         return Token(TT_WAVE, "~");
-    case '#':
+    case '\'':
         idx += 1;
-        return Token(TT_HASH, "#");
+        return Token(TT_QUOTE, "'");
     }
     
     // helper variable for temporary string storage
@@ -125,7 +125,7 @@ Type* Parser::parseType(Token& tmpT) {
     size_t tmpIdx = lexer.getIdx();
     tmpT = lexer.nextT();
 
-    if (tmpT.tt == TT_HASH) {
+    if (tmpT.tt == TT_QUOTE) {
         tmpT = lexer.nextT();
         if (tmpT.tt != TT_INT || tmpT.val[0] == '-')
             parseError("positive integer after '#'", tmpT.val);

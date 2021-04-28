@@ -12,7 +12,7 @@ enum TokenType {
     TT_BRC,     // ']'
 
     TT_WAVE,    // '~'
-    TT_HASH,    // '#'
+    TT_QUOTE,   // '\''
 
     TT_ID,      // [.^[0-9]]+
     TT_INT,     // [0-9]+
