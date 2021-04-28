@@ -267,12 +267,7 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value *condV = cond->llvmValue(ctx);
-
-    if (condV->getType()->isIntegerTy())
-        return ctx.builder->CreateICmpNE(condV, cast(ctx, constInt(ctx, 0), condV->getType()));
-    else if (condV->getType()->isFloatingPointTy())
-        return ctx.builder->CreateFCmpUNE(condV, cast(ctx, constFP(ctx, 0), condV->getType()));
+    llvm::Value *condV = createLogicalVal(ctx, cond->llvmValue(ctx));
 
     llvm::Value *trueV = exprTrue->llvmValue(ctx);
     llvm::Value *falseV = exprFalse->llvmValue(ctx);
@@ -306,6 +301,8 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
         for (size_t i = 0; i < ftArgs.size(); i++)
             if (ftArgs.at(i)->getPointerTo() != f->getArg(i)->getType()->getPointerTo())
                 error(ERROR_COMPILER, "invalid redefenition of function '" + id + "'");
+        
+        f->setLinkage(llvm::Function::ExternalLinkage);
     } else {
         llvm::FunctionType *ft =
             llvm::FunctionType::get(retType->llvmType(ctx.mod->getContext()), ftArgs, false);
@@ -316,6 +313,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     if (body.size() <= 0) {
         size_t i = 0;
         for (auto& arg : f->args()) arg.setName(args[i].second);
+        f->setLinkage(llvm::Function::InternalLinkage);
         return f;
     }
 
@@ -323,6 +321,9 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
     size_t i = 0;
     for (auto& arg : f->args()) {
+        if (args[i].second.size() <= 0)
+            error(ERROR_COMPILER, "function definiton with body must have named arguments");
+
         arg.setName(args[i].second);
 
         llvm::AllocaInst *alloca = createAlloca(f, arg.getName(), ftArgs[i]);

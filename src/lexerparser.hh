@@ -27,10 +27,10 @@ public:
 
 class Lexer {
 private:
-    size_t idx;
+    size_t idx, cacheIdx;
     std::string text;
 public:
-    Lexer(const std::string& text) : idx(0), text(text) {}
+    Lexer(const std::string& text) : idx(0), cacheIdx(0), text(text) {}
     Token nextT();
     void reset();
 };

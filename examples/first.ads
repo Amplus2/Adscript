@@ -1,5 +1,4 @@
 (defn abc [int a] int)
-
 (defn main [int a] i64)
 
 (defn iadd [int a int b] int
@@ -14,3 +13,7 @@
 
 (defn abc [int a] int
     (* a (if 1 42 10)))
+
+;; this function definition is ignored
+(defn abc [int a] int
+    (* a 50))
