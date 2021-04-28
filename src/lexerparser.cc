@@ -92,13 +92,15 @@ void Lexer::reset() {
 
 PrimType strToPT(const std::string& s) {
     // general types
-    if (!s.compare("int")) return TYPE_I32;
-    else if (!s.compare("long")) return TYPE_I64;
-    else if (!s.compare("float")) return TYPE_FLOAT;
-    else if (!s.compare("double")) return TYPE_FLOAT;
-    // specific types
-    else if (!s.compare("i32")) return TYPE_I32;
-    else if (!s.compare("i64")) return TYPE_I64;
+    if (!s.compare("char")
+        || !s.compare("i8"))        return TYPE_I8;
+    else if (!s.compare("i16"))     return TYPE_I16;
+    else if (!s.compare("int")
+            || !s.compare("i32"))   return TYPE_I32;
+    else if (!s.compare("long")
+            || !s.compare("i64"))   return TYPE_I64;
+    else if (!s.compare("float"))   return TYPE_FLOAT;
+    else if (!s.compare("double"))  return TYPE_FLOAT;
     return TYPE_ERR;
 }
 

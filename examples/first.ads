@@ -1,5 +1,6 @@
-(defn abc [int a] int
-    (* a (if 1 42 10)))
+(defn abc [int a] int)
+
+(defn main [int a] i64)
 
 (defn iadd [int a int b] int
     (+ a b))
@@ -9,4 +10,7 @@
 
 (defn main [int a] i64
     (long (int (double (float 10.0))))
-    (i64 (= 3 3)))
+    (i64 (abc a)))
+
+(defn abc [int a] int
+    (* a (if 1 42 10)))

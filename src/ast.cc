@@ -69,6 +69,8 @@ std::string IfExpr::toStr() {
 
 std::string PrimTypeAST::toStr() {
     switch (type) {
+    case TYPE_I8: return "i8";
+    case TYPE_I16: return "i16";
     case TYPE_I32: return "i32";
     case TYPE_I64: return "i64";
     case TYPE_FLOAT: return "float";
@@ -116,12 +118,12 @@ llvm::Value* constFP(CompileContext& ctx, double val) {
 
 llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
-    case TYPE_I8: return llvm::Type::getInt8Ty(ctx);
-    case TYPE_I16: return llvm::Type::getInt16Ty(ctx);
-    case TYPE_I32: return llvm::Type::getInt32Ty(ctx);
-    case TYPE_I64: return llvm::Type::getInt64Ty(ctx);
-    case TYPE_FLOAT: return llvm::Type::getFloatTy(ctx);
-    case TYPE_DOUBLE: return llvm::Type::getFloatTy(ctx);
+    case TYPE_I8:       return llvm::Type::getInt8Ty(ctx);
+    case TYPE_I16:      return llvm::Type::getInt16Ty(ctx);
+    case TYPE_I32:      return llvm::Type::getInt32Ty(ctx);
+    case TYPE_I64:      return llvm::Type::getInt64Ty(ctx);
+    case TYPE_FLOAT:    return llvm::Type::getFloatTy(ctx);
+    case TYPE_DOUBLE:   return llvm::Type::getDoubleTy(ctx);
     default: error(ERROR_COMPILER, "unknown type name");
     }
     return nullptr;
@@ -294,11 +296,22 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
         ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
-    
-    llvm::FunctionType *ft =
-        llvm::FunctionType::get(retType->llvmType(ctx.mod->getContext()), ftArgs, false);
 
-    llvm::Function *f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, id, ctx.mod);
+    llvm::Function *f = ctx.mod->getFunction(id);
+
+    if (f) {
+        if (ftArgs.size() != f->arg_size())
+            error(ERROR_COMPILER, "invalid redefenition of function '" + id + "'");
+
+        for (size_t i = 0; i < ftArgs.size(); i++)
+            if (ftArgs.at(i)->getPointerTo() != f->getArg(i)->getType()->getPointerTo())
+                error(ERROR_COMPILER, "invalid redefenition of function '" + id + "'");
+    } else {
+        llvm::FunctionType *ft =
+            llvm::FunctionType::get(retType->llvmType(ctx.mod->getContext()), ftArgs, false);
+
+        f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, id, ctx.mod);
+    }
 
     if (body.size() <= 0) {
         size_t i = 0;
