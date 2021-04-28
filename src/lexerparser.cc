@@ -93,6 +93,10 @@ void Lexer::reset() {
     idx = 0;
 }
 
+void Lexer::revert() {
+    idx = cacheIdx;
+}
+
 PrimType strToPT(const std::string& s) {
     // general types
     if (!s.compare("char")

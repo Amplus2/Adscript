@@ -33,6 +33,7 @@ public:
     Lexer(const std::string& text) : idx(0), cacheIdx(0), text(text) {}
     Token nextT();
     void reset();
+    void revert();
 };
 
 class Parser {
