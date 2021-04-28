@@ -67,7 +67,7 @@ std::string IfExpr::toStr() {
         + " }";
 }
 
-std::string PrimTypeAST::toStr() {
+std::string PrimType::toStr() {
     switch (type) {
     case TYPE_I8: return "i8";
     case TYPE_I16: return "i16";
@@ -77,6 +77,17 @@ std::string PrimTypeAST::toStr() {
     case TYPE_DOUBLE: return "double";
     default: return "err";
     }
+}
+
+std::string PointerType::toStr() {
+    return std::string() + "Pointer: " + type->toStr();
+}
+
+std::string ArrayType::toStr() {
+    return std::string() + "Array: { "
+        + "type: " + type->toStr()
+        + ", size: " + std::to_string(size)
+        + " }";
 }
 
 std::string CastExpr::toStr() {
@@ -116,7 +127,7 @@ llvm::Value* constFP(CompileContext& ctx, double val) {
     return llvm::ConstantFP::get(llvm::IntegerType::getDoubleTy(ctx.mod->getContext()), val);
 }
 
-llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
+llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
     case TYPE_I8:       return llvm::Type::getInt8Ty(ctx);
     case TYPE_I16:      return llvm::Type::getInt16Ty(ctx);
@@ -127,6 +138,14 @@ llvm::Type* PrimTypeAST::llvmType(llvm::LLVMContext &ctx) {
     default: error(ERROR_COMPILER, "unknown type name");
     }
     return nullptr;
+}
+
+llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
+    return llvm::PointerType::getUnqual(type->llvmType(ctx));
+}
+
+llvm::Type* ArrayType::llvmType(llvm::LLVMContext &ctx) {
+    return llvm::ArrayType::get(type->llvmType(ctx), size);
 }
 
 bool llvmTypeEqual(llvm::Value *v, llvm::Type *t) {

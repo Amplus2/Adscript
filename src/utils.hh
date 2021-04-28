@@ -6,7 +6,7 @@
 
 #include "ast.hh"
 
-typedef std::string str;
+bool strEq(const std::string& str, const std::vector<std::string>& eqVals);
 
 enum ErrorType {
     ERROR_DEFAULT,
@@ -24,6 +24,6 @@ std::string readFile(const std::string& filename);
 
 std::string strVectorToStr(const std::vector<std::string>& vector);
 std::string exprVectorToStr(const std::vector<Expr*>& vector);
-std::string argVectorToStr(const std::vector<std::pair<TypeAST*, std::string>>& vector);
+std::string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector);
 
 #endif

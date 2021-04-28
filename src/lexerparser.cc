@@ -16,9 +16,6 @@ bool isSpecialChar(char c) {
 }
 
 Token Lexer::nextT() {
-    // cache currentIndex
-    cacheIdx = idx;
-
     // section declaration for goto statement we need later on
     nextT_start:
 
@@ -60,6 +57,12 @@ Token Lexer::nextT() {
     case ']':
         idx += 1;
         return Token(TT_BRC, "]");
+    case '~':
+        idx += 1;
+        return Token(TT_WAVE, "~");
+    case '#':
+        idx += 1;
+        return Token(TT_HASH, "#");
     }
     
     // helper variable for temporary string storage
@@ -89,26 +92,12 @@ Token Lexer::nextT() {
     return Token(TT_ID, tmpStr);
 }
 
-void Lexer::reset() {
-    idx = 0;
+size_t Lexer::getIdx() {
+    return idx;
 }
 
-void Lexer::revert() {
-    idx = cacheIdx;
-}
-
-PrimType strToPT(const std::string& s) {
-    // general types
-    if (!s.compare("char")
-        || !s.compare("i8"))        return TYPE_I8;
-    else if (!s.compare("i16"))     return TYPE_I16;
-    else if (!s.compare("int")
-            || !s.compare("i32"))   return TYPE_I32;
-    else if (!s.compare("long")
-            || !s.compare("i64"))   return TYPE_I64;
-    else if (!s.compare("float"))   return TYPE_FLOAT;
-    else if (!s.compare("double"))  return TYPE_FLOAT;
-    return TYPE_ERR;
+void Lexer::setIdx(size_t idx) {
+    this->idx = idx;
 }
 
 Expr* tokenToExpr(Token t) {
@@ -118,6 +107,36 @@ Expr* tokenToExpr(Token t) {
     case TT_FLOAT:  return new FloatExpr(std::stod(t.val));
     default:        return nullptr;
     }
+}
+
+Type* Parser::parseType(Token& tmpT) {
+    Type *t = nullptr;
+
+    // general types
+    if (strEq(tmpT.val, {"char", "i8"}))        t = new PrimType(TYPE_I8);
+    else if (strEq(tmpT.val, {"i16"}))          t = new PrimType(TYPE_I16);
+    else if (strEq(tmpT.val, {"int", "i32"}))   t = new PrimType(TYPE_I32);
+    else if (strEq(tmpT.val, {"long", "i64"}))  t = new PrimType(TYPE_I64);
+    else if (strEq(tmpT.val, {"float"}))        t = new PrimType(TYPE_FLOAT);
+    else if (strEq(tmpT.val, {"double"}))       t = new PrimType(TYPE_DOUBLE);
+    else return nullptr;
+
+    Token tmpTmpT = tmpT;
+    size_t tmpIdx = lexer.getIdx();
+    tmpT = lexer.nextT();
+
+    if (tmpT.tt == TT_HASH) {
+        tmpT = lexer.nextT();
+        if (tmpT.tt != TT_INT || tmpT.val[0] == '-')
+            parseError("positive integer after '#'", tmpT.val);
+        return new ArrayType(t, std::stoul(tmpT.val));
+    } else if (tmpT.tt == TT_WAVE) {
+        return new PointerType(t);
+    }
+
+    lexer.setIdx(tmpIdx);
+    tmpT = tmpTmpT;
+    return t;
 }
 
 
@@ -146,8 +165,8 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
             else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
 
-            PrimType pt = strToPT(tmpT.val);
-            if (pt != TYPE_ERR)                     return parseCastExpr(tmpT, pt);
+            Type *t = parseType(tmpT);
+            if (t) return parseCastExpr(tmpT, t);
 
             return parseFunctionCall(tmpT);
         }
@@ -210,8 +229,8 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     return tmpExpr;
 }
 
-Expr* Parser::parseCastExpr(Token& tmpT, PrimType pt) {
-    // eat up cast type
+Expr* Parser::parseCastExpr(Token& tmpT, Type *t) {
+    // eat remaining token
     tmpT = lexer.nextT();
 
     Expr *expr = parseExpr(tmpT);
@@ -219,7 +238,7 @@ Expr* Parser::parseCastExpr(Token& tmpT, PrimType pt) {
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    return new CastExpr(new PrimTypeAST(pt), expr);
+    return new CastExpr(t, expr);
 }
 
 Expr* Parser::parseIfExpr(Token& tmpT) {
@@ -259,11 +278,11 @@ Expr* Parser::parseFunction(Token& tmpT) {
     tmpT = lexer.nextT();
 
     // parse arguments/parameters
-    std::vector<std::pair<TypeAST*, std::string>> args;
+    std::vector<std::pair<Type*, std::string>> args;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
         // get argument/parameter type
-        PrimType pt = strToPT(tmpT.val);
-        if (pt == TYPE_ERR) parseError("data type", tmpT.val);
+        Type *t = parseType(tmpT);
+        if (!t) parseError("data type", tmpT.val);
 
         // eat up data type
         tmpT = lexer.nextT();
@@ -271,7 +290,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
         // get argument/parameter id
         if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
 
-        args.push_back(std::pair<TypeAST*, std::string>(new PrimTypeAST(pt), tmpT.val));
+        args.push_back(std::pair<Type*, std::string>(t, tmpT.val));
 
         // eat up identifier
         tmpT = lexer.nextT();
@@ -283,9 +302,8 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up ']'
     tmpT = lexer.nextT();
 
-    PrimType pt = strToPT(tmpT.val);
-    if (pt == TYPE_ERR) parseError("return type", tmpT.val);
-    TypeAST *retType = new PrimTypeAST(pt);
+    Type *retType = parseType(tmpT);
+    if (!retType) parseError("return type", tmpT.val);
 
     // eat up return type
     tmpT = lexer.nextT();
@@ -345,7 +363,7 @@ std::vector<Expr*> Parser::parse() {
     }
 
     // reset lexer
-    lexer.reset();
+    lexer.setIdx(0);
     
     return result;
 }

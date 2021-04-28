@@ -4,6 +4,11 @@
 #include <sstream>
 #include <iostream>
 
+bool strEq(const std::string& str, const std::vector<std::string>& eqVals) {
+    for (auto& val : eqVals) if (!str.compare(val)) return true;
+    return false;
+}
+
 std::string etToStr(ErrorType et) {
     switch (et) {
     case ERROR_LEXER: return "lexer error";
@@ -50,7 +55,7 @@ std::string exprVectorToStr(const std::vector<Expr*>& vector) {
     return strVectorToStr(tmp);
 }
 
-std::string argVectorToStr(const std::vector<std::pair<TypeAST*, std::string>>& vector) {
+std::string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector) {
     std::vector<std::string> tmp;
     for (size_t i = 0; i < vector.size(); i++)
         tmp.push_back(vector.at(i).second + ": " + vector.at(i).first->toStr());

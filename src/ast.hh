@@ -115,15 +115,15 @@ public:
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
-class TypeAST {
+class Type {
 public:
-    virtual ~TypeAST() = default;
+    virtual ~Type() = default;
     virtual std::string toStr() = 0;
     virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
 };
 
 
-enum PrimType {
+enum PT {
     TYPE_ERR,
 
     TYPE_I8,
@@ -134,11 +134,32 @@ enum PrimType {
     TYPE_DOUBLE,
 };
 
-class PrimTypeAST : public TypeAST {
+class PrimType : public Type {
 private:
-    PrimType type;
+    PT type;
 public:
-    PrimTypeAST(PrimType type) : type(type) {}
+    PrimType(PT type) : type(type) {}
+
+    std::string toStr() override;
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+};
+
+class PointerType : public Type {
+private:
+    Type *type;
+public:
+    PointerType(Type *type) : type(type) {}
+
+    std::string toStr() override;
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+};
+
+class ArrayType : public Type {
+private:
+    Type *type;
+    size_t size;
+public:
+    ArrayType(Type *type, size_t size) : type(type), size(size) {}
 
     std::string toStr() override;
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
@@ -146,10 +167,10 @@ public:
 
 class CastExpr : public Expr {
 private:
-    TypeAST *type;
+    Type *type;
     Expr *expr;
 public:
-    CastExpr(TypeAST *type, Expr *expr) : type(type), expr(expr) {}
+    CastExpr(Type *type, Expr *expr) : type(type), expr(expr) {}
 
     std::string toStr() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
@@ -158,13 +179,13 @@ public:
 class Function : public Expr {
 private:
     const std::string id;
-    const std::vector<std::pair<TypeAST*, std::string>> args;
-    TypeAST *retType;
+    const std::vector<std::pair<Type*, std::string>> args;
+    Type *retType;
     const std::vector<Expr*> body;
 public:
     Function(const std::string& id, 
-                std::vector<std::pair<TypeAST*, std::string>>& args,
-                TypeAST *retType, std::vector<Expr*>& body)
+                std::vector<std::pair<Type*, std::string>>& args,
+                Type *retType, std::vector<Expr*>& body)
         : id(id), args(args), retType(retType), body(body) {}
 
     std::string toStr() override;

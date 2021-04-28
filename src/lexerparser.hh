@@ -11,6 +11,9 @@ enum TokenType {
     TT_BRO,     // '['
     TT_BRC,     // ']'
 
+    TT_WAVE,    // '~'
+    TT_HASH,    // '#'
+
     TT_ID,      // [.^[0-9]]+
     TT_INT,     // [0-9]+
     TT_FLOAT,   // [0-9]*'.'[0-9]+
@@ -27,23 +30,26 @@ public:
 
 class Lexer {
 private:
-    size_t idx, cacheIdx;
+    size_t idx;
     std::string text;
 public:
-    Lexer(const std::string& text) : idx(0), cacheIdx(0), text(text) {}
+    Lexer(const std::string& text) : idx(0), text(text) {}
+
+    void setIdx(size_t idx);
+    size_t getIdx();
+
     Token nextT();
-    void reset();
-    void revert();
 };
 
 class Parser {
 private:
     Lexer lexer;
 
+    Type* parseType(Token& tmpT);
     Expr* parseExpr(Token& tmpT);
     Expr* parseTopLevelExpr(Token& tmpT);
     Expr* parseBinExpr(Token& tmpT, BinExprType bet);
-    Expr* parseCastExpr(Token& tmpT, PrimType pt);
+    Expr* parseCastExpr(Token& tmpT, Type *t);
     Expr* parseIfExpr(Token& tmpT);
     Expr* parseFunction(Token& tmpT);
     Expr* parseFunctionCall(Token& tmpT);
