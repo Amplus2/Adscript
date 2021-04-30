@@ -52,7 +52,7 @@ Defines a variable that can be changed later.
 ### llvm-ir
 Equivalent to the asm "function" in c with llvm IR.
 
-### nativec
+### native-c
 Equivalent to the asm "function" in c with c code.
 
 ### All C standard library functions
