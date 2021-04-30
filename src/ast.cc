@@ -157,10 +157,14 @@ llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
 
     if (v->getType()->isIntegerTy()) {
         if (t->isIntegerTy()) return ctx.builder->CreateIntCast(v, t, true);
-        else if (t->isFloatingPointTy()) return ctx.builder->CreateSIToFP(v, t); 
+        else if (t->isFloatingPointTy()) return ctx.builder->CreateSIToFP(v, t);
+        else if (t->isPointerTy()) return ctx.builder->CreateIntToPtr(v, t);
     } else if (v->getType()->isFloatingPointTy()) {
         if (t->isIntegerTy()) return ctx.builder->CreateFPToSI(v, t);
         else if (t->isFloatingPointTy()) return ctx.builder->CreateFPCast(v, t);
+    } else if (v->getType()->isPointerTy()) {
+        if (t->isIntegerTy()) return ctx.builder->CreatePtrToInt(v, t);
+        else if (t->isPointerTy()) return ctx.builder->CreatePointerCast(v, t);
     }
 
     error(ERROR_COMPILER, "unable to create cast");
