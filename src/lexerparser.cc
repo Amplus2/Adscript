@@ -125,14 +125,7 @@ Type* Parser::parseType(Token& tmpT) {
     size_t tmpIdx = lexer.getIdx();
     tmpT = lexer.nextT();
 
-    if (tmpT.tt == TT_QUOTE) {
-        tmpT = lexer.nextT();
-        if (tmpT.tt != TT_INT || tmpT.val[0] == '-')
-            parseError("positive integer after '#'", tmpT.val);
-        return new ArrayType(t, std::stoul(tmpT.val));
-    } else if (tmpT.tt == TT_WAVE) {
-        return new PointerType(t);
-    }
+    if (tmpT.tt == TT_WAVE) return new PointerType(t);
 
     lexer.setIdx(tmpIdx);
     tmpT = tmpTmpT;

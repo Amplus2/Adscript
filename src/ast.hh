@@ -154,17 +154,6 @@ public:
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
 };
 
-class ArrayType : public Type {
-private:
-    Type *type;
-    size_t size;
-public:
-    ArrayType(Type *type, size_t size) : type(type), size(size) {}
-
-    std::string toStr() override;
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-};
-
 class CastExpr : public Expr {
 private:
     Type *type;

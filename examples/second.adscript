@@ -2,7 +2,7 @@
 
 (defn abc [int a] int)
 
-(defn main [int a, int '10 b] int
+(defn main [int a] int
     (abc a))
 
 (defn abc [int a] int

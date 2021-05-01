@@ -83,13 +83,6 @@ std::string PointerType::toStr() {
     return std::string() + "Pointer: " + type->toStr();
 }
 
-std::string ArrayType::toStr() {
-    return std::string() + "Array: { "
-        + "type: " + type->toStr()
-        + ", size: " + std::to_string(size)
-        + " }";
-}
-
 std::string CastExpr::toStr() {
     return std::string() + "Cast { "
         + "type: " + type->toStr()
@@ -142,10 +135,6 @@ llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
 
 llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
     return llvm::PointerType::getUnqual(type->llvmType(ctx));
-}
-
-llvm::Type* ArrayType::llvmType(llvm::LLVMContext &ctx) {
-    return llvm::ArrayType::get(type->llvmType(ctx), size);
 }
 
 bool llvmTypeEqual(llvm::Value *v, llvm::Type *t) {
