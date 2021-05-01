@@ -233,6 +233,9 @@ Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
     std::vector<Expr*> exprs;
 
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+        exprs.push_back(parseExpr(tmpT));
+
+        // eat up remaining token
         tmpT = lexer.nextT();
     }
 
