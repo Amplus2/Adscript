@@ -87,7 +87,7 @@ Token Lexer::nextT() {
 
         return Token(TT_FLOAT, tmpStr);
     } else if (text[idx] == '.')
-        error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, text[idx]) + "'");
+        error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, text[idx]) + "'", pos());
 
     // handle identifiers
     while (!isWhitespace(text[idx]) && !isSpecialChar(text[idx]) && idx < text.size())
@@ -101,6 +101,21 @@ size_t Lexer::getIdx() {
 
 void Lexer::setIdx(size_t idx) {
     this->idx = idx;
+}
+
+std::string Lexer::pos() {
+    if (idx >= text.size()) return "end of file";
+
+    size_t tmpIdx = 0, line = 1, col = 1;
+
+    while (tmpIdx < idx) {
+        if (text[col + 1] == '\n' || text[col + 1] == '\r') {
+            col = 1;
+            line += 1;
+        } else col += 1;
+    }
+
+    return std::to_string(line) + ":" + std::to_string(col);
 }
 
 Expr* tokenToExpr(Token t) {
@@ -168,11 +183,11 @@ Expr* Parser::parseExpr(Token& tmpT) {
         }
 
         // error if '(' isn't followed by a funcall
-        parseError("identifier", tmpT.val);
+        parseError("identifier", tmpT.val, lexer.pos());
         return nullptr;
     } else {
         Expr* tmp = tokenToExpr(tmpT);
-        if (!tmp) parseError("primitive expression", tmpT.val);
+        if (!tmp) parseError("primitive expression", tmpT.val, lexer.pos());
         return tmp;
     }
 }
@@ -188,13 +203,41 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
             if (!tmpT.val.compare("defn"))
                 return parseFunction(tmpT);
             
-            parseError("built-in top-level function call identifier", tmpT.val);
+            parseError("built-in top-level function call identifier", tmpT.val, lexer.pos());
         }
         
         // error if '(' isn't followed by fun or funcall
-        parseError("identifier", tmpT.val);
+        parseError("identifier", tmpT.val, lexer.pos());
     }
-    parseError("top level expression", tmpT.val);
+    parseError("top level expression", tmpT.val, lexer.pos());
+    return nullptr;
+}
+
+Expr* Parser::parseArrayExpr(Token& tmpT) {
+    // eat up '['
+    tmpT = lexer.nextT();
+    return nullptr;
+}
+
+Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
+    // eat up '#'
+    tmpT = lexer.nextT();
+
+    if (tmpT.tt != TT_BRO)
+        parseError("'['", tmpT.val, lexer.pos());
+    
+    // eat up '['
+    tmpT = lexer.nextT();
+
+    std::vector<Expr*> exprs;
+
+    while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+        tmpT = lexer.nextT();
+    }
+
+    if (tmpT.tt == TT_EOF)
+        error(ERROR_PARSER, "unexpected end of file");
+
     return nullptr;
 }
 
@@ -216,9 +259,9 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     if (exprs.size() == 1 && ((bet >= BINEXPR_ADD && bet <= BINEXPR_SUB) || bet == BINEXPR_NOT))
         return new UExpr(bet, exprs[0]);
     else if (bet == BINEXPR_NOT && exprs.size() != 1)
-        error(ERROR_PARSER, "too many arguments for unary expression");
+        error(ERROR_PARSER, "too many arguments for unary expression", lexer.pos());
     else if (exprs.size() < 1)
-        error(ERROR_PARSER, "expected at least 2 arguments");
+        error(ERROR_PARSER, "expected at least 2 arguments", lexer.pos());
 
     Expr *tmpExpr = new BinExpr(bet, exprs[0], exprs[1]);
     for (size_t i = 2; i < exprs.size(); i++)
@@ -270,7 +313,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up identifier
     tmpT = lexer.nextT();
 
-    if (tmpT.tt != TT_BRO) parseError("'['", tmpT.val);
+    if (tmpT.tt != TT_BRO) parseError("'['", tmpT.val, lexer.pos());
 
     // eat up '['
     tmpT = lexer.nextT();
@@ -280,13 +323,13 @@ Expr* Parser::parseFunction(Token& tmpT) {
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
         // get argument/parameter type
         Type *t = parseType(tmpT);
-        if (!t) parseError("data type", tmpT.val);
+        if (!t) parseError("data type", tmpT.val, lexer.pos());
 
         // eat up data type
         tmpT = lexer.nextT();
 
         // get argument/parameter id
-        if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val);
+        if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val, lexer.pos());
 
         args.push_back(std::pair<Type*, std::string>(t, tmpT.val));
 
@@ -301,7 +344,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     tmpT = lexer.nextT();
 
     Type *retType = parseType(tmpT);
-    if (!retType) parseError("return type", tmpT.val);
+    if (!retType) parseError("return type", tmpT.val, lexer.pos());
 
     // eat up return type
     tmpT = lexer.nextT();
@@ -323,7 +366,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
 
 Expr* Parser::parseFunctionCall(Token& tmpT) {
     if (!tmpT.val.compare("defn"))
-        error(ERROR_PARSER, "functions can only be defined at the top level");
+        error(ERROR_PARSER, "functions can only be defined at the top level", lexer.pos());
 
     std::string calleeId = tmpT.val;
 

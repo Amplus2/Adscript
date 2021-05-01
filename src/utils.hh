@@ -15,8 +15,8 @@ enum ErrorType {
     ERROR_COMPILER,
 };
 
-void error(ErrorType et, const std::string& msg);
-void parseError(const std::string& expected, const std::string& got);
+void error(ErrorType et, const std::string& msg, const std::string& pos = "");
+void parseError(const std::string& expected, const std::string& got, const std::string& pos);
 
 void printUsage();
 

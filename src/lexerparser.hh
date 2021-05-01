@@ -40,6 +40,8 @@ public:
     size_t getIdx();
 
     Token nextT();
+
+    std::string pos();
 };
 
 class Parser {

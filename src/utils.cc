@@ -18,13 +18,15 @@ std::string etToStr(ErrorType et) {
     }
 }
 
-void error(ErrorType et, const std::string& msg) {
-    std::cout << etToStr(et) << ": " << msg << std::endl;
+void error(ErrorType et, const std::string& msg, const std::string& pos) {
+    std::cout << etToStr(et) << ": " << msg;
+    if (pos.size() > 0) std::cout << "(before " + pos + ")";
+    std::cout << std::endl;
     exit(1);
 }
 
-void parseError(const std::string& expected, const std::string& got) {
-    error(ERROR_PARSER, "expected " + expected + ", got '" + got + "'");
+void parseError(const std::string& expected, const std::string& got, const std::string& pos) {
+    error(ERROR_PARSER, "expected " + expected + ", got '" + got + "'", pos);
 }
 
 void printUsage() {
