@@ -20,7 +20,7 @@ std::string etToStr(ErrorType et) {
 
 void error(ErrorType et, const std::string& msg, const std::string& pos) {
     std::cout << etToStr(et) << ": " << msg;
-    if (pos.size() > 0) std::cout << "(before " + pos + ")";
+    if (pos.size() > 0) std::cout << " (before " + pos + ")";
     std::cout << std::endl;
     exit(1);
 }

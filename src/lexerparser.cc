@@ -109,10 +109,11 @@ std::string Lexer::pos() {
     size_t tmpIdx = 0, line = 1, col = 1;
 
     while (tmpIdx < idx) {
-        if (text[col + 1] == '\n' || text[col + 1] == '\r') {
+        if (text[tmpIdx + 1] == '\n' || text[tmpIdx + 1] == '\r') {
             col = 1;
             line += 1;
         } else col += 1;
+        tmpIdx += 1;
     }
 
     return std::to_string(line) + ":" + std::to_string(col);
