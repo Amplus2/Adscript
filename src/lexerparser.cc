@@ -213,7 +213,7 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    if (exprs.size() == 1 && (bet >= BINEXPR_ADD && bet <= BINEXPR_SUB || bet == BINEXPR_NOT))
+    if (exprs.size() == 1 && ((bet >= BINEXPR_ADD && bet <= BINEXPR_SUB) || bet == BINEXPR_NOT))
         return new UExpr(bet, exprs[0]);
     else if (bet == BINEXPR_NOT && exprs.size() != 1)
         error(ERROR_PARSER, "too many arguments for unary expression");

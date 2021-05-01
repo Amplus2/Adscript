@@ -161,6 +161,24 @@ llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
     return nullptr;
 }
 
+llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
+    if (llvmTypeEqual(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
+        return v;
+    else if (v->getType()->isIntegerTy())
+        return ctx.builder->CreateICmpNE(v, cast(ctx, constInt(ctx, 0), v->getType()));
+    else if (v->getType()->isFloatingPointTy())
+        return ctx.builder->CreateFCmpUNE(v, cast(ctx, constFP(ctx, 0), v->getType()));
+    else if (v->getType()->isPointerTy())
+        return ctx.builder->CreateICmpNE(
+            cast(ctx, v, llvm::Type::getInt32Ty(ctx.mod->getContext())),
+            constInt(ctx, 0)
+        );
+
+    error(ERROR_COMPILER, "unable to create logical value");
+
+    return nullptr;
+}
+
 llvm::Value* IntExpr::llvmValue(CompileContext& ctx) {
     return constInt(ctx, val);
 }
@@ -193,24 +211,6 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
     }
 
     error(ERROR_COMPILER, "unknown type name in unary expression");
-
-    return nullptr;
-}
-
-llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
-    if (llvmTypeEqual(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
-        return v;
-    else if (v->getType()->isIntegerTy())
-        return ctx.builder->CreateICmpNE(v, constInt(ctx, 0));
-    else if (v->getType()->isFloatingPointTy())
-        return ctx.builder->CreateFCmpUNE(v, constFP(ctx, 0));
-    else if (v->getType()->isPointerTy())
-        return ctx.builder->CreateICmpNE(
-            cast(ctx, v, llvm::Type::getInt32Ty(ctx.mod->getContext())),
-            constInt(ctx, 0)
-        );
-
-    error(ERROR_COMPILER, "unable to create logical value");
 
     return nullptr;
 }
