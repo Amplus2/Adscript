@@ -60,6 +60,9 @@ Token Lexer::nextT() {
     case '~':
         idx += 1;
         return Token(TT_WAVE, "~");
+    case '#':
+        idx += 1;
+        return Token(TT_HASH, "#");
     case '\'':
         idx += 1;
         return Token(TT_QUOTE, "'");
@@ -148,7 +151,6 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("&"))        return parseBinExpr(tmpT, BINEXPR_AND);
             else if (!tmpT.val.compare("^"))        return parseBinExpr(tmpT, BINEXPR_XOR);
             else if (!tmpT.val.compare("="))        return parseBinExpr(tmpT, BINEXPR_EQ);
-            else if (!tmpT.val.compare("!="))       return parseBinExpr(tmpT, BINEXPR_NEQ);
             else if (!tmpT.val.compare("<"))        return parseBinExpr(tmpT, BINEXPR_LT);
             else if (!tmpT.val.compare(">"))        return parseBinExpr(tmpT, BINEXPR_GT);
             else if (!tmpT.val.compare("<="))       return parseBinExpr(tmpT, BINEXPR_LTEQ);
@@ -156,6 +158,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("or"))       return parseBinExpr(tmpT, BINEXPR_LOR);
             else if (!tmpT.val.compare("and"))      return parseBinExpr(tmpT, BINEXPR_LAND);
             else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
+            else if (!tmpT.val.compare("not"))      return parseBinExpr(tmpT, BINEXPR_NOT);
             else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
 
             Type *t = parseType(tmpT);
@@ -210,8 +213,10 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    if (exprs.size() == 1 && bet >= BINEXPR_ADD && bet <= BINEXPR_SUB)
+    if (exprs.size() == 1 && (bet >= BINEXPR_ADD && bet <= BINEXPR_SUB || bet == BINEXPR_NOT))
         return new UExpr(bet, exprs[0]);
+    else if (bet == BINEXPR_NOT && exprs.size() != 1)
+        error(ERROR_PARSER, "too many arguments for unary expression");
     else if (exprs.size() < 1)
         error(ERROR_PARSER, "expected at least 2 arguments");
 

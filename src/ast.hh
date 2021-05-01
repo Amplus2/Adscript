@@ -68,9 +68,9 @@ enum BinExprType {
     BINEXPR_OR,
     BINEXPR_AND,
     BINEXPR_XOR,
+    BINEXPR_NOT,
 
     BINEXPR_EQ,
-    BINEXPR_NEQ,
     BINEXPR_LT,
     BINEXPR_GT,
     BINEXPR_LTEQ,

@@ -12,6 +12,7 @@ enum TokenType {
     TT_BRC,     // ']'
 
     TT_WAVE,    // '~'
+    TT_HASH,    // '#'
     TT_QUOTE,   // '\''
 
     TT_ID,      // [.^[0-9]]+
@@ -46,11 +47,16 @@ private:
     Lexer lexer;
 
     Type* parseType(Token& tmpT);
+
     Expr* parseExpr(Token& tmpT);
     Expr* parseTopLevelExpr(Token& tmpT);
+
+    Expr* parseArrayExpr(Token& tmpT);
+    Expr* parsePtrArrayExpr(Token& tmpT);
     Expr* parseBinExpr(Token& tmpT, BinExprType bet);
     Expr* parseCastExpr(Token& tmpT, Type *t);
     Expr* parseIfExpr(Token& tmpT);
+
     Expr* parseFunction(Token& tmpT);
     Expr* parseFunctionCall(Token& tmpT);
 public:

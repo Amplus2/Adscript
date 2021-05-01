@@ -33,7 +33,6 @@ std::string betToStr(BinExprType bet) {
     case BINEXPR_XOR:   return "^";
 
     case BINEXPR_EQ:    return "=";
-    case BINEXPR_NEQ:   return "!=";
     case BINEXPR_LT:    return "<";
     case BINEXPR_GT:    return ">";
     case BINEXPR_LTEQ:  return "<=";
@@ -41,6 +40,7 @@ std::string betToStr(BinExprType bet) {
     case BINEXPR_LOR:   return "or";
     case BINEXPR_LAND:  return "and";
     case BINEXPR_LXOR:  return "xor";
+    case BINEXPR_NOT:   return "not";
     }
 }
 
@@ -186,6 +186,9 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
         else if (v->getType()->isFloatingPointTy())
             return ctx.builder->CreateFSub(cast(ctx, constFP(ctx, 0), v->getType()), v);
     }
+    case BINEXPR_NOT: {
+        return ctx.builder->CreateNot(createLogicalVal(ctx, expr->llvmValue(ctx)));
+    }
     default: ;
     }
 
@@ -195,11 +198,17 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
-    if (v->getType()->isIntegerTy() &&
-        !llvmTypeEqual(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
+    if (llvmTypeEqual(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
+        return v;
+    else if (v->getType()->isIntegerTy())
         return ctx.builder->CreateICmpNE(v, constInt(ctx, 0));
     else if (v->getType()->isFloatingPointTy())
         return ctx.builder->CreateFCmpUNE(v, constFP(ctx, 0));
+    else if (v->getType()->isPointerTy())
+        return ctx.builder->CreateICmpNE(
+            cast(ctx, v, llvm::Type::getInt32Ty(ctx.mod->getContext())),
+            constInt(ctx, 0)
+        );
 
     error(ERROR_COMPILER, "unable to create logical value");
 
@@ -248,7 +257,6 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
         case BINEXPR_MOD:   return ctx.builder->CreateSRem(leftV, rightV);
 
         case BINEXPR_EQ:    return ctx.builder->CreateICmpEQ(leftV, rightV);
-        case BINEXPR_NEQ:   return ctx.builder->CreateICmpNE(leftV, rightV);
         case BINEXPR_LT:    return ctx.builder->CreateICmpULT(leftV, rightV);
         case BINEXPR_GT:    return ctx.builder->CreateICmpUGT(leftV, rightV);
         case BINEXPR_LTEQ:  return ctx.builder->CreateICmpULE(leftV, rightV);
@@ -264,7 +272,6 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
         case BINEXPR_MOD:   return ctx.builder->CreateFRem(leftV, rightV);
 
         case BINEXPR_EQ:    return ctx.builder->CreateFCmpUEQ(leftV, rightV);
-        case BINEXPR_NEQ:   return ctx.builder->CreateFCmpUNE(leftV, rightV);
         case BINEXPR_LT:    return ctx.builder->CreateFCmpULT(leftV, rightV);
         case BINEXPR_GT:    return ctx.builder->CreateFCmpUGT(leftV, rightV);
         case BINEXPR_LTEQ:  return ctx.builder->CreateFCmpULE(leftV, rightV);
