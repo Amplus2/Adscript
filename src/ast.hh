@@ -115,6 +115,26 @@ public:
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
+class ArrayExpr : public Expr {
+private:
+    std::vector<Expr*> exprs;
+public:
+    ArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
+
+    std::string toStr() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+};
+
+class PtrArrayExpr : public Expr {
+private:
+    std::vector<Expr*> exprs;
+public:
+    PtrArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
+
+    std::string toStr() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+};
+
 class Type {
 public:
     virtual ~Type() = default;

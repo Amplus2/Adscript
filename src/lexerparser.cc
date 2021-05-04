@@ -217,7 +217,23 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
 Expr* Parser::parseArrayExpr(Token& tmpT) {
     // eat up '['
     tmpT = lexer.nextT();
-    return nullptr;
+
+    std::vector<Expr*> exprs;
+
+    while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+        exprs.push_back(parseExpr(tmpT));
+
+        // eat up remaining token
+        tmpT = lexer.nextT();
+    }
+
+    if (tmpT.tt == TT_EOF)
+        error(ERROR_PARSER, "unexpected end of file");
+    
+    // eat up ']'
+    tmpT = lexer.nextT();
+
+    return new ArrayExpr(exprs);
 }
 
 Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
@@ -241,8 +257,11 @@ Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
 
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
+    
+    // eat up ']'
+    tmpT = lexer.nextT();
 
-    return nullptr;
+    return new PtrArrayExpr(exprs);
 }
 
 Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {

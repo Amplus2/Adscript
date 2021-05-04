@@ -7,8 +7,8 @@ based programming language that is natively compiled.
 
 | Example  | Elements     | Implementation        |
 |----------|--------------|-----------------------|
-| `[1 2]`  | Heterogenous | Vector/Growable array |
-| `#[1 2]` | Homogenous   | Vector/Growable array |
+| `[1 2]`  | Heterogenous | Array                 |
+| `#[1 2]` | Homogenous   | Array                 |
 
 Maps are to be defined.
 
@@ -24,7 +24,7 @@ Maps are to be defined.
 
 ### Functions
 ```adscript
-(defn [<keywords>] <id> <parameters> <return type>
+(defn [<parameters>] <id> <return type>
     <body>)
 ```
 
