@@ -67,6 +67,23 @@ std::string IfExpr::toStr() {
         + " }";
 }
 
+
+std::string ArrayExpr::toStr() {
+    return std::string() + "ArrayExpr: {"
+        + "size: " + std::to_string(exprs.size())
+        + ", exprs: " + exprVectorToStr(exprs)
+        + " }";
+}
+
+
+std::string PtrArrayExpr::toStr() {
+    return std::string() + "PtrArrayExpr: {"
+        + "size: " + std::to_string(exprs.size())
+        + ", exprs: " + exprVectorToStr(exprs)
+        + " }";
+}
+
+
 std::string PrimType::toStr() {
     switch (type) {
     case TYPE_I8: return "i8";
@@ -295,6 +312,14 @@ llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
         error(ERROR_COMPILER, "conditional expression operand types do not match");
 
     return ctx.builder->CreateSelect(condV, trueV, falseV);
+}
+
+llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
+    return nullptr;
+}
+
+llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
+    return nullptr;
 }
 
 llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {
