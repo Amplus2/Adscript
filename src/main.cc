@@ -8,13 +8,13 @@ void printAST(const std::vector<Expr*>& ast) {
     for (auto& expr : ast) std::cout << expr->toStr() << std::endl;
 }
 
-void printUsage() {
-    std::cout << "usage: adscript <file>" << std::endl;
+void printUsage(char *argv0) {
+    std::cout << "usage: " << argv0 << " <file>" << std::endl;
 }
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        printUsage();
+        printUsage(argv[0]);
         return 1;
     }
 
@@ -23,8 +23,6 @@ int main(int argc, char **argv) {
     Parser parser(lexer);
 
     auto exprs = parser.parse();
-
-    // printAST(exprs);
 
     compile(argv[1], exprs);
 

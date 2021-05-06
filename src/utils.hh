@@ -16,8 +16,6 @@ enum ErrorType {
 void error(ErrorType et, const std::string& msg, const std::string& pos = "");
 void parseError(const std::string& expected, const std::string& got, const std::string& pos);
 
-void printUsage();
-
 std::string readFile(const std::string& filename);
 
 std::string strVectorToStr(const std::vector<std::string>& vector);

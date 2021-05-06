@@ -29,7 +29,7 @@ private:
     const int64_t val;
 public:
 
-    IntExpr(const int val) : val(val) {}
+    IntExpr(const int64_t val) : val(val) {}
 
     std::string toStr() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;

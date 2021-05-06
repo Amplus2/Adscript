@@ -72,6 +72,7 @@ void compileModuleToFile(llvm::Module *mod) {
     llvm::InitializeAllAsmParsers();
     llvm::InitializeAllAsmPrinters();
 
+    // TODO: make configurable
     std::string targetTriple = llvm::sys::getDefaultTargetTriple();
     mod->setTargetTriple(targetTriple);
 
@@ -84,6 +85,7 @@ void compileModuleToFile(llvm::Module *mod) {
     llvm::Optional<llvm::Reloc::Model> relocModel;
     llvm::TargetMachine *targetMachine = target->createTargetMachine(
         targetTriple,
+        // TODO: make configurable
         llvm::sys::getHostCPUName(), "",
         options,
         relocModel
@@ -100,7 +102,7 @@ void compileModuleToFile(llvm::Module *mod) {
 
     llvm::legacy::PassManager pm;
     bool objResult = targetMachine->addPassesToEmitFile(pm, dest, nullptr, llvm::CGFT_ObjectFile);
-    
+
     if (objResult) error(ERROR_COMPILER, "cannot write to file '" + outputFilename + "'");
 
     pm.run(*mod);
@@ -118,7 +120,6 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
     llvm::LLVMContext *ctx = new llvm::LLVMContext();
     llvm::Module *mod = new llvm::Module(filename, *ctx);
     llvm::IRBuilder<> *builder = new llvm::IRBuilder<>(*ctx);
-
 
     addFilenameToModuleInfo(filename, mod);
 

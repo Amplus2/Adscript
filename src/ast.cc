@@ -408,9 +408,17 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
     }
 
     size_t i = 0;
-    for (auto& arg : f->args())
-        if (callArgs[i++]->getType()->getPointerTo() != arg.getType()->getPointerTo())
-            error(ERROR_COMPILER, "invalid argument type for function '" + calleeId + "'");
+    for (auto& arg : f->args()) {
+        if (callArgs[i]->getType()->getPointerTo() != arg.getType()->getPointerTo()) {
+            std::string _s, _t;
+            llvm::raw_string_ostream s(_s), t(_t);
+            callArgs[i]->getType()->print(s);
+            arg.getType()->print(t);
+            error(ERROR_COMPILER, "invalid argument type for function `" + calleeId
+                  + "' (expected: `" + t.str() + "', actual: `" + s.str() + "')");
+        }
+        i++;
+    }
 
     llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs);
 
