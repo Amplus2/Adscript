@@ -5,12 +5,14 @@ based programming language that is natively compiled.
 ## Syntax
 ### Lists, Arrays, Maps
 
-| Example  | Elements     | Implementation        |
-|----------|--------------|-----------------------|
-| `[1 2]`  | Heterogenous | Array                 |
-| `#[1 2]` | Homogenous   | Array                 |
+| Example    | Elements     | Implementation                                   |
+|------------|--------------|--------------------------------------------------|
+| `(f 1 2)`  | Heterogenous | None (Lists, but only valid for function calls)  |
+| `[1 "hi"]` | Heterogenous | Array (`std::vector<void*>`)                     |
+| `#[1 2]`   | Homogenous   | Array (`std::vector<T>`, where `T`` is the type) |
 
-Maps are to be defined.
+Maps are to be defined. (Probably `{1 2}`)
+Singly-linked lists are currently **not** supported, debates may be had.
 
 ### Function calls
 ```adscript
