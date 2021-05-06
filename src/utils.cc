@@ -29,10 +29,6 @@ void parseError(const std::string& expected, const std::string& got, const std::
     error(ERROR_PARSER, "expected " + expected + ", got '" + got + "'", pos);
 }
 
-void printUsage() {
-    std::cout << "usage: adscript <file>" << std::endl;
-}
-
 std::string readFile(const std::string& filename) {
     std::ifstream ifstream(filename);
     if (ifstream.bad())

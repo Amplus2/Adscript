@@ -8,8 +8,11 @@ void printAST(const std::vector<Expr*>& ast) {
     for (auto& expr : ast) std::cout << expr->toStr() << std::endl;
 }
 
-int main (int argc, char **argv) {
+void printUsage() {
+    std::cout << "usage: adscript <file>" << std::endl;
+}
 
+int main(int argc, char **argv) {
     if (argc != 2) {
         printUsage();
         return 1;

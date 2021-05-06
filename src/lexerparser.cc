@@ -3,15 +3,15 @@
 
 #include <iostream>
 
-bool isDigit(char c) {
+static inline bool isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
-bool isWhitespace(char c) {
+static inline bool isWhitespace(char c) {
     return (c >= 0 && c <= 32) || c == ',';
 }
 
-bool isSpecialChar(char c) {
+static inline bool isSpecialChar(char c) {
     return c == '(' || c == ')' || c == '[' || c == ']';
 }
 
