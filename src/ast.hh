@@ -1,6 +1,4 @@
-#ifndef AST_HH_
-#define AST_HH_
-
+#pragma once
 #include <map>
 #include <string>
 #include <vector>
@@ -212,6 +210,3 @@ public:
     std::string toStr() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
-
-
-#endif
