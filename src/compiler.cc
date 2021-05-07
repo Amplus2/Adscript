@@ -119,24 +119,19 @@ void compileModuleToFile(llvm::Module *mod) {
 }
 
 void compile(const std::string& filename, std::vector<Expr*>& exprs) {
-    llvm::LLVMContext *ctx = new llvm::LLVMContext();
-    llvm::Module *mod = new llvm::Module(filename, *ctx);
-    llvm::IRBuilder<> *builder = new llvm::IRBuilder<>(*ctx);
+    llvm::LLVMContext ctx;
+    llvm::Module mod(filename, ctx);
+    llvm::IRBuilder<> builder(ctx);
 
-    addFilenameToModuleInfo(filename, mod);
+    addFilenameToModuleInfo(filename, &mod);
 
-    CompileContext cctx(mod, builder);
+    CompileContext cctx(&mod, &builder);
     for (auto& expr : exprs)
         expr->llvmValue(cctx);
 
-    runMPM(mod);
+    runMPM(&mod);
 
     // mod->print(llvm::errs(), 0);
 
-    compileModuleToFile(mod);
-
-    // ! omitting this CAN cause segmentation faults
-    std::free(ctx);
-    std::free(mod);
-    std::free(builder);
+    compileModuleToFile(&mod);
 }
