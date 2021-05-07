@@ -20,7 +20,7 @@ public:
 class Expr {
 public:
     virtual ~Expr() = default;
-    virtual std::string toStr() = 0;
+    virtual std::string str() = 0;
     virtual llvm::Value* llvmValue(CompileContext& ctx) = 0;
 };
 
@@ -31,7 +31,7 @@ public:
 
     IntExpr(const int64_t val) : val(val) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -41,7 +41,7 @@ private:
 public:
     FloatExpr(const float val) : val(val) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -51,7 +51,7 @@ private:
 public:
     IdExpr(const std::string  val) : val(val) {}
 
-    std::string toStr() override;
+    std::string str() override;
     std::string getVal();
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
@@ -86,7 +86,7 @@ public:
     UExpr(BinExprType type, Expr *expr)
         : type(type), expr(expr) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -98,7 +98,7 @@ public:
     BinExpr(BinExprType type, Expr *left, Expr *right)
         : type(type), left(left), right(right) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -109,7 +109,7 @@ public:
     IfExpr(Expr *cond, Expr *exprTrue, Expr *exprFalse)
         : cond(cond), exprTrue(exprTrue), exprFalse(exprFalse) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -119,7 +119,7 @@ private:
 public:
     ArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -129,14 +129,14 @@ private:
 public:
     PtrArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 class Type {
 public:
     virtual ~Type() = default;
-    virtual std::string toStr() = 0;
+    virtual std::string str() = 0;
     virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
 };
 
@@ -158,7 +158,7 @@ private:
 public:
     PrimType(PT type) : type(type) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
 };
 
@@ -168,7 +168,7 @@ private:
 public:
     PointerType(Type *type) : type(type) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
 };
 
@@ -179,7 +179,7 @@ private:
 public:
     CastExpr(Type *type, Expr *expr) : type(type), expr(expr) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -195,7 +195,7 @@ public:
                 Type *retType, std::vector<Expr*>& body)
         : id(id), args(args), retType(retType), body(body) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
@@ -207,6 +207,6 @@ public:
     FunctionCall(const std::string& calleeId, const std::vector<Expr*>& args)
         : calleeId(calleeId), args(args) {}
 
-    std::string toStr() override;
+    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };

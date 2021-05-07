@@ -4,6 +4,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/PassManager.h>
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 
@@ -101,6 +102,7 @@ void compileModuleToFile(llvm::Module *mod) {
     if (ec) error(ERROR_COMPILER, ec.message());
 
     llvm::legacy::PassManager pm;
+    
     bool objResult = targetMachine->addPassesToEmitFile(pm, dest, nullptr, llvm::CGFT_ObjectFile);
 
     if (objResult) error(ERROR_COMPILER, "cannot write to file '" + outputFilename + "'");
@@ -133,6 +135,7 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
 
     compileModuleToFile(mod);
 
+    // ! omitting this CAN cause segmentation faults
     std::free(ctx);
     std::free(mod);
     std::free(builder);

@@ -6,21 +6,22 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
-// AST toStr methods
+// TODO: move some functions or methods to 'utils.cc'
+// AST str methods
 
-std::string IntExpr::toStr() {
+std::string IntExpr::str() {
     return std::to_string(val);
 }
 
-std::string FloatExpr::toStr() {
+std::string FloatExpr::str() {
     return std::to_string(val);
 }
 
-std::string IdExpr::toStr() {
+std::string IdExpr::str() {
     return val;
 }
 
-std::string betToStr(BinExprType bet) {
+std::string betstr(BinExprType bet) {
     switch (bet) {
     case BINEXPR_ADD:   return "+";
     case BINEXPR_SUB:   return "-";
@@ -44,31 +45,31 @@ std::string betToStr(BinExprType bet) {
     }
 }
 
-std::string UExpr::toStr() {
+std::string UExpr::str() {
     return std::string() + "UExpr: { "
-        + "op: " + betToStr(type)
-        + ", expr: " + expr->toStr()
+        + "op: " + betstr(type)
+        + ", expr: " + expr->str()
         + " }";
 }
 
-std::string BinExpr::toStr() {
+std::string BinExpr::str() {
     return std::string() + "BinExpr: { "
-        + "op: " + betToStr(type)
-        + ", left: " + left->toStr()
-        + ", right: " + right->toStr()
+        + "op: " + betstr(type)
+        + ", left: " + left->str()
+        + ", right: " + right->str()
         + " }";
 }
 
-std::string IfExpr::toStr() {
+std::string IfExpr::str() {
     return std::string() + "IfExpr: {"
-        + "cond: " + cond->toStr()
-        + ", exprTrue: " + exprTrue->toStr()
-        + ", exprFalse: " + exprFalse->toStr()
+        + "cond: " + cond->str()
+        + ", exprTrue: " + exprTrue->str()
+        + ", exprFalse: " + exprFalse->str()
         + " }";
 }
 
 
-std::string ArrayExpr::toStr() {
+std::string ArrayExpr::str() {
     return std::string() + "ArrayExpr: {"
         + "size: " + std::to_string(exprs.size())
         + ", exprs: " + exprVectorToStr(exprs)
@@ -76,7 +77,7 @@ std::string ArrayExpr::toStr() {
 }
 
 
-std::string PtrArrayExpr::toStr() {
+std::string PtrArrayExpr::str() {
     return std::string() + "PtrArrayExpr: {"
         + "size: " + std::to_string(exprs.size())
         + ", exprs: " + exprVectorToStr(exprs)
@@ -84,7 +85,7 @@ std::string PtrArrayExpr::toStr() {
 }
 
 
-std::string PrimType::toStr() {
+std::string PrimType::str() {
     switch (type) {
     case TYPE_I8: return "i8";
     case TYPE_I16: return "i16";
@@ -96,27 +97,27 @@ std::string PrimType::toStr() {
     }
 }
 
-std::string PointerType::toStr() {
-    return std::string() + "Pointer: " + type->toStr();
+std::string PointerType::str() {
+    return std::string() + "Pointer: " + type->str();
 }
 
-std::string CastExpr::toStr() {
+std::string CastExpr::str() {
     return std::string() + "Cast { "
-        + "type: " + type->toStr()
-        + ", expr: " + expr->toStr()
+        + "type: " + type->str()
+        + ", expr: " + expr->str()
         + " }";
 }
 
-std::string Function::toStr() {
+std::string Function::str() {
     return std::string() + "Function: { "
         + "id: '" + id + "'"
         + ", args: " + argVectorToStr(args)
-        + ", type: " + retType->toStr()
+        + ", type: " + retType->str()
         + ", body: " + exprVectorToStr(body)
         + " }";
 }
 
-std::string FunctionCall::toStr() {
+std::string FunctionCall::str() {
     return std::string() + "FunctionCall: { "
         + "id: '" + calleeId + "'"
         + ", args: " + exprVectorToStr(args)

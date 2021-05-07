@@ -5,7 +5,7 @@
 #include <iostream>
 
 void printAST(const std::vector<Expr*>& ast) {
-    for (auto& expr : ast) std::cout << expr->toStr() << std::endl;
+    for (auto& expr : ast) std::cout << expr->str() << std::endl;
 }
 
 void printUsage(char *argv0) {

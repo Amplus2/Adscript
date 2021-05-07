@@ -49,13 +49,13 @@ std::string strVectorToStr(const std::vector<std::string>& vector) {
 std::string exprVectorToStr(const std::vector<Expr*>& vector) {
     std::vector<std::string> tmp;
     for (size_t i = 0; i < vector.size(); i++)
-        tmp.push_back(vector.at(i)->toStr());
+        tmp.push_back(vector.at(i)->str());
     return strVectorToStr(tmp);
 }
 
 std::string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector) {
     std::vector<std::string> tmp;
     for (size_t i = 0; i < vector.size(); i++)
-        tmp.push_back(vector.at(i).second + ": " + vector.at(i).first->toStr());
+        tmp.push_back(vector.at(i).second + ": " + vector.at(i).first->str());
     return strVectorToStr(tmp);
 }
