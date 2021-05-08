@@ -332,8 +332,8 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
     llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(t);
 
     for (size_t i = 0; i < elements.size(); i++) {
-        if (!llvmTypeEq(elements[i], t))
-            error(ERROR_COMPILER, "element types do not match inside of homogenous array");
+        //if (!llvmTypeEq(elements[i], t))
+        //    error(ERROR_COMPILER, "element types do not match inside of homogenous array");
         
         llvm::GetElementPtrInst *ptr =
             llvm::GetElementPtrInst::Create(t, arrayAlloca, {constInt(ctx, 0), constInt(ctx, i)});

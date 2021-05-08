@@ -4,6 +4,7 @@
 (defn ` [i64 a] int)
 
 (defn main [int a] i64
+    #[1 2 3 4]
     (` (if (not (not a)) 42 10)))
 
 (defn abc [i64 a] int

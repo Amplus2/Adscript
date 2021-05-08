@@ -186,6 +186,10 @@ Expr* Parser::parseExpr(Token& tmpT) {
         // error if '(' isn't followed by a funcall
         parseError("identifier", tmpT.val, lexer.pos());
         return nullptr;
+    } else if (tmpT.tt == TT_HASH) {
+        return parseArrayExpr(tmpT);
+    } else if (tmpT.tt == TT_BRO) {
+        return parsePtrArrayExpr(tmpT);
     } else {
         Expr* tmp = tokenToExpr(tmpT);
         if (!tmp) parseError("primitive expression", tmpT.val, lexer.pos());
@@ -235,9 +239,6 @@ Expr* Parser::parseArrayExpr(Token& tmpT) {
 
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
-    
-    // eat up ']'
-    tmpT = lexer.nextT();
 
     return new ArrayExpr(exprs);
 }
@@ -257,9 +258,6 @@ Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
 
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
-    
-    // eat up ']'
-    tmpT = lexer.nextT();
 
     return new PtrArrayExpr(exprs);
 }
