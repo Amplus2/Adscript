@@ -215,6 +215,12 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
 }
 
 Expr* Parser::parseArrayExpr(Token& tmpT) {
+    // eat up '#'
+    tmpT = lexer.nextT();
+
+    if (tmpT.tt != TT_BRO)
+        parseError("'['", tmpT.val, lexer.pos());
+    
     // eat up '['
     tmpT = lexer.nextT();
 
@@ -237,12 +243,6 @@ Expr* Parser::parseArrayExpr(Token& tmpT) {
 }
 
 Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
-    // eat up '#'
-    tmpT = lexer.nextT();
-
-    if (tmpT.tt != TT_BRO)
-        parseError("'['", tmpT.val, lexer.pos());
-    
     // eat up '['
     tmpT = lexer.nextT();
 

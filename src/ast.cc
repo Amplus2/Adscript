@@ -21,7 +21,7 @@ std::string IdExpr::str() {
     return val;
 }
 
-std::string betstr(BinExprType bet) {
+std::string betStr(BinExprType bet) {
     switch (bet) {
     case BINEXPR_ADD:   return "+";
     case BINEXPR_SUB:   return "-";
@@ -47,14 +47,14 @@ std::string betstr(BinExprType bet) {
 
 std::string UExpr::str() {
     return std::string() + "UExpr: { "
-        + "op: " + betstr(type)
+        + "op: " + betStr(type)
         + ", expr: " + expr->str()
         + " }";
 }
 
 std::string BinExpr::str() {
     return std::string() + "BinExpr: { "
-        + "op: " + betstr(type)
+        + "op: " + betStr(type)
         + ", left: " + left->str()
         + ", right: " + right->str()
         + " }";
@@ -155,7 +155,7 @@ llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
     return llvm::PointerType::getUnqual(type->llvmType(ctx));
 }
 
-bool llvmTypeEqual(llvm::Value *v, llvm::Type *t) {
+bool llvmTypeEq(llvm::Value *v, llvm::Type *t) {
     return v->getType()->getPointerTo() == t->getPointerTo();
 }
 
@@ -180,7 +180,7 @@ llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
 }
 
 llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
-    if (llvmTypeEqual(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
+    if (llvmTypeEq(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
         return v;
     else if (v->getType()->isIntegerTy())
         return ctx.builder->CreateICmpNE(v, cast(ctx, constInt(ctx, 0), v->getType()));
@@ -195,6 +195,13 @@ llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
     error(ERROR_COMPILER, "unable to create logical value");
 
     return nullptr;
+}
+
+std::string llvmTypeStr(llvm::Type *t) {
+    std::string _s;
+    llvm::raw_string_ostream s(_s);
+    t->getPointerTo()->print(s);
+    return s.str();
 }
 
 llvm::Value* IntExpr::llvmValue(CompileContext& ctx) {
@@ -316,7 +323,24 @@ llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
-    return nullptr;
+    std::vector<llvm::Value*> elements;
+    for (auto& expr : exprs) elements.push_back(expr->llvmValue(ctx));
+
+    llvm::Type *t = llvm::ArrayType::get(elements.size() == 0
+            ? llvm::Type::getVoidTy(ctx.mod->getContext())
+            : elements[0]->getType(), elements.size());
+    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(t);
+
+    for (size_t i = 0; i < elements.size(); i++) {
+        if (!llvmTypeEq(elements[i], t))
+            error(ERROR_COMPILER, "element types do not match inside of homogenous array");
+        
+        llvm::GetElementPtrInst *ptr =
+            llvm::GetElementPtrInst::Create(t, arrayAlloca, {constInt(ctx, 0), constInt(ctx, i)});
+        ctx.builder->CreateStore(elements[i], ptr);
+    }
+
+    return arrayAlloca;
 }
 
 llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
@@ -411,12 +435,8 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
     size_t i = 0;
     for (auto& arg : f->args()) {
         if (callArgs[i]->getType()->getPointerTo() != arg.getType()->getPointerTo()) {
-            std::string _s, _t;
-            llvm::raw_string_ostream s(_s), t(_t);
-            callArgs[i]->getType()->print(s);
-            arg.getType()->print(t);
             error(ERROR_COMPILER, "invalid argument type for function `" + calleeId
-                  + "' (expected: `" + t.str() + "', actual: `" + s.str() + "')");
+                  + "' (expected: '" + llvmTypeStr(arg.getType()) + "', got: '" + llvmTypeStr(callArgs[i]->getType()) + "')");
         }
         i++;
     }
