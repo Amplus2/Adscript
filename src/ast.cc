@@ -159,7 +159,14 @@ bool llvmTypeEq(llvm::Value *v, llvm::Type *t) {
     return v->getType()->getPointerTo() == t->getPointerTo();
 }
 
-llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
+std::string llvmTypeStr(llvm::Type *t) {
+    std::string _s;
+    llvm::raw_string_ostream s(_s);
+    t->getPointerTo()->print(s);
+    return s.str();
+}
+
+llvm::Value* tryCast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
     if (v->getType()->getPointerTo() == t->getPointerTo()) return v;
 
     if (v->getType()->isIntegerTy()) {
@@ -173,10 +180,13 @@ llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
         if (t->isIntegerTy()) return ctx.builder->CreatePtrToInt(v, t);
         else if (t->isPointerTy()) return ctx.builder->CreatePointerCast(v, t);
     }
-
-    error(ERROR_COMPILER, "unable to create cast");
-
     return nullptr;
+}
+
+llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
+    llvm::Value *v1 = tryCast(ctx, v, t);
+    if (!v1) error(ERROR_COMPILER, "unable to create cast from '" + llvmTypeStr(v->getType()) + "' to '" + llvmTypeStr(t) + "'");
+    return v1;
 }
 
 llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
@@ -195,13 +205,6 @@ llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
     error(ERROR_COMPILER, "unable to create logical value");
 
     return nullptr;
-}
-
-std::string llvmTypeStr(llvm::Type *t) {
-    std::string _s;
-    llvm::raw_string_ostream s(_s);
-    t->getPointerTo()->print(s);
-    return s.str();
 }
 
 llvm::Value* IntExpr::llvmValue(CompileContext& ctx) {
@@ -326,17 +329,19 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
     std::vector<llvm::Value*> elements;
     for (auto& expr : exprs) elements.push_back(expr->llvmValue(ctx));
 
-    llvm::Type *t = llvm::ArrayType::get(elements.size() == 0
+    llvm::Type *t = elements.size() == 0
             ? llvm::Type::getVoidTy(ctx.mod->getContext())
-            : elements[0]->getType(), elements.size());
-    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(t);
+            : elements[0]->getType();
+    llvm::Type *arrT = llvm::ArrayType::get(t, elements.size());
+    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(arrT);
 
     for (size_t i = 0; i < elements.size(); i++) {
-        //if (!llvmTypeEq(elements[i], t))
-        //    error(ERROR_COMPILER, "element types do not match inside of homogenous array");
-        
-        llvm::GetElementPtrInst *ptr =
-            llvm::GetElementPtrInst::Create(t, arrayAlloca, {constInt(ctx, 0), constInt(ctx, i)});
+        llvm::Value *v = tryCast(ctx, elements[i], t);
+        if (!v) error(ERROR_COMPILER, "element types do not match inside of homogenous array");
+
+        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, constInt(ctx, i));
+
+        // ! this is creating an error because the 'ptr' is [n x T] and not T*
         ctx.builder->CreateStore(elements[i], ptr);
     }
 
