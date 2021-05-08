@@ -28,7 +28,6 @@ class IntExpr : public Expr {
 private:
     const int64_t val;
 public:
-
     IntExpr(const int64_t val) : val(val) {}
 
     std::string str() override;
@@ -88,6 +87,8 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~UExpr() { expr->~Expr(); }
 };
 
 class BinExpr : public Expr {
@@ -100,6 +101,8 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~BinExpr() { left->~Expr(); right->~Expr(); }
 };
 
 class IfExpr : public Expr {
@@ -111,6 +114,8 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~IfExpr() { cond->~Expr(); exprTrue->~Expr(); exprFalse->~Expr(); }
 };
 
 class ArrayExpr : public Expr {
@@ -121,6 +126,8 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~ArrayExpr() { for (auto& expr : exprs) expr->~Expr(); }
 };
 
 class PtrArrayExpr : public Expr {
@@ -131,6 +138,8 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~PtrArrayExpr() { for (auto& expr : exprs) expr->~Expr(); }
 };
 
 class Type {
@@ -170,6 +179,8 @@ public:
 
     std::string str() override;
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+
+    ~PointerType() { type->~Type(); }
 };
 
 class CastExpr : public Expr {
@@ -181,6 +192,8 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~CastExpr() { type->~Type(); expr->~Expr(); }
 };
 
 class Function : public Expr {
@@ -197,6 +210,11 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~Function() {
+        for (auto& arg : args) arg.first->~Type();
+        for (auto& expr : body) expr->~Expr();
+    }
 };
 
 class FunctionCall : public Expr {
@@ -209,4 +227,6 @@ public:
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~FunctionCall() { for (auto& expr : args) expr->~Expr(); }
 };

@@ -26,5 +26,7 @@ int main(int argc, char **argv) {
 
     compile(argv[1], exprs);
 
+    for (auto& expr : exprs) expr->~Expr();
+
     return 0;
 }
