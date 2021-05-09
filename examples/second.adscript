@@ -1,5 +1,5 @@
 (defn puts [char ~ s] int)
 
 (defn main [int a] i64
-    #[1 2 3]
+    [1 2 3]
     1)

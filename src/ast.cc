@@ -363,7 +363,7 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
     for (size_t i = 0; i < elements.size(); i++) {
         llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
 
-        ctx.builder->CreateStore(elements[i], ptr);
+        ctx.builder->CreateStore(cast(ctx, elements[i], t), ptr);
     }
 
     return arrayAlloca;
