@@ -339,9 +339,8 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
         llvm::Value *v = tryCast(ctx, elements[i], t);
         if (!v) error(ERROR_COMPILER, "element types do not match inside of homogenous array");
 
-        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, constInt(ctx, i));
+        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
 
-        // ! this is creating an error because the 'ptr' type is [n x T] and not T*
         ctx.builder->CreateStore(elements[i], ptr);
     }
 
@@ -349,7 +348,25 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
-    return nullptr;
+    std::vector<llvm::Value*> elements;
+    for (auto& expr : exprs) {
+        llvm::Value *v = expr->llvmValue(ctx);
+        llvm::Value *ptr = ctx.builder->CreateAlloca(v->getType());
+        ctx.builder->CreateStore(v, ptr);
+        elements.push_back(ptr);
+    }
+
+    llvm::Type *t = llvm::PointerType::getUnqual(llvm::Type::getVoidTy(ctx.mod->getContext()));
+    llvm::Type *arrT = llvm::ArrayType::get(t, elements.size());
+    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(arrT);
+
+    for (size_t i = 0; i < elements.size(); i++) {
+        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
+
+        ctx.builder->CreateStore(elements[i], ptr);
+    }
+
+    return arrayAlloca;
 }
 
 llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {
