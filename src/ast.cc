@@ -341,7 +341,7 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
 
         llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, constInt(ctx, i));
 
-        // ! this is creating an error because the 'ptr' is [n x T] and not T*
+        // ! this is creating an error because the 'ptr' type is [n x T] and not T*
         ctx.builder->CreateStore(elements[i], ptr);
     }
 
