@@ -153,6 +153,7 @@ public:
 enum PT {
     TYPE_ERR,
 
+    TYPE_VOID,
     TYPE_I8,
     TYPE_I16,
     TYPE_I32,
@@ -174,8 +175,10 @@ public:
 class PointerType : public Type {
 private:
     Type *type;
+    uint8_t quantity;
 public:
-    PointerType(Type *type) : type(type) {}
+    PointerType(Type *type) : type(type), quantity(1) {}
+    PointerType(Type *type, uint8_t quantity) : type(type), quantity(quantity) {}
 
     std::string str() override;
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;

@@ -132,7 +132,8 @@ Type* Parser::parseType(Token& tmpT) {
     Type *t = nullptr;
 
     // general types
-    if (strEq(tmpT.val, {"char", "i8"}))        t = new PrimType(TYPE_I8);
+    if (strEq(tmpT.val, {"void"}))              t = new PrimType(TYPE_VOID);
+    else if (strEq(tmpT.val, {"char", "i8"}))   t = new PrimType(TYPE_I8);
     else if (strEq(tmpT.val, {"i16"}))          t = new PrimType(TYPE_I16);
     else if (strEq(tmpT.val, {"int", "i32"}))   t = new PrimType(TYPE_I32);
     else if (strEq(tmpT.val, {"long", "i64"}))  t = new PrimType(TYPE_I64);
@@ -144,7 +145,29 @@ Type* Parser::parseType(Token& tmpT) {
     size_t tmpIdx = lexer.getIdx();
     tmpT = lexer.nextT();
 
-    if (tmpT.tt == TT_WAVE) return new PointerType(t);
+    if (tmpT.tt == TT_WAVE) {
+        tmpTmpT = tmpT;
+        tmpIdx = lexer.getIdx();
+
+        // eat up '~'
+        tmpT = lexer.nextT();
+        
+        uint8_t quanity = 1;
+        while (tmpT.tt == TT_WAVE) {
+            tmpTmpT = tmpT;
+            tmpIdx = lexer.getIdx();
+
+            // eat up '~' 
+            tmpT = lexer.nextT();
+
+            quanity += 1;
+        }
+
+        lexer.setIdx(tmpIdx);
+        tmpT = tmpTmpT;
+
+        return new PointerType(t, quanity);
+    }
 
     lexer.setIdx(tmpIdx);
     tmpT = tmpTmpT;

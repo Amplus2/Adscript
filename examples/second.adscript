@@ -1,5 +1,7 @@
 (defn puts [char ~ s] int)
 
-(defn main [int a] i64
-    [1 2 3]
+(defn abc [void ~ v] i64
     1)
+
+(defn main [int a] i64
+    (abc [1 2 3]))

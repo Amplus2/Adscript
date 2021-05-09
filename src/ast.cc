@@ -140,6 +140,7 @@ llvm::Value* constFP(CompileContext& ctx, double val) {
 
 llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
+    case TYPE_VOID:     return llvm::Type::getVoidTy(ctx);
     case TYPE_I8:       return llvm::Type::getInt8Ty(ctx);
     case TYPE_I16:      return llvm::Type::getInt16Ty(ctx);
     case TYPE_I32:      return llvm::Type::getInt32Ty(ctx);
@@ -152,7 +153,10 @@ llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
 }
 
 llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
-    return llvm::PointerType::getUnqual(type->llvmType(ctx));
+    if (quantity == 0) error(ERROR_COMPILER, "quantity of pointer type cannot be zero");
+    llvm::Type *t = llvm::PointerType::getUnqual(type->llvmType(ctx));
+    for (int i = 1; i < quantity; i++) t = llvm::PointerType::getUnqual(t);
+    return t;
 }
 
 bool llvmTypeEq(llvm::Value *v, llvm::Type *t) {
@@ -179,7 +183,10 @@ llvm::Value* tryCast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
     } else if (v->getType()->isPointerTy()) {
         if (t->isIntegerTy()) return ctx.builder->CreatePtrToInt(v, t);
         else if (t->isPointerTy()) return ctx.builder->CreatePointerCast(v, t);
+    } else if (v->getType()->isArrayTy()) {
+        if (t->isPointerTy()) return ctx.builder->CreateGEP(v, {constInt(ctx, 0), constInt(ctx, 0)});
     }
+
     return nullptr;
 }
 
@@ -426,9 +433,9 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
     for (size_t i = 0; i < body.size() - 1; i++)
         body[i]->llvmValue(ctx);
-    
+
     ctx.builder->CreateRet(cast(ctx, body[body.size() - 1]->llvmValue(ctx), f->getReturnType()));
-    
+
     ctx.vars.clear();
 
     if (llvm::verifyFunction(*f))
@@ -457,7 +464,7 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
     size_t i = 0;
     for (auto& arg : f->args()) {
         if (callArgs[i]->getType()->getPointerTo() != arg.getType()->getPointerTo()) {
-            error(ERROR_COMPILER, "invalid argument type for function `" + calleeId
+            error(ERROR_COMPILER, "invalid argument type for function '" + calleeId
                   + "' (expected: '" + llvmTypeStr(arg.getType()) + "', got: '" + llvmTypeStr(callArgs[i]->getType()) + "')");
         }
         i++;
