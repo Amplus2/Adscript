@@ -26,7 +26,7 @@ Singly-linked lists are currently **not** supported, debates may be had.
 
 ### Functions
 ```adscript
-(defn [<parameters>] <id> <return type>
+(defn <id> [<parameters>] <return type>
     <body>)
 ```
 
