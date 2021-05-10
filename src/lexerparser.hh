@@ -19,6 +19,9 @@ enum TokenType {
     TT_ID,      // [.^[0-9]]+
     TT_INT,     // [0-9]+
     TT_FLOAT,   // [0-9]*'.'[0-9]+
+
+    TT_STR,
+
     TT_EOF,     // end of file
 };
 

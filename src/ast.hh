@@ -55,6 +55,17 @@ public:
     llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
+class StrExpr : public Expr {
+private:
+    const std::string val;
+public:
+    StrExpr(const std::string  val) : val(val) {}
+
+    std::string str() override;
+    std::string getVal();
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+};
+
 enum BinExprType {
     BINEXPR_ADD,
     BINEXPR_SUB,

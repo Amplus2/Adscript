@@ -41,7 +41,7 @@ Token Lexer::nextT() {
 
     // handle end of file
     if (idx >= text.size())
-        return Token(TT_EOF, "eof");
+        return Token(TT_EOF, "end of file");
 
     // handle parentheses and brackets
     switch (text[idx]) {
@@ -89,6 +89,23 @@ Token Lexer::nextT() {
     } else if (text[idx] == '.')
         error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, text[idx]) + "'", pos());
 
+    if (text[idx] == '"') {
+        // eat up '"'
+        idx += 1;
+
+        bool lastBS = false;
+        while (text[idx] != '"' || lastBS) {
+            tmpStr += text[idx];
+            lastBS = text[idx] == '\\';
+            idx += 1;
+        }
+
+        // eat up '"'
+        idx += 1;
+
+        return Token(TT_STR, tmpStr);
+    }
+
     // handle identifiers
     while (!isWhitespace(text[idx]) && !isSpecialChar(text[idx]) && idx < text.size())
         tmpStr += text[idx++];
@@ -124,6 +141,7 @@ Expr* tokenToExpr(Token t) {
     case TT_ID:     return new IdExpr(t.val);
     case TT_INT:    return new IntExpr(std::stol(t.val));
     case TT_FLOAT:  return new FloatExpr(std::stod(t.val));
+    case TT_STR:    return new StrExpr(unescapeStr(t.val));
     default:        return nullptr;
     }
 }

@@ -1,6 +1,8 @@
-(defn abc [void ~~ v] i64
-    1)
+(defn puts [i8 ~ s] int)
+(defn exit [int i] void)
 
 (defn main [int a] i8
-    (abc [1 2]))
+    (puts "Hallo Welt")
+    (exit 42)
+    5)
 

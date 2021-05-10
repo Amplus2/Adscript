@@ -1,5 +1,6 @@
 #include "utils.hh"
 
+#include <regex>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -37,6 +38,27 @@ std::string readFile(const std::string& filename) {
     sstream << ifstream.rdbuf();
     return sstream.str();
 }
+
+std::string regexReplaceAll(const std::string& str, const std::string& regex, const std::string& replace) {
+    return std::regex_replace(str, std::regex(regex), replace);
+}
+
+std::string unescapeStr(const std::string& str) {
+    std::string result = str;
+    regexReplaceAll(result, "\\\"", "\"");
+    regexReplaceAll(result, "\\\\", "\\");
+    regexReplaceAll(result, "\\a", "\a");
+    regexReplaceAll(result, "\\b", "\b");
+    regexReplaceAll(result, "\\f", "\f");
+    regexReplaceAll(result, "\\n", "\n");
+    regexReplaceAll(result, "\\r", "\r");
+    regexReplaceAll(result, "\\t", "\t");
+    regexReplaceAll(result, "\\v", "\v");
+    regexReplaceAll(result, "\\'", "\'");
+    regexReplaceAll(result, "\\?", "\?");
+    return result;
+}
+
 
 std::string strVectorToStr(const std::vector<std::string>& vector) {
     if (vector.size() <= 0) return "{ }";

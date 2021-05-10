@@ -18,6 +18,9 @@ void parseError(const std::string& expected, const std::string& got, const std::
 
 std::string readFile(const std::string& filename);
 
+std::string regexReplaceAll(const std::string& str, const std::string& regex, const std::string& replace);
+std::string unescapeStr(const std::string& str);
+
 std::string strVectorToStr(const std::vector<std::string>& vector);
 std::string exprVectorToStr(const std::vector<Expr*>& vector);
 std::string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector);

@@ -21,6 +21,10 @@ std::string IdExpr::str() {
     return val;
 }
 
+std::string StrExpr::str() {
+    return val;
+}
+
 std::string betStr(BinExprType bet) {
     switch (bet) {
     case BINEXPR_ADD:   return "+";
@@ -228,6 +232,25 @@ llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateLoad(ctx.vars[val].first, ctx.vars[val].second);
 }
 
+llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
+    llvm::Type *charT = llvm::IntegerType::getInt8Ty(ctx.mod->getContext());
+
+    std::vector<llvm::Value*> chars;
+    for (auto& c : val) chars.push_back(llvm::ConstantInt::get(charT, c));
+    chars.push_back(llvm::ConstantInt::get(charT, 0));
+
+    llvm::Type *arrT = llvm::ArrayType::get(charT, chars.size());
+    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(arrT);
+
+    for (size_t i = 0; i < chars.size(); i++) {
+        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
+
+        ctx.builder->CreateStore(chars[i], ptr);
+    }
+
+    return arrayAlloca;
+}
+
 llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
     llvm::Value *v = expr->llvmValue(ctx);
 
@@ -399,8 +422,6 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
         for (size_t i = 0; i < ftArgs.size(); i++)
             if (ftArgs.at(i)->getPointerTo() != f->getArg(i)->getType()->getPointerTo())
                 error(ERROR_COMPILER, "invalid redefenition of function '" + id + "'");
-        
-        f->setLinkage(llvm::Function::ExternalLinkage);
     } else {
         llvm::FunctionType *ft =
             llvm::FunctionType::get(retType->llvmType(ctx.mod->getContext()), ftArgs, false);
@@ -411,7 +432,6 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     if (body.size() <= 0) {
         size_t i = 0;
         for (auto& arg : f->args()) arg.setName(args[i].second);
-        f->setLinkage(llvm::Function::InternalLinkage);
         return f;
     }
 
