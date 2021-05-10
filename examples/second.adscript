@@ -2,7 +2,7 @@
 (defn exit [int i] void)
 
 (defn main [int a] i8
-    (puts "Hallo Welt")
+    (puts "Hallo\tWelt\nIch bin auch hier!")
     (exit 42)
     5)
 

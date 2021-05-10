@@ -39,24 +39,28 @@ std::string readFile(const std::string& filename) {
     return sstream.str();
 }
 
-std::string regexReplaceAll(const std::string& str, const std::string& regex, const std::string& replace) {
-    return std::regex_replace(str, std::regex(regex), replace);
+std::string strReplaceAll(std::string str, const std::string& find, const std::string& replace) {
+    std::string::size_type st = 0;
+    while ((st = str.find(find, st)) != std::string::npos) {
+        str.replace(st, find.size(), replace);
+        st += replace.size();
+    }
+    return str;
 }
 
-std::string unescapeStr(const std::string& str) {
-    std::string result = str;
-    regexReplaceAll(result, "\\\"", "\"");
-    regexReplaceAll(result, "\\\\", "\\");
-    regexReplaceAll(result, "\\a", "\a");
-    regexReplaceAll(result, "\\b", "\b");
-    regexReplaceAll(result, "\\f", "\f");
-    regexReplaceAll(result, "\\n", "\n");
-    regexReplaceAll(result, "\\r", "\r");
-    regexReplaceAll(result, "\\t", "\t");
-    regexReplaceAll(result, "\\v", "\v");
-    regexReplaceAll(result, "\\'", "\'");
-    regexReplaceAll(result, "\\?", "\?");
-    return result;
+std::string unescapeStr(std::string str) {
+    str = strReplaceAll(str, "\\\"", "\"");
+    str = strReplaceAll(str, "\\\\", "\\");
+    str = strReplaceAll(str, "\\a", "\a");
+    str = strReplaceAll(str, "\\b", "\b");
+    str = strReplaceAll(str, "\\f", "\f");
+    str = strReplaceAll(str, "\\n", "\n");
+    str = strReplaceAll(str, "\\r", "\r");
+    str = strReplaceAll(str, "\\t", "\t");
+    str = strReplaceAll(str, "\\v", "\v");
+    str = strReplaceAll(str, "\\'", "\'");
+    str = strReplaceAll(str, "\\?", "\?");
+    return str;
 }
 
 
