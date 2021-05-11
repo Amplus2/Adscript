@@ -1,5 +1,5 @@
 (defn puts [i8 ~ s] int)
-(defn exit [int i] void)
+(defn exit [i8 i] void)
 
 (defn main [int a] i8
     (puts "Hallo\tWelt\nIch bin auch hier!")
