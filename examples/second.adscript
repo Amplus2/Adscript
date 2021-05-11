@@ -3,6 +3,6 @@
 
 (defn main [int a] i8
     (puts "Hallo\tWelt\nIch bin auch hier!")
-    (exit 42)
+    (exit \*)
     5)
 

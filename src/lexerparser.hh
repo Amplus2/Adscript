@@ -19,6 +19,7 @@ enum TokenType {
     TT_ID,      // [.^[0-9]]+
     TT_INT,     // [0-9]+
     TT_FLOAT,   // [0-9]*'.'[0-9]+
+    TT_CHAR,    // '\\'.
 
     TT_STR,
 
@@ -40,9 +41,12 @@ private:
 public:
     Lexer(const std::string& text) : idx(0), text(text) {}
 
+    inline char getc(size_t idx);
+
     void setIdx(size_t idx);
     size_t getIdx();
 
+    bool eofReached();
     Token nextT();
 
     std::string pos();

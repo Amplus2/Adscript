@@ -15,21 +15,33 @@ static inline bool isSpecialChar(char c) {
     return c == '(' || c == ')' || c == '[' || c == ']';
 }
 
+bool Lexer::eofReached() {
+    return idx >= text.size();
+}
+
+inline char Lexer::getc(size_t idx) {
+    if (idx >= text.size()) return -1;
+    return text[idx];
+}
+
 Token Lexer::nextT() {
+    // helper variable
+    char c;
+
     // section declaration for goto statement we need later on
     nextT_start:
 
     // eat up whitespaces
-    while (isWhitespace(text[idx]) && idx < text.size())
+    while (isWhitespace(getc(idx)) && idx < text.size())
         idx += 1;
     
     // handle comments
-    if (text[idx] == ';' && text[idx + 1] == ';') {
+    if (getc(idx) == ';' && getc(idx + 1) == ';') {
         // eat up ';;'
         idx += 2;
 
         // eat up until end of line
-        while (text[idx] != '\n' && text[idx] != '\r')
+        while ((c = getc(idx)) != '\n' && c != '\r')
             idx += 1;
 
         // eat up end of line
@@ -40,11 +52,10 @@ Token Lexer::nextT() {
     }
 
     // handle end of file
-    if (idx >= text.size())
-        return Token(TT_EOF, "end of file");
+    if (eofReached()) return Token(TT_EOF, "end of file");
 
     // handle parentheses and brackets
-    switch (text[idx]) {
+    switch (getc(idx)) {
     case '(':
         idx += 1;
         return Token(TT_PO, "(");
@@ -72,43 +83,66 @@ Token Lexer::nextT() {
     std::string tmpStr;
 
     // handle integers and front part of floats
-    if (isDigit(text[idx])) {
-        while (isDigit(text[idx])) tmpStr += text[idx++];
-        if (text[idx] != '.') return Token(TT_INT, tmpStr);
+    if (isDigit(getc(idx))) {
+        while (isDigit((c = getc(idx)))) {
+            tmpStr += c;
+            idx += 1;
+        }
+
+        if (c != '.') return Token(TT_INT, tmpStr);
     }
     
     // handle floats
-    if (text[idx] == '.' && isDigit(text[idx + 1])) {
+    if (getc(idx) == '.' && isDigit(getc(idx + 1))) {
         // append '.' to tmpStr
-        tmpStr += text[idx++];
+        tmpStr += getc(idx++);
+
+        if (eofReached()) lexerEOFError();
 
         // append all digits after the '.' to tmpStr
-        while (isDigit(text[idx])) tmpStr += text[idx++];
+        while (isDigit(getc(idx))) tmpStr += getc(idx++);
 
         return Token(TT_FLOAT, tmpStr);
-    } else if (text[idx] == '.')
-        error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, text[idx]) + "'", pos());
+    } else if ((c = getc(idx)) == '.')
+        error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, c) + "'", pos());
 
-    if (text[idx] == '"') {
+    if (getc(idx) == '"') {
         // eat up '"'
         idx += 1;
 
+        if (eofReached()) lexerEOFError();
+
         bool lastBS = false;
-        while (text[idx] != '"' || lastBS) {
-            tmpStr += text[idx];
-            lastBS = text[idx] == '\\';
+        while ((c = getc(idx)) != '"' || lastBS) {
+            tmpStr += c;
+            lastBS = c == '\\';
             idx += 1;
+
+            if (eofReached()) lexerEOFError();
         }
 
         // eat up '"'
         idx += 1;
 
         return Token(TT_STR, tmpStr);
+    } else if ((c = getc(idx)) == '\\') {
+        // eat up '\\'
+        idx += 1;
+
+        if (eofReached()) lexerEOFError();
+
+        c = getc(idx);
+
+        // eat up char
+        idx += 1;
+
+        return Token(TT_CHAR, std::string(1, c));
     }
 
     // handle identifiers
-    while (!isWhitespace(text[idx]) && !isSpecialChar(text[idx]) && idx < text.size())
-        tmpStr += text[idx++];
+    while (!isWhitespace((c = getc(idx))) && !isSpecialChar(c) && idx < text.size())
+        tmpStr += getc(idx++);
+
     return Token(TT_ID, tmpStr);
 }
 
@@ -141,6 +175,7 @@ Expr* tokenToExpr(Token t) {
     case TT_ID:     return new IdExpr(t.val);
     case TT_INT:    return new IntExpr(std::stol(t.val));
     case TT_FLOAT:  return new FloatExpr(std::stod(t.val));
+    case TT_CHAR:   return new CharExpr(t.val[0]);
     case TT_STR:    return new StrExpr(unescapeStr(t.val));
     default:        return nullptr;
     }

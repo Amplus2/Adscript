@@ -30,6 +30,10 @@ void parseError(const std::string& expected, const std::string& got, const std::
     error(ERROR_PARSER, "expected " + expected + ", got '" + got + "'", pos);
 }
 
+void lexerEOFError() {
+    error(ERROR_LEXER, "unexpected end of file");
+}
+
 std::string readFile(const std::string& filename) {
     std::ifstream ifstream(filename);
     if (ifstream.bad())

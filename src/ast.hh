@@ -38,7 +38,17 @@ class FloatExpr : public Expr {
 private:
     const double val;
 public:
-    FloatExpr(const float val) : val(val) {}
+    FloatExpr(const double val) : val(val) {}
+
+    std::string str() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+};
+
+class CharExpr : public Expr {
+private:
+    const char val;
+public:
+    CharExpr(const char val) : val(val) {}
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;

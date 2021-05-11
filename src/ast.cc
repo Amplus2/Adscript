@@ -17,6 +17,10 @@ std::string FloatExpr::str() {
     return std::to_string(val);
 }
 
+std::string CharExpr::str() {
+    return "\\" + std::string(1, (char) val);
+}
+
 std::string IdExpr::str() {
     return val;
 }
@@ -224,6 +228,10 @@ llvm::Value* IntExpr::llvmValue(CompileContext& ctx) {
 
 llvm::Value* FloatExpr::llvmValue(CompileContext& ctx) {
     return constFP(ctx, val);
+}
+
+llvm::Value* CharExpr::llvmValue(CompileContext& ctx) {
+    return llvm::ConstantInt::get(llvm::Type::getInt8Ty(ctx.mod->getContext()), val);
 }
 
 llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
