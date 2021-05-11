@@ -2,7 +2,6 @@
 (defn exit [i8 i] void)
 
 (defn main [int a] i8
-    (puts "Hallo\tWelt\nIch bin auch hier!")
-    (exit \*)
-    5)
+    (puts #[\H\e\l\l\o \  \W\o\r\l\d 0])
+    (set (elptr #[\A \B \C] 1) 42))
 

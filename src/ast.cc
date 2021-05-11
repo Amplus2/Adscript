@@ -92,6 +92,20 @@ std::string PtrArrayExpr::str() {
         + " }";
 }
 
+std::string ElPtrExpr::str() {
+    return std::string() + "ElPtrExpr: {"
+        + "ptr: " + ptr->str();
+        + ", idx: " + idx->str()
+        + " }";
+}
+
+std::string SetExpr::str() {
+    return std::string() + "SetExpr: {"
+        + "ptr: " + ptr->str();
+        + ", val: " + val->str()
+        + " }";
+}
+
 
 std::string PrimType::str() {
     switch (type) {
@@ -379,10 +393,10 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
 
         llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
 
-        ctx.builder->CreateStore(elements[i], ptr);
+        ctx.builder->CreateStore(v, ptr);
     }
 
-    return arrayAlloca;
+    return ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, 0) });
 }
 
 llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
@@ -404,7 +418,34 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
         ctx.builder->CreateStore(cast(ctx, elements[i], t), ptr);
     }
 
-    return arrayAlloca;
+    return ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, 0) });
+}
+
+llvm::Value* ElPtrExpr::llvmValue(CompileContext& ctx) {
+    llvm::Value* ptr = this->ptr->llvmValue(ctx);
+    if (!ptr->getType()->isPointerTy())
+        error(ERROR_COMPILER, "expected pointer type as the first argument for element pointer instruction");
+    
+    llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
+    llvm::Value *idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
+    if (!idx) error(ERROR_COMPILER, "expected integer type as the second argument for element pointer instruction");
+
+    return ctx.builder->CreateGEP(ptr, idx);
+}
+
+llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
+    llvm::Value* ptr = this->ptr->llvmValue(ctx);
+    if (!ptr->getType()->isPointerTy())
+        error(ERROR_COMPILER, "expected pointer type as the first argument for set instruction");
+    
+    llvm::Type *valT = ptr->getType()->getPointerElementType();
+    llvm::Value *val = this->val->llvmValue(ctx);
+    llvm::Value *val1 = tryCast(ctx, val, valT);
+    if (!val1)
+        error(ERROR_COMPILER, "pointer of set instruction is unable to store (expected: "
+            + llvmTypeStr(valT) + ", got: " + llvmTypeStr(val->getType()) + ")");
+
+    return val1;
 }
 
 llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {

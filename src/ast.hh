@@ -163,6 +163,30 @@ public:
     ~PtrArrayExpr() { for (auto& expr : exprs) expr->~Expr(); }
 };
 
+class ElPtrExpr : public Expr {
+private:
+    Expr *ptr, *idx;
+public:
+    ElPtrExpr(Expr *ptr, Expr *idx) : ptr(ptr), idx(idx) {}
+
+    std::string str() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~ElPtrExpr() { ptr->~Expr(); idx->~Expr(); }
+};
+
+class SetExpr : public Expr {
+private:
+    Expr *ptr, *val;
+public:
+    SetExpr(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
+
+    std::string str() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~SetExpr() { ptr->~Expr(); val->~Expr(); }
+};
+
 class Type {
 public:
     virtual ~Type() = default;
