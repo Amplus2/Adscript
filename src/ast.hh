@@ -20,6 +20,50 @@ public:
     std::pair<llvm::Type *, llvm::Value *> getVar(const std::string& id);
 };
 
+class Type {
+public:
+    virtual ~Type() = default;
+    virtual std::string str() = 0;
+    virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
+};
+
+
+enum PT {
+    TYPE_ERR,
+
+    TYPE_VOID,
+    TYPE_I8,
+    TYPE_I16,
+    TYPE_I32,
+    TYPE_I64,
+    TYPE_FLOAT,
+    TYPE_DOUBLE,
+};
+
+class PrimType : public Type {
+private:
+    PT type;
+public:
+    PrimType(PT type) : type(type) {}
+
+    std::string str() override;
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+};
+
+class PointerType : public Type {
+private:
+    Type *type;
+    uint8_t quantity;
+public:
+    PointerType(Type *type) : type(type), quantity(1) {}
+    PointerType(Type *type, uint8_t quantity) : type(type), quantity(quantity) {}
+
+    std::string str() override;
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+
+    ~PointerType() { type->~Type(); }
+};
+
 class Expr {
 public:
     virtual ~Expr() = default;
@@ -203,48 +247,17 @@ public:
     ~DerefExpr() { ptr->~Expr(); }
 };
 
-class Type {
-public:
-    virtual ~Type() = default;
-    virtual std::string str() = 0;
-    virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
-};
-
-
-enum PT {
-    TYPE_ERR,
-
-    TYPE_VOID,
-    TYPE_I8,
-    TYPE_I16,
-    TYPE_I32,
-    TYPE_I64,
-    TYPE_FLOAT,
-    TYPE_DOUBLE,
-};
-
-class PrimType : public Type {
-private:
-    PT type;
-public:
-    PrimType(PT type) : type(type) {}
-
-    std::string str() override;
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-};
-
-class PointerType : public Type {
+class HeGetExpr : public Expr {
 private:
     Type *type;
-    uint8_t quantity;
+    Expr *ptr, *idx;
 public:
-    PointerType(Type *type) : type(type), quantity(1) {}
-    PointerType(Type *type, uint8_t quantity) : type(type), quantity(quantity) {}
+    HeGetExpr(Type *type, Expr *ptr, Expr *idx) : type(type), ptr(ptr), idx(idx) {}
 
     std::string str() override;
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
 
-    ~PointerType() { type->~Type(); }
+    ~HeGetExpr() { ptr->~Expr(); }
 };
 
 class CastExpr : public Expr {

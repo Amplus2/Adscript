@@ -123,6 +123,14 @@ std::string DerefExpr::str() {
         + " }";
 }
 
+std::string HeGetExpr::str() {
+    return std::string() + "HeGetExpr: {"
+        + "type: " + type->str()
+        + ", ptr: " + ptr->str()
+        + ", idx: " + idx->str()
+        + " }";
+}
+
 
 std::string PrimType::str() {
     switch (type) {
@@ -457,7 +465,7 @@ llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
 llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
     llvm::Value* ptr = this->ptr->llvmValue(ctx);
     if (!ptr->getType()->isPointerTy())
-        error(ERROR_COMPILER, "expected pointer type as the first argument for set instruction");
+        error(ERROR_COMPILER, "expected pointer type for set expression as first argument");
     
     llvm::Type *valT = ptr->getType()->getPointerElementType();
     llvm::Value *val = this->val->llvmValue(ctx);
@@ -476,6 +484,26 @@ llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
         error(ERROR_COMPILER, "expected pointer type for deref expression");
 
     return ctx.builder->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
+}
+
+llvm::Value* HeGetExpr::llvmValue(CompileContext& ctx) {
+    llvm::Value *ptr = this->ptr->llvmValue(ctx);
+
+    llvm::Type *t = ptr->getType();
+    if (!(t->isPointerTy() && t->getPointerElementType()->isPointerTy()))
+        error(ERROR_COMPILER, "expected doubled pointer type for heget expression as second argument");
+    
+    llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
+    llvm::Value *idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
+    if (!idx) error(ERROR_COMPILER, "expected integer type fot heget expression as third argument");
+
+    t = type->llvmType(ctx.mod->getContext())->getPointerTo();
+    
+    ptr = ctx.builder->CreateGEP(ptr, idx);
+    ptr = ctx.builder->CreatePointerCast(ptr, t->getPointerTo()->getPointerTo());
+    ptr = ctx.builder->CreateLoad(t->getPointerTo(), ptr);
+
+    return ctx.builder->CreateLoad(t, ptr);
 }
 
 llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {

@@ -293,6 +293,27 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 tmpT = lexer.nextT();
 
                 return new DerefExpr(ptr);
+            } else if (!tmpT.val.compare("heget")) {
+                // eat up 'heget'
+                tmpT = lexer.nextT();
+
+                Type *t = parseType(tmpT);
+                if (!t) parseError("data type", tmpT.val, lexer.pos());
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                Expr *ptr = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                Expr *idx = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new HeGetExpr(t, ptr, idx);
             }
 
             Type *t = parseType(tmpT);
@@ -310,7 +331,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
         return parsePtrArrayExpr(tmpT);
     } else {
         Expr* tmp = tokenToExpr(tmpT);
-        if (!tmp) parseError("primitive expression", tmpT.val, lexer.pos());
+        if (!tmp) parseError("expression", tmpT.val, lexer.pos());
         return tmp;
     }
 }
