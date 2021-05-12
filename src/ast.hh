@@ -165,16 +165,16 @@ public:
     ~PtrArrayExpr() { for (auto& expr : exprs) expr->~Expr(); }
 };
 
-class ElPtrExpr : public Expr {
+class DerefExpr : public Expr {
 private:
-    Expr *ptr, *idx;
+    Expr *ptr;
 public:
-    ElPtrExpr(Expr *ptr, Expr *idx) : ptr(ptr), idx(idx) {}
+    DerefExpr(Expr *ptr) : ptr(ptr) {}
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 
-    ~ElPtrExpr() { ptr->~Expr(); idx->~Expr(); }
+    ~DerefExpr() { ptr->~Expr(); }
 };
 
 class SetExpr : public Expr {

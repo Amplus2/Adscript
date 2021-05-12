@@ -10,7 +10,7 @@ std::pair<llvm::Type*, llvm::Value*> CompileContext::getVar(const std::string& i
     if (localVars.count(id)) return localVars[id];
     llvm::Function *f = mod->getFunction(id);
     if (f) return std::pair<llvm::Type*, llvm::Value*>(f->getType(), f);
-    return std::pair<llvm::Type*, llvm::Value*>(0, 0);
+    return std::pair<llvm::Type*, llvm::Value*>(nullptr, nullptr);
 }
 
 // TODO: move some functions or methods to 'utils.cc'
@@ -99,10 +99,9 @@ std::string PtrArrayExpr::str() {
         + " }";
 }
 
-std::string ElPtrExpr::str() {
-    return std::string() + "ElPtrExpr: {"
-        + "ptr: " + ptr->str();
-        + ", idx: " + idx->str()
+std::string DerefExpr::str() {
+    return std::string() + "DerefExpr: {"
+        + "ptr: " + ptr->str()
         + " }";
 }
 
@@ -428,16 +427,8 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, 0) });
 }
 
-llvm::Value* ElPtrExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value* ptr = this->ptr->llvmValue(ctx);
-    if (!ptr->getType()->isPointerTy())
-        error(ERROR_COMPILER, "expected pointer type as the first argument for element pointer instruction");
-    
-    llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
-    llvm::Value *idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
-    if (!idx) error(ERROR_COMPILER, "expected integer type as the second argument for element pointer instruction");
-
-    return ctx.builder->CreateGEP(ptr, idx);
+llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
+    return nullptr;
 }
 
 llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
@@ -521,6 +512,21 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
+    std::pair<llvm::Type*, llvm::Value*> v = ctx.getVar(calleeId);
+    if (v.first && v.second && v.first->isPointerTy() && !v.first->getPointerElementType()->isFunctionTy()) {
+        if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for array-index-call");
+
+        llvm::Value *ptr = ctx.builder->CreateLoad(v.second);
+        if (!ptr->getType()->isPointerTy() && !ptr->getType()->isArrayTy())
+            error(ERROR_COMPILER, "array-index-calls only work with pointers and arrays");
+
+        llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
+        llvm::Value *idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
+        if (!idx) error(ERROR_COMPILER, "argument in array-index-call must be convertable to an integer");
+
+        return ctx.builder->CreateGEP(ptr, idx);
+    }
+
     llvm::Function *f = ctx.mod->getFunction(calleeId);
 
     if (!f) error(ERROR_COMPILER, "undefined reference to '" + calleeId + "'");

@@ -252,8 +252,32 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
             else if (!tmpT.val.compare("not"))      return parseBinExpr(tmpT, BINEXPR_NOT);
             else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
-            else if (!tmpT.val.compare("set"))      return parseSetExpr(tmpT);
-            else if (!tmpT.val.compare("elptr"))    return parseElPtrExpr(tmpT);
+            else if (!tmpT.val.compare("set")) {
+                // eat up '('
+                tmpT = lexer.nextT();
+
+                Expr *ptr = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                Expr *val = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new SetExpr(ptr, val);
+            } else if (!tmpT.val.compare("deref")) {
+                // eat up '('
+                tmpT = lexer.nextT();
+
+                Expr *ptr = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new DerefExpr(ptr);
+            }
 
             Type *t = parseType(tmpT);
             if (t) return parseCastExpr(tmpT, t);
@@ -338,40 +362,6 @@ Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
         error(ERROR_PARSER, "unexpected end of file");
 
     return new PtrArrayExpr(exprs);
-}
-
-Expr* Parser::parseElPtrExpr(Token& tmpT) {
-    // eat up '('
-    tmpT = lexer.nextT();
-
-    Expr *ptr = parseExpr(tmpT);
-
-    // eat up remaining token
-    tmpT = lexer.nextT();
-
-    Expr *idxExpr = parseExpr(tmpT);
-
-    // eat up remaining token
-    tmpT = lexer.nextT();
-
-    return new ElPtrExpr(ptr, idxExpr);
-}
-
-Expr* Parser::parseSetExpr(Token& tmpT) {
-    // eat up '('
-    tmpT = lexer.nextT();
-
-    Expr *ptr = parseExpr(tmpT);
-
-    // eat up remaining token
-    tmpT = lexer.nextT();
-
-    Expr *val = parseExpr(tmpT);
-
-    // eat up remaining token
-    tmpT = lexer.nextT();
-
-    return new SetExpr(ptr, val);
 }
 
 Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
