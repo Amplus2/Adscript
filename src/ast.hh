@@ -11,10 +11,12 @@ class CompileContext {
 public:
     llvm::Module *mod;
     llvm::IRBuilder<> *builder;
-    std::map<std::string, std::pair<llvm::Type*, llvm::Value*>> vars;
+    std::map<std::string, std::pair<llvm::Type*, llvm::Value*>> localVars;
 
     CompileContext(llvm::Module *mod, llvm::IRBuilder<> *builder)
         : mod(mod), builder(builder) {}
+    
+    std::pair<llvm::Type *, llvm::Value *> getVar(const std::string& id);
 };
 
 class Expr {

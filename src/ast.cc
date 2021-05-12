@@ -6,6 +6,13 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
+std::pair<llvm::Type*, llvm::Value*> CompileContext::getVar(const std::string& id) {
+    if (localVars.count(id)) return localVars[id];
+    llvm::Function *f = mod->getFunction(id);
+    if (f) return std::pair<llvm::Type*, llvm::Value*>(f->getType(), f);
+    return std::pair<llvm::Type*, llvm::Value*>(0, 0);
+}
+
 // TODO: move some functions or methods to 'utils.cc'
 // AST str methods
 
@@ -249,9 +256,9 @@ llvm::Value* CharExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
-    if (ctx.vars.count(val) <= 0)
-        error(ERROR_COMPILER, "undefined reference to '" + val + "'");
-    return ctx.builder->CreateLoad(ctx.vars[val].first, ctx.vars[val].second);
+    std::pair<llvm::Type*, llvm::Value*> var = ctx.getVar(val);
+    if (!var.second) error(ERROR_COMPILER, "undefined reference to '" + val + "'");
+    return ctx.builder->CreateLoad(var.first, var.second);
 }
 
 llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
@@ -497,7 +504,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
         ctx.builder->CreateStore(&arg, alloca);
 
-        ctx.vars[args[i++].second] = std::pair<llvm::Type*, llvm::Value*>(arg.getType(), alloca);
+        ctx.localVars[args[i++].second] = std::pair<llvm::Type*, llvm::Value*>(arg.getType(), alloca);
     }
 
     for (size_t i = 0; i < body.size() - 1; i++)
@@ -505,7 +512,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
     ctx.builder->CreateRet(cast(ctx, body[body.size() - 1]->llvmValue(ctx), f->getReturnType()));
 
-    ctx.vars.clear();
+    ctx.localVars.clear();
 
     if (llvm::verifyFunction(*f))
         error(ERROR_COMPILER, "error in function '" + id + "'");
