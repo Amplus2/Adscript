@@ -254,7 +254,6 @@ llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateLoad(ctx.vars[val].first, ctx.vars[val].second);
 }
 
-// TODO: make strings module-private constants
 llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
     llvm::Type *charT = llvm::IntegerType::getInt8Ty(ctx.mod->getContext());
 
