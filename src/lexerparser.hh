@@ -63,6 +63,8 @@ private:
 
     Expr* parseArrayExpr(Token& tmpT);
     Expr* parsePtrArrayExpr(Token& tmpT);
+    Expr* parseElPtrExpr(Token& tmpT);
+    Expr* parseSetExpr(Token& tmpT);
     Expr* parseBinExpr(Token& tmpT, BinExprType bet);
     Expr* parseCastExpr(Token& tmpT, Type *t);
     Expr* parseIfExpr(Token& tmpT);
