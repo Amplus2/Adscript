@@ -7,6 +7,6 @@
 (defn main [int a] i8
     (puts #[\H\e\l\l\o \  \W\o\r\l\d 0])
     (abc puts)
-    (var b [3 4 5])
-    (deref (b 1)))
+    (var b [3 42 5])
+    (deref (i64 ~ (deref (b 1)))))
 

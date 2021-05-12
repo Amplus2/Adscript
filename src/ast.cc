@@ -279,15 +279,16 @@ llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
     chars.push_back(llvm::ConstantInt::get(charT, 0));
 
     llvm::Type *arrT = llvm::ArrayType::get(charT, chars.size());
-    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(arrT);
+    llvm::Value *arr = ctx.builder->CreateAlloca(arrT);
+    arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
     for (size_t i = 0; i < chars.size(); i++) {
-        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
+        llvm::Value *ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
         ctx.builder->CreateStore(chars[i], ptr);
     }
 
-    return arrayAlloca;
+    return arr;
 }
 
 llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
@@ -402,18 +403,19 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
             ? llvm::Type::getVoidTy(ctx.mod->getContext())
             : elements[0]->getType();
     llvm::Type *arrT = llvm::ArrayType::get(t, elements.size());
-    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(arrT);
+    llvm::Value *arr = ctx.builder->CreateAlloca(arrT);
+    arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
     for (size_t i = 0; i < elements.size(); i++) {
         llvm::Value *v = tryCast(ctx, elements[i], t);
         if (!v) error(ERROR_COMPILER, "element types do not match inside of homogenous array");
 
-        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
+        llvm::Value *ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
         ctx.builder->CreateStore(v, ptr);
     }
 
-    return ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, 0) });
+    return arr;
 }
 
 llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
@@ -427,15 +429,16 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
 
     llvm::Type *t = llvm::Type::getVoidTy(ctx.mod->getContext())->getPointerTo();
     llvm::Type *arrT = llvm::ArrayType::get(t, elements.size());
-    llvm::AllocaInst *arrayAlloca = ctx.builder->CreateAlloca(arrT);
+    llvm::Value *arr = ctx.builder->CreateAlloca(arrT);
+    arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
     for (size_t i = 0; i < elements.size(); i++) {
-        llvm::Value *ptr = ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, i) });
+        llvm::Value *ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
         ctx.builder->CreateStore(cast(ctx, elements[i], t), ptr);
     }
 
-    return ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, 0) });
+    return arr;
 }
 
 llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
@@ -546,14 +549,14 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
         if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for array-index-call");
 
         llvm::Value *ptr = ctx.builder->CreateLoad(v.first, v.second);
-        if (!ptr->getType()->isPointerTy() && !ptr->getType()->isArrayTy())
-            error(ERROR_COMPILER, "array-index-calls only work with pointers and arrays");
+        if (!ptr->getType()->isPointerTy())
+            error(ERROR_COMPILER, "array-index-calls only work with pointers");
 
         llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
         llvm::Value *idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
         if (!idx) error(ERROR_COMPILER, "argument in array-index-call must be convertable to an integer");
 
-        return ctx.builder->CreateGEP(ptr, { constInt(ctx, 0), idx });
+        return ctx.builder->CreateGEP(ptr, idx);
     }
 
     llvm::Function *f = ctx.mod->getFunction(calleeId);
