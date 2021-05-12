@@ -6,6 +6,10 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
+bool CompileContext::isVar(const std::string& id) {
+    return localVars.count(id);
+}
+
 std::pair<llvm::Type*, llvm::Value*> CompileContext::getVar(const std::string& id) {
     if (localVars.count(id)) return localVars[id];
     llvm::Function *f = mod->getFunction(id);
@@ -99,9 +103,10 @@ std::string PtrArrayExpr::str() {
         + " }";
 }
 
-std::string DerefExpr::str() {
-    return std::string() + "DerefExpr: {"
-        + "ptr: " + ptr->str()
+std::string VarExpr::str() {
+    return std::string() + "VarExpr: {"
+        + "id: '" + id + "'";
+        + ", val: " + val->str()
         + " }";
 }
 
@@ -109,6 +114,12 @@ std::string SetExpr::str() {
     return std::string() + "SetExpr: {"
         + "ptr: " + ptr->str();
         + ", val: " + val->str()
+        + " }";
+}
+
+std::string DerefExpr::str() {
+    return std::string() + "DerefExpr: {"
+        + "ptr: " + ptr->str()
         + " }";
 }
 
@@ -427,8 +438,17 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateGEP(arrayAlloca, { constInt(ctx, 0), constInt(ctx, 0) });
 }
 
-llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
-    return nullptr;
+llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
+    if (ctx.isVar(id)) error(ERROR_COMPILER, "var '" + id + "' already defined");
+
+    llvm::Value *v = val->llvmValue(ctx);
+    llvm::AllocaInst *alloca = ctx.builder->CreateAlloca(v->getType());
+
+    ctx.builder->CreateStore(v, alloca);
+
+    ctx.localVars[id] = std::pair<llvm::Type*, llvm::Value*>(v->getType(), alloca);
+
+    return alloca;
 }
 
 llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
@@ -446,13 +466,22 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
     return val1;
 }
 
+llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
+    llvm::Value *ptr = this->ptr->llvmValue(ctx);
+
+    if (!ptr->getType()->isPointerTy())
+        error(ERROR_COMPILER, "expected pointer type for deref expression");
+
+    return ctx.builder->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
+}
+
 llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {
     return cast(ctx, expr->llvmValue(ctx), type->llvmType(ctx.mod->getContext()));
 }
 
-llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::StringRef id, llvm::Type *type) {
+llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::Type *type) {
     llvm::IRBuilder<> builder(&(f->getEntryBlock()), f->getEntryBlock().begin());
-    return builder.CreateAlloca(type, nullptr, id);
+    return builder.CreateAlloca(type);
 } 
 
 llvm::Value* Function::llvmValue(CompileContext& ctx) {
@@ -491,7 +520,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
         arg.setName(args[i].second);
 
-        llvm::AllocaInst *alloca = createAlloca(f, arg.getName(), ftArgs[i]);
+        llvm::AllocaInst *alloca = createAlloca(f, ftArgs[i]);
 
         ctx.builder->CreateStore(&arg, alloca);
 
@@ -516,7 +545,7 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
     if (v.first && v.second && v.first->isPointerTy() && !v.first->getPointerElementType()->isFunctionTy()) {
         if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for array-index-call");
 
-        llvm::Value *ptr = ctx.builder->CreateLoad(v.second);
+        llvm::Value *ptr = ctx.builder->CreateLoad(v.first, v.second);
         if (!ptr->getType()->isPointerTy() && !ptr->getType()->isArrayTy())
             error(ERROR_COMPILER, "array-index-calls only work with pointers and arrays");
 
@@ -524,7 +553,7 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
         llvm::Value *idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
         if (!idx) error(ERROR_COMPILER, "argument in array-index-call must be convertable to an integer");
 
-        return ctx.builder->CreateGEP(ptr, idx);
+        return ctx.builder->CreateGEP(ptr, { constInt(ctx, 0), idx });
     }
 
     llvm::Function *f = ctx.mod->getFunction(calleeId);

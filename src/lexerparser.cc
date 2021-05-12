@@ -252,8 +252,24 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
             else if (!tmpT.val.compare("not"))      return parseBinExpr(tmpT, BINEXPR_NOT);
             else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
-            else if (!tmpT.val.compare("set")) {
-                // eat up '('
+            else if (!tmpT.val.compare("var")) {
+                // eat up 'var'
+                tmpT = lexer.nextT();
+
+                if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val, lexer.pos());
+                std::string id = tmpT.val;
+
+                // eat up id
+                tmpT = lexer.nextT();
+
+                Expr *val = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new VarExpr(val, id);
+            } else if (!tmpT.val.compare("set")) {
+                // eat up 'set'
                 tmpT = lexer.nextT();
 
                 Expr *ptr = parseExpr(tmpT);
@@ -268,7 +284,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
 
                 return new SetExpr(ptr, val);
             } else if (!tmpT.val.compare("deref")) {
-                // eat up '('
+                // eat up 'deref'
                 tmpT = lexer.nextT();
 
                 Expr *ptr = parseExpr(tmpT);

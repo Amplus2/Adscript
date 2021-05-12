@@ -16,6 +16,7 @@ public:
     CompileContext(llvm::Module *mod, llvm::IRBuilder<> *builder)
         : mod(mod), builder(builder) {}
     
+    bool isVar(const std::string& id);
     std::pair<llvm::Type *, llvm::Value *> getVar(const std::string& id);
 };
 
@@ -165,16 +166,17 @@ public:
     ~PtrArrayExpr() { for (auto& expr : exprs) expr->~Expr(); }
 };
 
-class DerefExpr : public Expr {
+class VarExpr : public Expr {
 private:
-    Expr *ptr;
+    Expr *val;
+    const std::string id;
 public:
-    DerefExpr(Expr *ptr) : ptr(ptr) {}
+    VarExpr(Expr *val, const std::string& id) : val(val), id(id) {}
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 
-    ~DerefExpr() { ptr->~Expr(); }
+    ~VarExpr() { val->~Expr(); }
 };
 
 class SetExpr : public Expr {
@@ -187,6 +189,18 @@ public:
     llvm::Value* llvmValue(CompileContext& ctx) override;
 
     ~SetExpr() { ptr->~Expr(); val->~Expr(); }
+};
+
+class DerefExpr : public Expr {
+private:
+    Expr *ptr;
+public:
+    DerefExpr(Expr *ptr) : ptr(ptr) {}
+
+    std::string str() override;
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+
+    ~DerefExpr() { ptr->~Expr(); }
 };
 
 class Type {
