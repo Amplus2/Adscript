@@ -3,13 +3,6 @@ A high-performance, [s-expressions](https://en.wikipedia.org/wiki/S-expression)
 based programming language that is natively compiled.
 
 ## Syntax
-### Lists, Arrays, Maps
-
-| Example    | Elements     | Implementation                                   |
-|------------|--------------|--------------------------------------------------|
-| `(f 1 2)`  | Heterogenous | None (Lists, but only valid for function calls)  |
-| `[1 "hi"]` | Heterogenous | Array (`std::vector<void*>`)                     |
-| `#[1 2]`   | Homogenous   | Array (`std::vector<T>`, where `T`` is the type) |
 
 Maps are to be defined. (Probably `{1 2}`)
 Singly-linked lists are currently **not** supported, debates may be had.
@@ -35,6 +28,19 @@ Singly-linked lists are currently **not** supported, debates may be had.
     (- a b)     ;; this is useless
     (* a b)     ;; this is also useless
     (+ a b))    ;; this is returned
+```
+
+## Arrays
+| Example    | Elements     | Implementation                                   |
+|------------|--------------|--------------------------------------------------|
+| `(f 1 2)`  | Heterogenous | None (Lists, but only valid for function calls)  |
+| `[1 "hi"]` | Heterogenous | Array (`std::vector<void*>`)                     |
+| `#[1 2]`   | Homogenous   | Array (`std::vector<T>`, where `T`` is the type) |
+
+### pointer-index-call
+Returns the pointer to a value at a certain index of a pointer.
+```adscript
+(<pointer> <index>)
 ```
 
 ## Built-in functions
@@ -84,11 +90,6 @@ Sets the value for a pointer.
 (set <pointer> <value>)
 ```
 
-### pointer-index-call
-Returns the pointer to a value at a certain index of a pointer.
-```adscript
-(<pointer> <index>)
-```
 
 ### llvm-ir (not implemented yet)
 Equivalent to the asm "function" in c with llvm IR.
@@ -100,3 +101,4 @@ Equivalent to the asm "function" in c but with c code.
 As long as you have gcc on your system and provide header definitions, you
 probably will be able to use it.
 <!--TODO: It should work as long as ld and libc are present.-->
+
