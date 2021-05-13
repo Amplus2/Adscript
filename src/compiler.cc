@@ -18,6 +18,9 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/TargetRegistry.h>
 
+#include <llvm/CodeGen/Passes.h>
+#include <llvm/CodeGen/MachineModuleInfo.h>
+
 #include <memory>
 #include <iostream>
 
@@ -117,6 +120,11 @@ void compileModuleToFile(llvm::Module *mod) {
     if (ec) error(ERROR_COMPILER, ec.message());
 
     llvm::legacy::PassManager pm;
+
+    llvm::LLVMTargetMachine& tm = (llvm::LLVMTargetMachine&) *targetMachine;
+
+    pm.add(new llvm::TargetLibraryInfoWrapperPass());
+    pm.add(new llvm::MachineModuleInfoWrapperPass(&tm));
     
     bool objResult = targetMachine->addPassesToEmitFile(
         pm, dest, nullptr, llvm::CGFT_ObjectFile);
