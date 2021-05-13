@@ -155,7 +155,7 @@ llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
 llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
     if (quantity == 0)
         error(ERROR_COMPILER, "quantity of pointer type cannot be zero");
-    llvm::Type *t = type->llvmType(ctx)->getPointerTo();
+    auto t = type->llvmType(ctx)->getPointerTo();
     for (int i = 1; i < quantity; i++) t = t->getPointerTo();
     return t;
 }
@@ -173,9 +173,9 @@ llvm::Value* CharExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
-    std::pair<llvm::Type*, llvm::Value*> var = ctx.getVar(val);
-    if (!var.second) error(ERROR_COMPILER, "undefined reference to '"
-                            + val + "'");
+    auto var = ctx.getVar(val);
+    if (!var.second)
+        error(ERROR_COMPILER, "undefined reference to '" + val + "'");
     return ctx.builder->CreateLoad(var.first, var.second);
 }
 
@@ -184,7 +184,7 @@ llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value *v = expr->llvmValue(ctx);
+    auto v = expr->llvmValue(ctx);
 
     switch (type) {
     case BINEXPR_ADD: return v;
@@ -209,72 +209,74 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value *leftV = left->llvmValue(ctx);
-    llvm::Value *rightV = right->llvmValue(ctx);
+    auto lv = left->llvmValue(ctx);
+    auto rv = right->llvmValue(ctx);
 
     if (type >= BINEXPR_LOR && type <= BINEXPR_LXOR) {
-        leftV = createLogicalVal(ctx, leftV);
-        rightV = createLogicalVal(ctx, rightV);
+        lv = createLogicalVal(ctx, lv);
+        rv = createLogicalVal(ctx, rv);
 
         switch (type) {
-        case BINEXPR_LOR:   return ctx.builder->CreateOr(leftV, rightV);
-        case BINEXPR_LAND:  return ctx.builder->CreateAnd(leftV, rightV);
-        case BINEXPR_LXOR:  return ctx.builder->CreateXor(leftV, rightV);
+        case BINEXPR_LOR:   return ctx.builder->CreateOr(lv, rv);
+        case BINEXPR_LAND:  return ctx.builder->CreateAnd(lv, rv);
+        case BINEXPR_LXOR:  return ctx.builder->CreateXor(lv, rv);
         default: ;
         }
-    } else if (leftV->getType()->isIntegerTy()
-                && rightV->getType()->isIntegerTy()) {
-        llvm::Type *calcIntType =
-            llvm::Type::getInt64Ty(ctx.mod->getContext());
-
-        leftV = cast(ctx, leftV, calcIntType);
-        rightV = cast(ctx, rightV, calcIntType);
-    } else if (leftV->getType()->isFloatingPointTy()
-                && rightV->getType()->isFloatingPointTy()) {
-        llvm::Type *calcFPType =
-            llvm::Type::getDoubleTy(ctx.mod->getContext());
-
-        leftV = cast(ctx, leftV, calcFPType);
-        rightV = cast(ctx, rightV, calcFPType);
     } else {
-        error(ERROR_COMPILER, "binary expression operand types do not match");
+        auto lvT = lv->getType();
+        auto rvT = rv->getType();
+
+        if (lvT->isIntegerTy() && rvT->isIntegerTy()) {
+            auto calcIntType = llvm::Type::getInt64Ty(ctx.mod->getContext());
+
+            lv = cast(ctx, lv, calcIntType);
+            rv = cast(ctx, rv, calcIntType);
+        } else if (lvT->isFloatingPointTy() && rvT->isFloatingPointTy()) {
+            auto calcFPType = llvm::Type::getDoubleTy(ctx.mod->getContext());
+
+            lv = cast(ctx, lv, calcFPType);
+            rv = cast(ctx, rv, calcFPType);
+        } else {
+            error(ERROR_COMPILER,
+                "binary expression operand types do not match");
+        }
     }
 
     switch (type) {
-    case BINEXPR_OR:    return ctx.builder->CreateOr(leftV, rightV);
-    case BINEXPR_AND:   return ctx.builder->CreateAnd(leftV, rightV);
-    case BINEXPR_XOR:   return ctx.builder->CreateXor(leftV, rightV);
+    case BINEXPR_OR:        return ctx.builder->CreateOr(lv, rv);
+    case BINEXPR_AND:       return ctx.builder->CreateAnd(lv, rv);
+    case BINEXPR_XOR:       return ctx.builder->CreateXor(lv, rv);
     default: ;
     }
 
-    if (leftV->getType()->isIntegerTy()) {
+    if (lv->getType()->isIntegerTy()) {
         switch (type) {
-        case BINEXPR_ADD:   return ctx.builder->CreateAdd(leftV, rightV);
-        case BINEXPR_SUB:   return ctx.builder->CreateSub(leftV, rightV);
-        case BINEXPR_MUL:   return ctx.builder->CreateMul(leftV, rightV);
-        case BINEXPR_DIV:   return ctx.builder->CreateSDiv(leftV, rightV);
-        case BINEXPR_MOD:   return ctx.builder->CreateSRem(leftV, rightV);
+        case BINEXPR_ADD:   return ctx.builder->CreateAdd(lv, rv);
+        case BINEXPR_SUB:   return ctx.builder->CreateSub(lv, rv);
+        case BINEXPR_MUL:   return ctx.builder->CreateMul(lv, rv);
+        case BINEXPR_DIV:   return ctx.builder->CreateSDiv(lv, rv);
+        case BINEXPR_MOD:   return ctx.builder->CreateSRem(lv, rv);
 
-        case BINEXPR_EQ:    return ctx.builder->CreateICmpEQ(leftV, rightV);
-        case BINEXPR_LT:    return ctx.builder->CreateICmpULT(leftV, rightV);
-        case BINEXPR_GT:    return ctx.builder->CreateICmpUGT(leftV, rightV);
-        case BINEXPR_LTEQ:  return ctx.builder->CreateICmpULE(leftV, rightV);
-        case BINEXPR_GTEQ:  return ctx.builder->CreateICmpUGE(leftV, rightV);
+        case BINEXPR_EQ:    return ctx.builder->CreateICmpEQ(lv, rv);
+        case BINEXPR_LT:    return ctx.builder->CreateICmpULT(lv, rv);
+        case BINEXPR_GT:    return ctx.builder->CreateICmpUGT(lv, rv);
+        case BINEXPR_LTEQ:  return ctx.builder->CreateICmpULE(lv, rv);
+        case BINEXPR_GTEQ:  return ctx.builder->CreateICmpUGE(lv, rv);
         default: ;
         }
-    } else if (leftV->getType()->isFloatingPointTy()) {
+    } else if (lv->getType()->isFloatingPointTy()) {
         switch (type) {
-        case BINEXPR_ADD:   return ctx.builder->CreateFAdd(leftV, rightV);
-        case BINEXPR_SUB:   return ctx.builder->CreateFSub(leftV, rightV);
-        case BINEXPR_MUL:   return ctx.builder->CreateFMul(leftV, rightV);
-        case BINEXPR_DIV:   return ctx.builder->CreateFDiv(leftV, rightV);
-        case BINEXPR_MOD:   return ctx.builder->CreateFRem(leftV, rightV);
+        case BINEXPR_ADD:   return ctx.builder->CreateFAdd(lv, rv);
+        case BINEXPR_SUB:   return ctx.builder->CreateFSub(lv, rv);
+        case BINEXPR_MUL:   return ctx.builder->CreateFMul(lv, rv);
+        case BINEXPR_DIV:   return ctx.builder->CreateFDiv(lv, rv);
+        case BINEXPR_MOD:   return ctx.builder->CreateFRem(lv, rv);
 
-        case BINEXPR_EQ:    return ctx.builder->CreateFCmpUEQ(leftV, rightV);
-        case BINEXPR_LT:    return ctx.builder->CreateFCmpULT(leftV, rightV);
-        case BINEXPR_GT:    return ctx.builder->CreateFCmpUGT(leftV, rightV);
-        case BINEXPR_LTEQ:  return ctx.builder->CreateFCmpULE(leftV, rightV);
-        case BINEXPR_GTEQ:  return ctx.builder->CreateFCmpUGE(leftV, rightV);
+        case BINEXPR_EQ:    return ctx.builder->CreateFCmpUEQ(lv, rv);
+        case BINEXPR_LT:    return ctx.builder->CreateFCmpULT(lv, rv);
+        case BINEXPR_GT:    return ctx.builder->CreateFCmpUGT(lv, rv);
+        case BINEXPR_LTEQ:  return ctx.builder->CreateFCmpULE(lv, rv);
+        case BINEXPR_GTEQ:  return ctx.builder->CreateFCmpUGE(lv, rv);
         default: ;
         }
     }
@@ -285,10 +287,10 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value *condV = createLogicalVal(ctx, cond->llvmValue(ctx));
+    auto condV = createLogicalVal(ctx, cond->llvmValue(ctx));
 
-    llvm::Value *trueV = exprTrue->llvmValue(ctx);
-    llvm::Value *falseV = exprFalse->llvmValue(ctx);
+    auto trueV = exprTrue->llvmValue(ctx);
+    auto falseV = exprFalse->llvmValue(ctx);
 
     if (trueV->getType()->getPointerTo() != falseV->getType()->getPointerTo())
         error(ERROR_COMPILER, 
@@ -301,20 +303,20 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
     std::vector<llvm::Value*> elements;
     for (auto& expr : exprs) elements.push_back(expr->llvmValue(ctx));
 
-    llvm::Type *t = elements.size() == 0
+    auto t = elements.size() == 0
             ? llvm::Type::getVoidTy(ctx.mod->getContext())
             : elements[0]->getType();
-    llvm::Type *arrT = llvm::ArrayType::get(t, elements.size());
-    llvm::Value *arr = ctx.builder->CreateAlloca(arrT);
+    auto arrT = llvm::ArrayType::get(t, elements.size());
+    auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
     arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
     for (size_t i = 0; i < elements.size(); i++) {
-        llvm::Value *v = tryCast(ctx, elements[i], t);
+        auto v = tryCast(ctx, elements[i], t);
         if (!v)
             error(ERROR_COMPILER,
                 "element types do not match inside of homogenous array");
 
-        llvm::Value *ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
+        auto ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
         ctx.builder->CreateStore(v, ptr);
     }
@@ -325,20 +327,19 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
 llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
     std::vector<llvm::Value*> elements;
     for (auto& expr : exprs) {
-        llvm::Value *v = expr->llvmValue(ctx);
-        llvm::Value *ptr = ctx.builder->CreateAlloca(v->getType());
+        auto v = expr->llvmValue(ctx);
+        auto ptr = ctx.builder->CreateAlloca(v->getType());
         ctx.builder->CreateStore(v, ptr);
         elements.push_back(ptr);
     }
 
-    llvm::Type *t =
-        llvm::Type::getVoidTy(ctx.mod->getContext())->getPointerTo();
-    llvm::Type *arrT = llvm::ArrayType::get(t, elements.size());
-    llvm::Value *arr = ctx.builder->CreateAlloca(arrT);
+    auto t = llvm::Type::getVoidTy(ctx.mod->getContext())->getPointerTo();
+    auto arrT = llvm::ArrayType::get(t, elements.size());
+    auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
     arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
     for (size_t i = 0; i < elements.size(); i++) {
-        llvm::Value *ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
+        auto ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
         ctx.builder->CreateStore(cast(ctx, elements[i], t), ptr);
     }
@@ -350,13 +351,12 @@ llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
     if (ctx.isVar(id))
         error(ERROR_COMPILER, "var '" + id + "' already defined");
 
-    llvm::Value *v = val->llvmValue(ctx);
-    llvm::AllocaInst *alloca = ctx.builder->CreateAlloca(v->getType());
+    auto v = val->llvmValue(ctx);
+    auto alloca = ctx.builder->CreateAlloca(v->getType());
 
     ctx.builder->CreateStore(v, alloca);
 
-    ctx.localVars[id] =
-        std::pair<llvm::Type*, llvm::Value*>(v->getType(), alloca);
+    ctx.localVars[id] = { v->getType(), alloca };
 
     return alloca;
 }
@@ -367,9 +367,9 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
         error(ERROR_COMPILER,
             "expected pointer type for set expression as first argument");
     
-    llvm::Type *valT = ptr->getType()->getPointerElementType();
-    llvm::Value *val = this->val->llvmValue(ctx);
-    llvm::Value *val1 = tryCast(ctx, val, valT);
+    auto valT = ptr->getType()->getPointerElementType();
+    auto val = this->val->llvmValue(ctx);
+    auto val1 = tryCast(ctx, val, valT);
     if (!val1)
         error(ERROR_COMPILER,
             "pointer of set instruction is unable to store (expected: "
@@ -380,7 +380,7 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value *ptr = this->ptr->llvmValue(ctx);
+    auto ptr = this->ptr->llvmValue(ctx);
 
     if (!ptr->getType()->isPointerTy())
         error(ERROR_COMPILER, "expected pointer type for deref expression");
@@ -390,16 +390,16 @@ llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* HeGetExpr::llvmValue(CompileContext& ctx) {
-    llvm::Value *ptr = this->ptr->llvmValue(ctx);
+    auto ptr = this->ptr->llvmValue(ctx);
 
-    llvm::Type *t = ptr->getType();
+    auto t = ptr->getType();
     if (!(t->isPointerTy() && t->getPointerElementType()->isPointerTy()))
         error(ERROR_COMPILER,
             "expected doubled pointer type for"
             "heget expression as second argument");
     
-    llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
-    llvm::Value *idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
+    auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
+    auto idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
     if (!idx)
         error(ERROR_COMPILER,
             "expected integer type fot heget expression as third argument");
@@ -424,7 +424,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     for (auto& arg : args)
         ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
 
-    llvm::Function *f = ctx.mod->getFunction(id);
+    auto f = ctx.mod->getFunction(id);
 
     if (f) {
         if (ftArgs.size() != f->arg_size())
@@ -440,7 +440,7 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
         }
                 
     } else {
-        llvm::FunctionType *ft = llvm::FunctionType::get(
+        auto ft = llvm::FunctionType::get(
             retType->llvmType(ctx.mod->getContext()), ftArgs, false);
 
         f = llvm::Function::Create(
@@ -464,12 +464,11 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
         arg.setName(args[i].second);
 
-        llvm::AllocaInst *alloca = createAlloca(f, ftArgs[i]);
+        auto alloca = createAlloca(f, ftArgs[i]);
 
         ctx.builder->CreateStore(&arg, alloca);
 
-        ctx.localVars[args[i++].second] =
-            std::pair<llvm::Type*, llvm::Value*>(arg.getType(), alloca);
+        ctx.localVars[args[i++].second] = { arg.getType(), alloca };
     }
 
     for (size_t i = 0; i < body.size() - 1; i++)
@@ -497,13 +496,13 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
             error(ERROR_COMPILER,
                 "expected exactly 1 argument for pointer-index-call");
 
-        llvm::Value *ptr = callee->llvmValue(ctx);
+        auto ptr = callee->llvmValue(ctx);
         if (!ptr->getType()->isPointerTy())
             error(ERROR_COMPILER,
                 "pointer-index-calls only work with pointers");
 
-        llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
-        llvm::Value *idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
+        auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
+        auto idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
         if (!idx)
             error(ERROR_COMPILER, "argument in pointer-index-call "
                 "must be convertable to an integer");
@@ -511,7 +510,7 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
         return ctx.builder->CreateGEP(ptr, idx);
     }
 
-    llvm::Function *f = ctx.mod->getFunction(id->getVal());
+    auto f = ctx.mod->getFunction(id->getVal());
 
     if (!f) error(ERROR_COMPILER,
         "undefined reference to '" + id->getVal() + "'");
@@ -527,8 +526,8 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
 
     size_t i = 0;
     for (auto& arg : f->args()) {
-        llvm::Value *v = args[i++]->llvmValue(ctx);
-        llvm::Value *v1 = tryCast(ctx, v, arg.getType());
+        auto v = args[i++]->llvmValue(ctx);
+        auto v1 = tryCast(ctx, v, arg.getType());
         if (!v1)
             error(ERROR_COMPILER, "invalid argument type for function '"
                 + id->getVal() + "' (expected: '"
@@ -537,7 +536,7 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
         callArgs.push_back(v1);
     }
 
-    llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs);
+    auto call = ctx.builder->CreateCall(f, callArgs);
 
     return call;
 }

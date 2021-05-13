@@ -169,7 +169,7 @@ llvm::Value* tryCast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
 }
 
 llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
-    llvm::Value *v1 = tryCast(ctx, v, t);
+    auto v1 = tryCast(ctx, v, t);
     if (!v1) error(ERROR_COMPILER, "unable to create cast from '"
                 + llvmTypeStr(v->getType()) + "' to '" + llvmTypeStr(t) + "'");
     return v1;
@@ -196,7 +196,7 @@ llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
 }
 
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::Type *type) {
-    llvm::IRBuilder<> builder(&(f->getEntryBlock()),
-        f->getEntryBlock().begin());
+    llvm::IRBuilder<> builder(
+        &(f->getEntryBlock()), f->getEntryBlock().begin());
     return builder.CreateAlloca(type);
 }

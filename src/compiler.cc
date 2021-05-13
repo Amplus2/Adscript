@@ -28,19 +28,19 @@ bool CompileContext::isVar(const std::string& id) {
     return localVars.count(id) != 0;
 }
 
-std::pair<llvm::Type*, llvm::Value*>
-CompileContext::getVar(const std::string& id) {
+ctx_var_t CompileContext::getVar(const std::string& id) {
     if (localVars.count(id)) return localVars[id];
     llvm::Function *f = mod->getFunction(id);
-    if (f) return std::pair<llvm::Type*, llvm::Value*>(f->getType(), f);
-    return std::pair<llvm::Type*, llvm::Value*>(nullptr, nullptr);
+    if (f) return { f->getType(), f };
+    return { nullptr, nullptr };
 }
 
 void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
     std::string sourceFilename =
         std::count(filename.begin(), filename.end(), '/')
-        ? filename.substr(filename.find_last_of('/') + 1, filename.size() - 1)
-        : filename;
+            ? filename.substr(
+                filename.find_last_of('/') + 1, filename.size() - 1)
+            : filename;
 
     size_t dotCount =
         std::count(sourceFilename.begin(), sourceFilename.end(), '.');
@@ -60,19 +60,19 @@ void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
 void runMPM(llvm::Module *mod) {
     llvm::PassBuilder passBuilder;
 
-    llvm::ModuleAnalysisManager     mam;
-    llvm::CGSCCAnalysisManager      gam;
-    llvm::FunctionAnalysisManager   fam;
-    llvm::LoopAnalysisManager       lam;
+    llvm::ModuleAnalysisManager             mam;
+    llvm::CGSCCAnalysisManager              gam;
+    llvm::FunctionAnalysisManager           fam;
+    llvm::LoopAnalysisManager               lam;
 
-    passBuilder.registerModuleAnalyses  (mam);
-    passBuilder.registerCGSCCAnalyses   (gam);
-    passBuilder.registerFunctionAnalyses(fam);
-    passBuilder.registerLoopAnalyses    (lam);
+    passBuilder.registerModuleAnalyses      (mam);
+    passBuilder.registerCGSCCAnalyses       (gam);
+    passBuilder.registerFunctionAnalyses    (fam);
+    passBuilder.registerLoopAnalyses        (lam);
 
     passBuilder.crossRegisterProxies(lam, fam, gam, mam);
 
-    llvm::ModulePassManager mpm = passBuilder.buildPerModuleDefaultPipeline(
+    auto mpm = passBuilder.buildPerModuleDefaultPipeline(
         llvm::PassBuilder::OptimizationLevel::O3);
     
     mpm.run(*mod, mam);
@@ -100,13 +100,11 @@ void compileModuleToFile(llvm::Module *mod) {
 
     if (!target) error(ERROR_COMPILER, err);
 
-    llvm::TargetOptions options;
-    llvm::Optional<llvm::Reloc::Model> relocModel;
     llvm::TargetMachine *targetMachine = target->createTargetMachine(
         targetTriple,
         // TODO: make configurable
         llvm::sys::getHostCPUName(), "",
-        options,
+        llvm::TargetOptions(),
         llvm::Reloc::PIC_
     );
 
@@ -121,7 +119,7 @@ void compileModuleToFile(llvm::Module *mod) {
 
     llvm::legacy::PassManager pm;
 
-    llvm::LLVMTargetMachine& tm = (llvm::LLVMTargetMachine&) *targetMachine;
+    auto& tm = (llvm::LLVMTargetMachine&) *targetMachine;
 
     pm.add(new llvm::TargetLibraryInfoWrapperPass());
     pm.add(new llvm::MachineModuleInfoWrapperPass(&tm));
@@ -153,8 +151,7 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
     addFilenameToModuleInfo(filename, &mod);
 
     CompileContext cctx(&mod, &builder);
-    for (auto& expr : exprs)
-        expr->llvmValue(cctx);
+    for (auto& expr : exprs) expr->llvmValue(cctx);
 
     // mod.print(llvm::errs(), 0);
 

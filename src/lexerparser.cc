@@ -278,12 +278,12 @@ Expr* Parser::parseExpr(Token& tmpT) {
 
                 if (tmpT.tt != TT_ID)
                     parseError("identifier", tmpT.val, lexer.pos());
-                std::string id = tmpT.val;
+                auto id = tmpT.val;
 
                 // eat up id
                 tmpT = lexer.nextT();
 
-                Expr *val = parseExpr(tmpT);
+                auto val = parseExpr(tmpT);
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -293,12 +293,12 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'set'
                 tmpT = lexer.nextT();
 
-                Expr *ptr = parseExpr(tmpT);
+                auto ptr = parseExpr(tmpT);
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                Expr *val = parseExpr(tmpT);
+                auto val = parseExpr(tmpT);
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -308,7 +308,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'deref'
                 tmpT = lexer.nextT();
 
-                Expr *ptr = parseExpr(tmpT);
+                auto ptr = parseExpr(tmpT);
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -318,18 +318,18 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'heget'
                 tmpT = lexer.nextT();
 
-                Type *t = parseType(tmpT);
+                auto t = parseType(tmpT);
                 if (!t) parseError("data type", tmpT.val, lexer.pos());
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                Expr *ptr = parseExpr(tmpT);
+                auto ptr = parseExpr(tmpT);
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                Expr *idx = parseExpr(tmpT);
+                auto idx = parseExpr(tmpT);
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -337,7 +337,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 return new HeGetExpr(t, ptr, idx);
             }
 
-            Type *t = parseType(tmpT);
+            auto t = parseType(tmpT);
             if (t) return parseCastExpr(tmpT, t);
         }
 
@@ -447,7 +447,7 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     else if (exprs.size() < 1)
         error(ERROR_PARSER, "expected at least 2 arguments", lexer.pos());
 
-    Expr *tmpExpr = new BinExpr(bet, exprs[0], exprs[1]);
+    auto tmpExpr = new BinExpr(bet, exprs[0], exprs[1]);
     for (size_t i = 2; i < exprs.size(); i++)
         tmpExpr = new BinExpr(bet, tmpExpr, exprs[i]);
 
@@ -458,7 +458,7 @@ Expr* Parser::parseCastExpr(Token& tmpT, Type *t) {
     // eat remaining token
     tmpT = lexer.nextT();
 
-    Expr *expr = parseExpr(tmpT);
+    auto expr = parseExpr(tmpT);
 
     // eat up remaining token
     tmpT = lexer.nextT();
@@ -470,17 +470,17 @@ Expr* Parser::parseIfExpr(Token& tmpT) {
     // eat up 'if'
     tmpT = lexer.nextT();
 
-    Expr *cond = parseExpr(tmpT);
+    auto cond = parseExpr(tmpT);
 
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    Expr *exprTrue = parseExpr(tmpT);
+    auto exprTrue = parseExpr(tmpT);
 
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    Expr *exprFalse = parseExpr(tmpT);
+    auto exprFalse = parseExpr(tmpT);
 
     // eat up remaining token
     tmpT = lexer.nextT();
@@ -492,7 +492,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up 'defn'
     tmpT = lexer.nextT();
 
-    std::string id = tmpT.val;
+    auto id = tmpT.val;
 
     // eat up identifier
     tmpT = lexer.nextT();
@@ -506,7 +506,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     std::vector<std::pair<Type*, std::string>> args;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
         // get argument/parameter type
-        Type *t = parseType(tmpT);
+        auto t = parseType(tmpT);
         if (!t) parseError("data type", tmpT.val, lexer.pos());
 
         // eat up data type
@@ -527,7 +527,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up ']'
     tmpT = lexer.nextT();
 
-    Type *retType = parseType(tmpT);
+    auto retType = parseType(tmpT);
     if (!retType) parseError("return type", tmpT.val, lexer.pos());
 
     // eat up return type
@@ -553,7 +553,7 @@ Expr* Parser::parseCall(Token& tmpT) {
         error(ERROR_PARSER,
             "functions can only be defined at top level", lexer.pos());
 
-    Expr *callee = parseExpr(tmpT);
+    auto callee = parseExpr(tmpT);
 
     // eat up remaining token
     tmpT = lexer.nextT();
