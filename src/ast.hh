@@ -305,5 +305,5 @@ public:
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 
-    ~CallExpr() { for (auto& expr : args) expr->~Expr(); }
+    ~CallExpr() { callee->~Expr(); for (auto& expr : args) expr->~Expr(); }
 };

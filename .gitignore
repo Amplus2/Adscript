@@ -4,5 +4,6 @@ build
 # just for the lazyness
 first
 second
+hello-world
 
 *.o
