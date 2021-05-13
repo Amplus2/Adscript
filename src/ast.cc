@@ -6,8 +6,13 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
+template<typename Base, typename T>
+inline bool instanceof(const T *t) {
+    return dynamic_cast<const Base*>(t) != nullptr;
+}
+
 bool CompileContext::isVar(const std::string& id) {
-    return localVars.count(id);
+    return localVars.count(id) != 0;
 }
 
 std::pair<llvm::Type*, llvm::Value*> CompileContext::getVar(const std::string& id) {
@@ -164,9 +169,9 @@ std::string Function::str() {
         + " }";
 }
 
-std::string FunctionCall::str() {
+std::string CallExpr::str() {
     return std::string() + "FunctionCall: { "
-        + "id: '" + calleeId + "'"
+        + "calle: " + callee->str()
         + ", args: " + exprVectorToStr(args)
         + " }";
 }
@@ -565,36 +570,40 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
     ctx.localVars.clear();
 
+    if (llvm::verifyFunction(*f)) f->print(llvm::errs());
+
     if (llvm::verifyFunction(*f))
         error(ERROR_COMPILER, "error in function '" + id + "'");
 
     return f;
 }
 
-llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
-    std::pair<llvm::Type*, llvm::Value*> v = ctx.getVar(calleeId);
-    if (v.first && v.second && v.first->isPointerTy() && !v.first->getPointerElementType()->isFunctionTy()) {
-        if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for ptr-index-call");
+llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
+    IdExpr *id = nullptr;
+    if (instanceof<IdExpr>(callee)) id = (IdExpr*) callee;
 
-        llvm::Value *ptr = ctx.builder->CreateLoad(v.first, v.second);
+    if (!id || ctx.isVar(id->getVal())) {
+        if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for pointer-index-call");
+
+        llvm::Value *ptr = callee->llvmValue(ctx);
         if (!ptr->getType()->isPointerTy())
-            error(ERROR_COMPILER, "ptr-index-calls only work with pointers");
+            error(ERROR_COMPILER, "pointer-index-calls only work with pointers");
 
         llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
         llvm::Value *idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
-        if (!idx) error(ERROR_COMPILER, "argument in ptr-index-call must be convertable to an integer");
+        if (!idx) error(ERROR_COMPILER, "argument in pointer-index-call must be convertable to an integer");
 
         return ctx.builder->CreateGEP(ptr, idx);
     }
 
-    llvm::Function *f = ctx.mod->getFunction(calleeId);
+    llvm::Function *f = ctx.mod->getFunction(id->getVal());
 
-    if (!f) error(ERROR_COMPILER, "undefined reference to '" + calleeId + "'");
+    if (!f) error(ERROR_COMPILER, "undefined reference to '" + id->getVal() + "'");
 
     if (args.size() > f->arg_size())
-        error(ERROR_COMPILER, "too many arguments for function '" + calleeId + "'");
+        error(ERROR_COMPILER, "too many arguments for function '" + id->getVal() + "'");
     else if (args.size() < f->arg_size())
-        error(ERROR_COMPILER, "too few arguments for function '" + calleeId + "'");
+        error(ERROR_COMPILER, "too few arguments for function '" + id->getVal() + "'");
 
     std::vector<llvm::Value*> callArgs;
 
@@ -602,7 +611,7 @@ llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
     for (auto& arg : f->args()) {
         llvm::Value *v = args[i]->llvmValue(ctx);
         llvm::Value *v1 = tryCast(ctx, v, arg.getType());
-        if (!v1) error(ERROR_COMPILER, "invalid argument type for function '" + calleeId
+        if (!v1) error(ERROR_COMPILER, "invalid argument type for function '" + id->getVal()
                     + "' (expected: '" + llvmTypeStr(arg.getType()) + "', got: '" + llvmTypeStr(v->getType()) + "')");
         callArgs.push_back(v1);
         i++;

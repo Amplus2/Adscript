@@ -68,7 +68,7 @@ private:
     Expr* parseIfExpr(Token& tmpT);
 
     Expr* parseFunction(Token& tmpT);
-    Expr* parseFunctionCall(Token& tmpT);
+    Expr* parseCall(Token& tmpT);
 public:
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<Expr*> parse();

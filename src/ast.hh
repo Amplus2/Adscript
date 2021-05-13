@@ -294,16 +294,16 @@ public:
     }
 };
 
-class FunctionCall : public Expr {
+class CallExpr : public Expr {
 public:
-    const std::string calleeId;
+    Expr *callee;
     const std::vector<Expr*> args;
 
-    FunctionCall(const std::string& calleeId, const std::vector<Expr*>& args)
-        : calleeId(calleeId), args(args) {}
+    CallExpr(Expr *callee, const std::vector<Expr*>& args)
+        : callee(callee), args(args) {}
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
 
-    ~FunctionCall() { for (auto& expr : args) expr->~Expr(); }
+    ~CallExpr() { for (auto& expr : args) expr->~Expr(); }
 };

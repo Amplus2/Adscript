@@ -1,12 +1,10 @@
-(defn puts [i8 ~ s] int)
+(defn puts [i8~ s] int)
 (defn exit [i8 i] void)
 
-(defn abc [void ~ v] int
+(defn abc [void~ v] int
     84)
 
 (defn main [int a] i8
     (puts #[\H\e\l\l\o \  \W\o\r\l\d 0])
     (abc puts)
-    (var b [3 42 5])
-    (heget i64 b 1))
-
+    (puts (deref (#["41" "42" "43"] 1))))

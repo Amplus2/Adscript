@@ -12,7 +12,7 @@ static inline bool isWhitespace(char c) {
 }
 
 static inline bool isSpecialChar(char c) {
-    return c == '(' || c == ')' || c == '[' || c == ']';
+    return c == '(' || c == ')' || c == '[' || c == ']' || c == '~';
 }
 
 bool Lexer::eofReached() {
@@ -41,7 +41,7 @@ Token Lexer::nextT() {
         idx += 2;
 
         // eat up until end of line
-        while ((c = getc(idx)) != '\n' && c != '\r')
+        while ((c = getc(idx)) != '\n' && c != '\r' && idx <= text.size())
             idx += 1;
 
         // eat up end of line
@@ -318,9 +318,9 @@ Expr* Parser::parseExpr(Token& tmpT) {
 
             Type *t = parseType(tmpT);
             if (t) return parseCastExpr(tmpT, t);
-
-            return parseFunctionCall(tmpT);
         }
+
+        return parseCall(tmpT);
 
         // error if '(' isn't followed by a funcall
         parseError("identifier", tmpT.val, lexer.pos());
@@ -524,13 +524,13 @@ Expr* Parser::parseFunction(Token& tmpT) {
     return new Function(id, args, retType, body);
 }
 
-Expr* Parser::parseFunctionCall(Token& tmpT) {
+Expr* Parser::parseCall(Token& tmpT) {
     if (!tmpT.val.compare("defn"))
         error(ERROR_PARSER, "functions can only be defined at the top level", lexer.pos());
 
-    std::string calleeId = tmpT.val;
+    Expr *callee = parseExpr(tmpT);
 
-    // eat up identifier
+    // eat up remaining token
     tmpT = lexer.nextT();
 
     // parse arguments/parameters
@@ -545,7 +545,7 @@ Expr* Parser::parseFunctionCall(Token& tmpT) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    return new FunctionCall(calleeId, args);
+    return new CallExpr(callee, args);
 }
 
 std::vector<Expr*> Parser::parse() {
