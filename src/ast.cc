@@ -180,23 +180,7 @@ llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
-    llvm::Type *charT = llvm::IntegerType::getInt8Ty(ctx.mod->getContext());
-
-    std::vector<llvm::Value*> chars;
-    for (auto& c : val) chars.push_back(llvm::ConstantInt::get(charT, c));
-    chars.push_back(llvm::ConstantInt::get(charT, 0));
-
-    llvm::Type *arrT = llvm::ArrayType::get(charT, chars.size());
-    llvm::Value *arr = ctx.builder->CreateAlloca(arrT);
-    arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
-
-    for (size_t i = 0; i < chars.size(); i++) {
-        llvm::Value *ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
-
-        ctx.builder->CreateStore(chars[i], ptr);
-    }
-
-    return arr;
+    return ctx.builder->CreateGlobalStringPtr(val);
 }
 
 llvm::Value* UExpr::llvmValue(CompileContext& ctx) {

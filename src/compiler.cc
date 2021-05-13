@@ -107,7 +107,7 @@ void compileModuleToFile(llvm::Module *mod) {
         // TODO: make configurable
         llvm::sys::getHostCPUName(), "",
         options,
-        relocModel
+        llvm::Reloc::PIC_
     );
 
     mod->setDataLayout(targetMachine->createDataLayout());
