@@ -34,8 +34,8 @@ Singly-linked lists are currently **not** supported, debates may be had.
 | Example    | Elements     | Implementation                                   |
 |------------|--------------|--------------------------------------------------|
 | `(f 1 2)`  | Heterogenous | None (Lists, but only valid for function calls)  |
-| `[1 "hi"]` | Heterogenous | Array (`std::vector<void*>`)                     |
-| `#[1 2]`   | Homogenous   | Array (`std::vector<T>`, where `T`` is the type) |
+| `[1 "hi"]` | Heterogenous | Array (`void**`)                     |
+| `#[1 2]`   | Homogenous   | Array (`T*`, where 'T' is the type) |
 
 ### pointer-index-call
 Returns the pointer to a value at a certain index of a pointer.
