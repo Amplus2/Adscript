@@ -574,15 +574,15 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 llvm::Value* FunctionCall::llvmValue(CompileContext& ctx) {
     std::pair<llvm::Type*, llvm::Value*> v = ctx.getVar(calleeId);
     if (v.first && v.second && v.first->isPointerTy() && !v.first->getPointerElementType()->isFunctionTy()) {
-        if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for array-index-call");
+        if (args.size() != 1) error(ERROR_COMPILER, "expected exactly 1 argument for ptr-index-call");
 
         llvm::Value *ptr = ctx.builder->CreateLoad(v.first, v.second);
         if (!ptr->getType()->isPointerTy())
-            error(ERROR_COMPILER, "array-index-calls only work with pointers");
+            error(ERROR_COMPILER, "ptr-index-calls only work with pointers");
 
         llvm::Type *idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
         llvm::Value *idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
-        if (!idx) error(ERROR_COMPILER, "argument in array-index-call must be convertable to an integer");
+        if (!idx) error(ERROR_COMPILER, "argument in ptr-index-call must be convertable to an integer");
 
         return ctx.builder->CreateGEP(ptr, idx);
     }
