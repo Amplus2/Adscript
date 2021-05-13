@@ -1,4 +1,5 @@
 #pragma once
+
 #include <map>
 #include <string>
 #include <vector>
@@ -7,18 +8,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/IRBuilder.h>
 
-class CompileContext {
-public:
-    llvm::Module *mod;
-    llvm::IRBuilder<> *builder;
-    std::map<std::string, std::pair<llvm::Type*, llvm::Value*>> localVars;
-
-    CompileContext(llvm::Module *mod, llvm::IRBuilder<> *builder)
-        : mod(mod), builder(builder) {}
-    
-    bool isVar(const std::string& id);
-    std::pair<llvm::Type *, llvm::Value *> getVar(const std::string& id);
-};
+class CompileContext;
 
 class Type {
 public:
@@ -110,7 +100,7 @@ public:
     IdExpr(const std::string  val) : val(val) {}
 
     std::string str() override;
-    std::string getVal();
+    std::string getVal() { return val; };
     llvm::Value* llvmValue(CompileContext& ctx) override;
     
     bool isIdExpr() override { return true; }

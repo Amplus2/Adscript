@@ -21,6 +21,18 @@
 #include <memory>
 #include <iostream>
 
+bool CompileContext::isVar(const std::string& id) {
+    return localVars.count(id) != 0;
+}
+
+std::pair<llvm::Type*, llvm::Value*>
+CompileContext::getVar(const std::string& id) {
+    if (localVars.count(id)) return localVars[id];
+    llvm::Function *f = mod->getFunction(id);
+    if (f) return std::pair<llvm::Type*, llvm::Value*>(f->getType(), f);
+    return std::pair<llvm::Type*, llvm::Value*>(nullptr, nullptr);
+}
+
 void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
     std::string sourceFilename =
         std::count(filename.begin(), filename.end(), '/')

@@ -1,24 +1,12 @@
 #include "ast.hh"
 #include "utils.hh"
+#include "compiler.hh"
 
 #include <iostream>
 
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
-bool CompileContext::isVar(const std::string& id) {
-    return localVars.count(id) != 0;
-}
-
-std::pair<llvm::Type*, llvm::Value*>
-CompileContext::getVar(const std::string& id) {
-    if (localVars.count(id)) return localVars[id];
-    llvm::Function *f = mod->getFunction(id);
-    if (f) return std::pair<llvm::Type*, llvm::Value*>(f->getType(), f);
-    return std::pair<llvm::Type*, llvm::Value*>(nullptr, nullptr);
-}
-
-// TODO: move some functions or methods to 'utils.cc'
 // AST str methods
 
 std::string IntExpr::str() {
@@ -41,40 +29,16 @@ std::string StrExpr::str() {
     return val;
 }
 
-std::string betStr(BinExprType bet) {
-    switch (bet) {
-    case BINEXPR_ADD:   return "+";
-    case BINEXPR_SUB:   return "-";
-    case BINEXPR_MUL:   return "*";
-    case BINEXPR_DIV:   return "/";
-    case BINEXPR_MOD:   return "%";
-
-    case BINEXPR_OR:    return "|";
-    case BINEXPR_AND:   return "&";
-    case BINEXPR_XOR:   return "^";
-
-    case BINEXPR_EQ:    return "=";
-    case BINEXPR_LT:    return "<";
-    case BINEXPR_GT:    return ">";
-    case BINEXPR_LTEQ:  return "<=";
-    case BINEXPR_GTEQ:  return ">=";
-    case BINEXPR_LOR:   return "or";
-    case BINEXPR_LAND:  return "and";
-    case BINEXPR_LXOR:  return "xor";
-    case BINEXPR_NOT:   return "not";
-    }
-}
-
 std::string UExpr::str() {
     return std::string() + "UExpr: { "
-        + "op: " + betStr(type)
+        + "op: " + betToStr(type)
         + ", expr: " + expr->str()
         + " }";
 }
 
 std::string BinExpr::str() {
     return std::string() + "BinExpr: { "
-        + "op: " + betStr(type)
+        + "op: " + betToStr(type)
         + ", left: " + left->str()
         + ", right: " + right->str()
         + " }";
@@ -172,21 +136,7 @@ std::string CallExpr::str() {
         + " }";
 }
 
-std::string IdExpr::getVal() {
-    return val;
-}
-
-// AST llvm Methods
-
-llvm::Value* constInt(CompileContext& ctx, int64_t val) {
-    return llvm::ConstantInt::get(
-        llvm::IntegerType::getInt64Ty(ctx.mod->getContext()), val);
-}
-
-llvm::Value* constFP(CompileContext& ctx, double val) {
-    return llvm::ConstantFP::get(
-        llvm::IntegerType::getDoubleTy(ctx.mod->getContext()), val);
-}
+// AST llvm methods
 
 llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
@@ -208,73 +158,6 @@ llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
     llvm::Type *t = type->llvmType(ctx)->getPointerTo();
     for (int i = 1; i < quantity; i++) t = t->getPointerTo();
     return t;
-}
-
-bool llvmTypeEq(llvm::Value *v, llvm::Type *t) {
-    return v->getType()->getPointerTo() == t->getPointerTo();
-}
-
-std::string llvmTypeStr(llvm::Type *t) {
-    std::string _s;
-    llvm::raw_string_ostream s(_s);
-    t->print(s);
-    return s.str();
-}
-
-llvm::Value* tryCast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
-    if (v->getType()->getPointerTo() == t->getPointerTo()) return v;
-
-    if (v->getType()->isIntegerTy()) {
-        if (t->isIntegerTy())
-            return ctx.builder->CreateIntCast(v, t, true);
-        else if (t->isFloatingPointTy())
-            return ctx.builder->CreateSIToFP(v, t);
-        else if (t->isPointerTy())
-            return ctx.builder->CreateIntToPtr(v, t);
-    } else if (v->getType()->isFloatingPointTy()) {
-        if (t->isIntegerTy())
-            return ctx.builder->CreateFPToSI(v, t);
-        else if (t->isFloatingPointTy())
-            return ctx.builder->CreateFPCast(v, t);
-    } else if (v->getType()->isPointerTy()) {
-        if (t->isIntegerTy())
-            return ctx.builder->CreatePtrToInt(v, t);
-        else if (t->isPointerTy())
-            return ctx.builder->CreatePointerCast(v, t);
-    } else if (v->getType()->isArrayTy()) {
-        if (t->isPointerTy())
-            return ctx.builder->CreateGEP(v, 
-                {constInt(ctx, 0), constInt(ctx, 0)});
-    }
-
-    return nullptr;
-}
-
-llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t) {
-    llvm::Value *v1 = tryCast(ctx, v, t);
-    if (!v1) error(ERROR_COMPILER, "unable to create cast from '"
-                + llvmTypeStr(v->getType()) + "' to '" + llvmTypeStr(t) + "'");
-    return v1;
-}
-
-llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v) {
-    if (llvmTypeEq(v, llvm::Type::getInt1Ty(ctx.mod->getContext())))
-        return v;
-    else if (v->getType()->isIntegerTy())
-        return ctx.builder->CreateICmpNE(v, 
-            cast(ctx, constInt(ctx, 0), v->getType()));
-    else if (v->getType()->isFloatingPointTy())
-        return ctx.builder->CreateFCmpUNE(v, 
-            cast(ctx, constFP(ctx, 0), v->getType()));
-    else if (v->getType()->isPointerTy())
-        return ctx.builder->CreateICmpNE(
-            cast(ctx, v, llvm::Type::getInt32Ty(ctx.mod->getContext())),
-            constInt(ctx, 0)
-        );
-
-    error(ERROR_COMPILER, "unable to create logical value");
-
-    return nullptr;
 }
 
 llvm::Value* IntExpr::llvmValue(CompileContext& ctx) {
@@ -552,12 +435,6 @@ llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {
         type->llvmType(ctx.mod->getContext()));
 }
 
-llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::Type *type) {
-    llvm::IRBuilder<> builder(&(f->getEntryBlock()),
-        f->getEntryBlock().begin());
-    return builder.CreateAlloca(type);
-} 
-
 llvm::Value* Function::llvmValue(CompileContext& ctx) {
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
@@ -666,7 +543,7 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
 
     size_t i = 0;
     for (auto& arg : f->args()) {
-        llvm::Value *v = args[i]->llvmValue(ctx);
+        llvm::Value *v = args[i++]->llvmValue(ctx);
         llvm::Value *v1 = tryCast(ctx, v, arg.getType());
         if (!v1)
             error(ERROR_COMPILER, "invalid argument type for function '"
@@ -674,7 +551,6 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
                 + llvmTypeStr(arg.getType()) + "', got: '"
                 + llvmTypeStr(v->getType()) + "')");
         callArgs.push_back(v1);
-        i++;
     }
 
     llvm::CallInst *call = ctx.builder->CreateCall(f, callArgs);
