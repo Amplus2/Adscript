@@ -70,6 +70,7 @@ public:
     virtual ~Expr() = default;
     virtual std::string str() = 0;
     virtual llvm::Value* llvmValue(CompileContext& ctx) = 0;
+    virtual bool isIdExpr() { return false; }
 };
 
 class IntExpr : public Expr {
@@ -111,6 +112,8 @@ public:
     std::string str() override;
     std::string getVal();
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    
+    bool isIdExpr() override { return true; }
 };
 
 class StrExpr : public Expr {

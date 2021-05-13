@@ -6,11 +6,6 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
-template<typename Base, typename T>
-inline bool instanceof(const T *t) {
-    return dynamic_cast<const Base*>(t) != nullptr;
-}
-
 bool CompileContext::isVar(const std::string& id) {
     return localVars.count(id) != 0;
 }
@@ -634,11 +629,12 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
 llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
     IdExpr *id = nullptr;
-    if (instanceof<IdExpr>(callee)) id = (IdExpr*) callee;
+    if (callee->isIdExpr()) id = (IdExpr*) callee;
 
     if (!id || ctx.isVar(id->getVal())) {
-        if (args.size() != 1) error(ERROR_COMPILER,
-            "expected exactly 1 argument for pointer-index-call");
+        if (args.size() != 1)
+            error(ERROR_COMPILER,
+                "expected exactly 1 argument for pointer-index-call");
 
         llvm::Value *ptr = callee->llvmValue(ctx);
         if (!ptr->getType()->isPointerTy())

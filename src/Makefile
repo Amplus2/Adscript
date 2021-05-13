@@ -5,7 +5,7 @@ BUILD_DIR = ../build
 
 all:
 	mkdir -p $(BUILD_DIR)
-	clang++ $(CXXFLAGS) -frtti *.cc -o $(BUILD_DIR)/$(PREFIX)adscript
+	clang++ $(CXXFLAGS) *.cc -o $(BUILD_DIR)/$(PREFIX)adscript
 
 test: all
 	cd $(BUILD_DIR) && ./$(PREFIX)adscript ../examples/first.adscript
