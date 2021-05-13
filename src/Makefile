@@ -1,4 +1,4 @@
-CXXFLAGS ?= -O3 -s -flto -Wall -lLLVM
+CXXFLAGS ?= -O3 -s -flto -frtti -Wall -lLLVM
 CXXFLAGS += `llvm-config --cxxflags --ldflags --system-libs --libs all`
 
 BUILD_DIR = ../build
