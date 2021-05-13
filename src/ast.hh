@@ -56,7 +56,8 @@ private:
     uint8_t quantity;
 public:
     PointerType(Type *type) : type(type), quantity(1) {}
-    PointerType(Type *type, uint8_t quantity) : type(type), quantity(quantity) {}
+    PointerType(Type *type, uint8_t quantity)
+        : type(type), quantity(quantity) {}
 
     std::string str() override;
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
@@ -252,7 +253,8 @@ private:
     Type *type;
     Expr *ptr, *idx;
 public:
-    HeGetExpr(Type *type, Expr *ptr, Expr *idx) : type(type), ptr(ptr), idx(idx) {}
+    HeGetExpr(Type *type, Expr *ptr, Expr *idx)
+        : type(type), ptr(ptr), idx(idx) {}
 
     std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;

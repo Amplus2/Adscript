@@ -22,11 +22,13 @@
 #include <iostream>
 
 void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
-    std::string sourceFilename = std::count(filename.begin(), filename.end(), '/')
+    std::string sourceFilename =
+        std::count(filename.begin(), filename.end(), '/')
         ? filename.substr(filename.find_last_of('/') + 1, filename.size() - 1)
         : filename;
 
-    size_t dotCount = std::count(sourceFilename.begin(), sourceFilename.end(), '.');
+    size_t dotCount =
+        std::count(sourceFilename.begin(), sourceFilename.end(), '.');
 
     std::string moduleId = dotCount
         ? sourceFilename[0] == '.'
@@ -78,7 +80,8 @@ void compileModuleToFile(llvm::Module *mod) {
     mod->setTargetTriple(targetTriple);
 
     std::string err;
-    const llvm::Target *target = llvm::TargetRegistry::lookupTarget(targetTriple, err);
+    const llvm::Target *target =
+        llvm::TargetRegistry::lookupTarget(targetTriple, err);
 
     if (!target) error(ERROR_COMPILER, err);
 
@@ -103,16 +106,20 @@ void compileModuleToFile(llvm::Module *mod) {
 
     llvm::legacy::PassManager pm;
     
-    bool objResult = targetMachine->addPassesToEmitFile(pm, dest, nullptr, llvm::CGFT_ObjectFile);
+    bool objResult = targetMachine->addPassesToEmitFile(
+        pm, dest, nullptr, llvm::CGFT_ObjectFile);
 
-    if (objResult) error(ERROR_COMPILER, "cannot write to file '" + outputFilename + "'");
+    if (objResult)
+        error(ERROR_COMPILER, "cannot write to file '" + outputFilename + "'");
 
     pm.run(*mod);
     dest.flush();
 
-    int linkResult = system(("gcc " + outputFilename + " -o " + mod->getModuleIdentifier()).c_str());
+    int linkResult = system(("gcc " + outputFilename + " -o "
+                                + mod->getModuleIdentifier()).c_str());
 
-    if (linkResult) error(ERROR_COMPILER, "error while linking '" + outputFilename + "'");
+    if (linkResult)
+        error(ERROR_COMPILER, "error while linking '" + outputFilename + "'");
 
     if (std::remove(outputFilename.c_str()))
         error(ERROR_DEFAULT, "cannot remove '" + outputFilename + "'");

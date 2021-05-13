@@ -104,7 +104,8 @@ Token Lexer::nextT() {
 
         return Token(TT_FLOAT, tmpStr);
     } else if ((c = getc(idx)) == '.')
-        error(ERROR_LEXER, "expected digit after '.', got '" + std::string(1, c) + "'", pos());
+        error(ERROR_LEXER, "expected digit after '.', got '"
+            + std::string(1, c) + "'", pos());
 
     if (getc(idx) == '"') {
         // eat up '"'
@@ -140,7 +141,8 @@ Token Lexer::nextT() {
     }
 
     // handle identifiers
-    while (!isWhitespace((c = getc(idx))) && !isSpecialChar(c) && idx < text.size())
+    while (!isWhitespace((c = getc(idx))) && !isSpecialChar(c)
+            && idx < text.size())
         tmpStr += getc(idx++);
 
     return Token(TT_ID, tmpStr);
@@ -234,29 +236,48 @@ Expr* Parser::parseExpr(Token& tmpT) {
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
         else if (tmpT.tt == TT_ID) {
-            if (!tmpT.val.compare("+"))             return parseBinExpr(tmpT, BINEXPR_ADD);
-            else if (!tmpT.val.compare("-"))        return parseBinExpr(tmpT, BINEXPR_SUB);
-            else if (!tmpT.val.compare("*"))        return parseBinExpr(tmpT, BINEXPR_MUL);
-            else if (!tmpT.val.compare("/"))        return parseBinExpr(tmpT, BINEXPR_DIV);
-            else if (!tmpT.val.compare("%"))        return parseBinExpr(tmpT, BINEXPR_MOD);
-            else if (!tmpT.val.compare("|"))        return parseBinExpr(tmpT, BINEXPR_OR);
-            else if (!tmpT.val.compare("&"))        return parseBinExpr(tmpT, BINEXPR_AND);
-            else if (!tmpT.val.compare("^"))        return parseBinExpr(tmpT, BINEXPR_XOR);
-            else if (!tmpT.val.compare("="))        return parseBinExpr(tmpT, BINEXPR_EQ);
-            else if (!tmpT.val.compare("<"))        return parseBinExpr(tmpT, BINEXPR_LT);
-            else if (!tmpT.val.compare(">"))        return parseBinExpr(tmpT, BINEXPR_GT);
-            else if (!tmpT.val.compare("<="))       return parseBinExpr(tmpT, BINEXPR_LTEQ);
-            else if (!tmpT.val.compare(">="))       return parseBinExpr(tmpT, BINEXPR_GTEQ);
-            else if (!tmpT.val.compare("or"))       return parseBinExpr(tmpT, BINEXPR_LOR);
-            else if (!tmpT.val.compare("and"))      return parseBinExpr(tmpT, BINEXPR_LAND);
-            else if (!tmpT.val.compare("xor"))      return parseBinExpr(tmpT, BINEXPR_LXOR);
-            else if (!tmpT.val.compare("not"))      return parseBinExpr(tmpT, BINEXPR_NOT);
-            else if (!tmpT.val.compare("if"))       return parseIfExpr(tmpT);
+            if (!tmpT.val.compare("+"))
+                return parseBinExpr(tmpT, BINEXPR_ADD);
+            else if (!tmpT.val.compare("-"))
+                return parseBinExpr(tmpT, BINEXPR_SUB);
+            else if (!tmpT.val.compare("*"))
+                return parseBinExpr(tmpT, BINEXPR_MUL);
+            else if (!tmpT.val.compare("/"))
+                return parseBinExpr(tmpT, BINEXPR_DIV);
+            else if (!tmpT.val.compare("%"))
+                return parseBinExpr(tmpT, BINEXPR_MOD);
+            else if (!tmpT.val.compare("|"))
+                return parseBinExpr(tmpT, BINEXPR_OR);
+            else if (!tmpT.val.compare("&"))
+                return parseBinExpr(tmpT, BINEXPR_AND);
+            else if (!tmpT.val.compare("^"))
+                return parseBinExpr(tmpT, BINEXPR_XOR);
+            else if (!tmpT.val.compare("="))
+                return parseBinExpr(tmpT, BINEXPR_EQ);
+            else if (!tmpT.val.compare("<"))
+                return parseBinExpr(tmpT, BINEXPR_LT);
+            else if (!tmpT.val.compare(">"))
+                return parseBinExpr(tmpT, BINEXPR_GT);
+            else if (!tmpT.val.compare("<="))
+                return parseBinExpr(tmpT, BINEXPR_LTEQ);
+            else if (!tmpT.val.compare(">="))
+                return parseBinExpr(tmpT, BINEXPR_GTEQ);
+            else if (!tmpT.val.compare("or"))
+                return parseBinExpr(tmpT, BINEXPR_LOR);
+            else if (!tmpT.val.compare("and"))
+                return parseBinExpr(tmpT, BINEXPR_LAND);
+            else if (!tmpT.val.compare("xor"))
+                return parseBinExpr(tmpT, BINEXPR_LXOR);
+            else if (!tmpT.val.compare("not"))
+                return parseBinExpr(tmpT, BINEXPR_NOT);
+            else if (!tmpT.val.compare("if"))
+                return parseIfExpr(tmpT);
             else if (!tmpT.val.compare("var")) {
                 // eat up 'var'
                 tmpT = lexer.nextT();
 
-                if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val, lexer.pos());
+                if (tmpT.tt != TT_ID)
+                    parseError("identifier", tmpT.val, lexer.pos());
                 std::string id = tmpT.val;
 
                 // eat up id
@@ -347,7 +368,8 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
             if (!tmpT.val.compare("defn"))
                 return parseFunction(tmpT);
             
-            parseError("built-in top-level function call identifier", tmpT.val, lexer.pos());
+            parseError("built-in top-level function call identifier",
+                tmpT.val, lexer.pos());
         }
         
         // error if '(' isn't followed by fun or funcall
@@ -416,10 +438,12 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    if (exprs.size() == 1 && ((bet >= BINEXPR_ADD && bet <= BINEXPR_SUB) || bet == BINEXPR_NOT))
+    if (exprs.size() == 1 && ((bet >= BINEXPR_ADD && bet <= BINEXPR_SUB)
+        || bet == BINEXPR_NOT))
         return new UExpr(bet, exprs[0]);
     else if (bet == BINEXPR_NOT && exprs.size() != 1)
-        error(ERROR_PARSER, "too many arguments for unary expression", lexer.pos());
+        error(ERROR_PARSER,
+            "too many arguments for unary expression", lexer.pos());
     else if (exprs.size() < 1)
         error(ERROR_PARSER, "expected at least 2 arguments", lexer.pos());
 
@@ -526,7 +550,8 @@ Expr* Parser::parseFunction(Token& tmpT) {
 
 Expr* Parser::parseCall(Token& tmpT) {
     if (!tmpT.val.compare("defn"))
-        error(ERROR_PARSER, "functions can only be defined at the top level", lexer.pos());
+        error(ERROR_PARSER,
+            "functions can only be defined at top level", lexer.pos());
 
     Expr *callee = parseExpr(tmpT);
 

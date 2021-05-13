@@ -26,7 +26,8 @@ void error(ErrorType et, const std::string& msg, const std::string& pos) {
     exit(1);
 }
 
-void parseError(const std::string& expected, const std::string& got, const std::string& pos) {
+void parseError(const std::string& expected, const std::string& got,
+                const std::string& pos) {
     error(ERROR_PARSER, "expected " + expected + ", got '" + got + "'", pos);
 }
 
@@ -43,7 +44,8 @@ std::string readFile(const std::string& filename) {
     return sstream.str();
 }
 
-std::string strReplaceAll(std::string str, const std::string& find, const std::string& replace) {
+std::string strReplaceAll(std::string str, const std::string& find,
+                            const std::string& replace) {
     std::string::size_type st = 0;
     while ((st = str.find(find, st)) != std::string::npos) {
         str.replace(st, find.size(), replace);
@@ -83,7 +85,8 @@ std::string exprVectorToStr(const std::vector<Expr*>& vector) {
     return strVectorToStr(tmp);
 }
 
-std::string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector) {
+std::string
+argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector) {
     std::vector<std::string> tmp;
     for (size_t i = 0; i < vector.size(); i++)
         tmp.push_back(vector.at(i).second + ": " + vector.at(i).first->str());
