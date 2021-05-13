@@ -4,9 +4,6 @@ based programming language that is natively compiled.
 
 ## Syntax
 
-Maps are to be defined. (Probably `{1 2}`)
-Singly-linked lists are currently **not** supported, debates may be had.
-
 ### Function calls
 ```adscript
 (<identifier> <parameters>)
@@ -30,12 +27,15 @@ Singly-linked lists are currently **not** supported, debates may be had.
     (+ a b))    ;; this is returned
 ```
 
-## Arrays
+## Arrays, Lists and Maps
 | Example    | Elements     | Implementation                                   |
 |------------|--------------|--------------------------------------------------|
 | `(f 1 2)`  | Heterogenous | None (Lists, but only valid for function calls)  |
-| `[1 "hi"]` | Heterogenous | Array (`void**`)                     |
-| `#[1 2]`   | Homogenous   | Array (`T*`, where 'T' is the type) |
+| `[1 "hi"]` | Heterogenous | Array (`void**`)                                 |
+| `#[1 2]`   | Homogenous   | Array (`T*`, where 'T' is the type)              |
+
+Singly-linked lists are currently **not** supported, debates may be had.
+Maps are to be defined. (Probably `{1 2}`)
 
 ### pointer-index-call
 Returns the pointer to a value at a certain index of a pointer.
