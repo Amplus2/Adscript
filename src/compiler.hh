@@ -13,6 +13,8 @@ public:
     llvm::IRBuilder<> *builder;
     std::map<std::string, ctx_var_t> localVars;
 
+    bool needsRef = false;
+
     CompileContext(llvm::Module *mod, llvm::IRBuilder<> *builder)
         : mod(mod), builder(builder) {}
     

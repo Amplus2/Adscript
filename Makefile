@@ -6,14 +6,14 @@ BUILD_DIR ?= build
 EXE_NAME  ?= adscript
 OUTPUT    ?= $(BUILD_DIR)/$(EXE_NAME)
 
-SFLIES = $(wildcard src/*.cc)
-OFLIES = $(SFLIES:.cc=.o)
+SFILES = $(wildcard src/*.cc)
+OFILES = $(SFILES:.cc=.o)
 
 all: $(OUTPUT)
 
-$(OUTPUT): $(OFLIES)
+$(OUTPUT): $(OFILES)
 	mkdir -p $(BUILD_DIR)
-	clang++ $(LDFLAGS) $(OFLIES) -o $(OUTPUT)
+	clang++ $(LDFLAGS) $(OFILES) -o $(OUTPUT)
 	strip $(OUTPUT)
 
 %.o: %.cc
@@ -24,6 +24,12 @@ test: all
 	cd $(BUILD_DIR) && ./$(EXE_NAME) ../examples/second.adscript
 
 clean:
-	rm -rf $(BUILD_DIR) $(OFLIES)
+	rm -rf $(BUILD_DIR) $(OFILES)
 
 rebuild: clean all
+
+STATIC_LLVM_FLAGS = `llvm-config --cxxflags --ldflags --system-libs --link-static --libs all`
+static:
+	mkdir -p build
+	clang++ $(SFILES) -flto -O3 -Wall $(STATIC_LLVM_FLAGS) -o build/adscript-static
+	strip build/adscript-static
