@@ -57,6 +57,14 @@ Creates a conditional expression.
 (if 1 42 10)
 ```
 
+### ref
+Creates a pointer to a reference.
+
+```adscript
+(ref <pointer>)
+(ref ("ABC*" 3))
+```
+
 ### deref
 Dereferences a pointer.
 
