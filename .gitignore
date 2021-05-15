@@ -7,3 +7,4 @@ second
 hello-world
 
 *.o
+*.tmp
