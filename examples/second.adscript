@@ -1,7 +1,7 @@
-(defn puts [i8~ s] int)
+(defn puts [char* s] int)
 (defn exit [i8 i] void)
 
-(defn abc [void~ v] int
+(defn abc [void* v] int
     84)
 
 (defn main [int a] i8

@@ -1,5 +1,5 @@
 ;; header definition for 'puts'
-(defn puts [i8~ msg] int)
+(defn puts [char* msg] int)
 
 ;; main function
 (defn main [] int

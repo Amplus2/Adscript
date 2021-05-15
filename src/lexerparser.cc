@@ -12,7 +12,12 @@ static inline bool isWhitespace(char c) {
 }
 
 static inline bool isSpecialChar(char c) {
-    return c == '(' || c == ')' || c == '[' || c == ']' || c == '~';
+    return c == '('
+        || c == ')'
+        || c == '['
+        || c == ']'
+        || c == '#'
+        || c == '*';
 }
 
 bool Lexer::eofReached() {
@@ -68,9 +73,9 @@ Token Lexer::nextT() {
     case ']':
         idx += 1;
         return Token(TT_BRC, "]");
-    case '~':
+    case '*':
         idx += 1;
-        return Token(TT_WAVE, "~");
+        return Token(TT_STAR, "*");
     case '#':
         idx += 1;
         return Token(TT_HASH, "#");
@@ -200,7 +205,7 @@ Type* Parser::parseType(Token& tmpT) {
     size_t tmpIdx = lexer.getIdx();
     tmpT = lexer.nextT();
 
-    if (tmpT.tt == TT_WAVE) {
+    if (tmpT.tt == TT_STAR) {
         tmpTmpT = tmpT;
         tmpIdx = lexer.getIdx();
 
@@ -208,7 +213,7 @@ Type* Parser::parseType(Token& tmpT) {
         tmpT = lexer.nextT();
         
         uint8_t quanity = 1;
-        while (tmpT.tt == TT_WAVE) {
+        while (tmpT.tt == TT_STAR) {
             tmpTmpT = tmpT;
             tmpIdx = lexer.getIdx();
 
@@ -235,13 +240,13 @@ Expr* Parser::parseExpr(Token& tmpT) {
         tmpT = lexer.nextT();
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
+        else if (tmpT.tt == TT_STAR)
+            return parseBinExpr(tmpT, BINEXPR_MUL);
         else if (tmpT.tt == TT_ID) {
             if (!tmpT.val.compare("+"))
                 return parseBinExpr(tmpT, BINEXPR_ADD);
             else if (!tmpT.val.compare("-"))
                 return parseBinExpr(tmpT, BINEXPR_SUB);
-            else if (!tmpT.val.compare("*"))
-                return parseBinExpr(tmpT, BINEXPR_MUL);
             else if (!tmpT.val.compare("/"))
                 return parseBinExpr(tmpT, BINEXPR_DIV);
             else if (!tmpT.val.compare("%"))
