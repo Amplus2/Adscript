@@ -39,7 +39,7 @@ Singly-linked lists are currently **not** supported, debates may be had.
 Maps are to be defined. (Probably `{1 2}`)
 
 ### pointer-index-call
-Returns the pointer to a value at a certain index of a pointer.
+Returns the value at a certain index of a pointer.
 ```adscript
 (<pointer> <index>)
 ```
@@ -94,7 +94,7 @@ Defines a variable that can be changed later.
 Sets the value for a pointer.
 ```adscript
 (set <pointer> <value>)
-(set (ref a) 42)
+(set a 42)
 ```
 
 
