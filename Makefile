@@ -1,8 +1,6 @@
-CXXFLAGS ?= -O3 -flto -Wall
-CXXFLAGS += `llvm-config --cxxflags --link-static`
-# this is only temporary and should be improved once the casting code is better
-CXXFLAGS += -frtti
-LDFLAGS  += `llvm-config --ldflags --link-static --system-libs --libs all`
+CXXFLAGS ?= -O3 -Wall
+CXXFLAGS += `llvm-config --cxxflags`
+LDFLAGS  += `llvm-config --ldflags --system-libs --libs all` -flto -lLLVM
 
 BUILD_DIR ?= build
 EXE_NAME  ?= adscript
