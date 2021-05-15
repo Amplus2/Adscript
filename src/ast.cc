@@ -82,6 +82,12 @@ std::string SetExpr::str() {
         + " }";
 }
 
+std::string RefExpr::str() {
+    return std::string() + "RefExpr: {"
+        + "val: " + val->str()
+        + " }";
+}
+
 std::string DerefExpr::str() {
     return std::string() + "DerefExpr: {"
         + "ptr: " + ptr->str()
@@ -176,6 +182,7 @@ llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
     auto var = ctx.getVar(val);
     if (!var.second)
         error(ERROR_COMPILER, "undefined reference to '" + val + "'");
+    if (ctx.needsRef) return var.second;
     return ctx.builder->CreateLoad(var.first, var.second);
 }
 
@@ -379,6 +386,13 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
     return val1;
 }
 
+llvm::Value* RefExpr::llvmValue(CompileContext& ctx) {
+    ctx.needsRef = true;
+    llvm::Value *v = val->llvmValue(ctx);
+    ctx.needsRef = false;
+    return v;
+}
+
 llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
     auto ptr = this->ptr->llvmValue(ctx);
 
@@ -507,7 +521,11 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
             error(ERROR_COMPILER, "argument in pointer-index-call "
                 "must be convertable to an integer");
 
-        return ctx.builder->CreateGEP(ptr, idx);
+        llvm::Value *v = ctx.builder->CreateGEP(ptr, idx);
+
+        if (ctx.needsRef) return v;
+        return ctx.builder->CreateLoad(
+            v->getType()->getPointerElementType(), v);
     }
 
     auto f = ctx.mod->getFunction(id->getVal());

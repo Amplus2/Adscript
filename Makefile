@@ -25,3 +25,5 @@ test: all
 
 clean:
 	rm -rf $(BUILD_DIR) $(OFLIES)
+
+rebuild: clean all
