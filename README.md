@@ -54,6 +54,7 @@ Creates a conditional expression.
 
 ```adscript
 (if <condition> <true-value> <false-value>)
+(if 1 42 10)
 ```
 
 ### deref
@@ -61,6 +62,7 @@ Dereferences a pointer.
 
 ```adscript
 (deref <pointer>)
+(deref ("ABC*" 3))
 ```
 
 ### heget
@@ -68,6 +70,7 @@ Is short for 'heterogenous array get' and returns the value of a
 heterogenous array at a certain index of the specified type.
 ```adscript
 (heget <type> <pointer> <index>)
+(heget i8 "ABC*" 3)
 ```
 
 ### defn
@@ -77,18 +80,21 @@ Defines a function globally, as described above.
 Defines a "final variable"/"run time constant", works like `let` in Clojure.
 ```adscript
 (let <identifier> <value>)
+(let a 42)
 ```
 
 ### var
 Defines a variable that can be changed later.
 ```adscript
 (var <identifier> <value>)
+(var a 42)
 ```
 
 ### set
 Sets the value for a pointer.
 ```adscript
 (set <pointer> <value>)
+(set (ref a) 42)
 ```
 
 
