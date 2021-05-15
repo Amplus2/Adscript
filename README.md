@@ -61,8 +61,8 @@ Creates a conditional expression.
 Creates a pointer to a reference.
 
 ```adscript
-(ref <pointer>)
-(ref ("ABC*" 3))
+(ref <value>)
+(ref (#[1 2 3] 1))
 ```
 
 ### deref
@@ -70,7 +70,7 @@ Dereferences a pointer.
 
 ```adscript
 (deref <pointer>)
-(deref ("ABC*" 3))
+(deref (ref ("ABC*" 3)))
 ```
 
 ### heget
