@@ -78,7 +78,7 @@ Is short for 'heterogenous array get' and returns the value of a
 heterogenous array at a certain index of the specified type.
 ```adscript
 (heget <type> <pointer> <index>)
-(heget i8 "ABC*" 3)
+(heget i8 [\A\B\C\*] 3)
 ```
 
 ### defn
