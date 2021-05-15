@@ -304,6 +304,16 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 tmpT = lexer.nextT();
 
                 return new SetExpr(ptr, val);
+            } else if (!tmpT.val.compare("ref")) {
+                // eat up 'set'
+                tmpT = lexer.nextT();
+
+                auto val = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new RefExpr(val);
             } else if (!tmpT.val.compare("deref")) {
                 // eat up 'deref'
                 tmpT = lexer.nextT();

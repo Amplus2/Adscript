@@ -5,6 +5,7 @@ build
 first
 second
 hello-world
+10000
 
 *.o
 *.tmp

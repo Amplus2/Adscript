@@ -369,7 +369,11 @@ llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
+    bool b = ctx.needsRef;
+    ctx.needsRef = true;
     llvm::Value* ptr = this->ptr->llvmValue(ctx);
+    if (!b) ctx.needsRef = false;
+
     if (!ptr->getType()->isPointerTy())
         error(ERROR_COMPILER,
             "expected pointer type for set expression as first argument");
@@ -387,9 +391,10 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* RefExpr::llvmValue(CompileContext& ctx) {
+    bool b = ctx.needsRef;
     ctx.needsRef = true;
     llvm::Value *v = val->llvmValue(ctx);
-    ctx.needsRef = false;
+    if (!b) ctx.needsRef = false;
     return v;
 }
 

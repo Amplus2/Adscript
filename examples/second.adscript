@@ -7,4 +7,4 @@
 (defn main [int a] i8
     (puts #[\H\e\l\l\o \  \W\o\r\l\d \! 0])
     (abc puts)
-    (puts (deref (#["41" "42" "43"] 1))))
+    (puts (#["41" "42" "43"] 1)))
