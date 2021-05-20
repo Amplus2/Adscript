@@ -20,8 +20,8 @@ $(OUTPUT): $(OFILES)
 	clang++ $(CXXFLAGS) -c $< -o $@
 
 test: all
-	cd $(BUILD_DIR) && ./$(EXE_NAME) ../examples/first.adscript
-	cd $(BUILD_DIR) && ./$(EXE_NAME) ../examples/second.adscript
+	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o first ../examples/first.adscript
+	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o second ../examples/second.adscript
 
 clean:
 	rm -rf $(BUILD_DIR) $(OFILES)

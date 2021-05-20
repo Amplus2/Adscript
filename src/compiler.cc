@@ -35,46 +35,42 @@ ctx_var_t CompileContext::getVar(const std::string& id) {
     return { nullptr, nullptr };
 }
 
-void addFilenameToModuleInfo(const std::string& filename, llvm::Module *mod) {
-    std::string sourceFilename =
-        std::count(filename.begin(), filename.end(), '/')
-            ? filename.substr(
-                filename.find_last_of('/') + 1, filename.size() - 1)
-            : filename;
+inline std::string getFileName(const std::string& path) {
+    auto s = path.find_last_of("/\\");
+    return s == std::string::npos ? path : path.substr(s + 1);
+}
 
-    size_t dotCount =
-        std::count(sourceFilename.begin(), sourceFilename.end(), '.');
+inline std::string getModuleId(const std::string& filename) {
+    size_t dotCount = std::count(filename.begin(), filename.end(), '.');
 
-    std::string moduleId = dotCount
-        ? sourceFilename[0] == '.'
-            ? dotCount == 1 
-                ? sourceFilename.substr(1, sourceFilename.size() - 1)
-                : sourceFilename.substr(1, sourceFilename.find_last_of('.'))
-            : sourceFilename.substr(0, sourceFilename.find_last_of('.'))
-        : sourceFilename;
-    
-    mod->setSourceFileName(sourceFilename);
-    mod->setModuleIdentifier(moduleId);
+    return dotCount
+        ? filename[0] == '.'
+            ? dotCount == 1
+                ? filename.substr(1, filename.size() - 1)
+                : filename.substr(1, filename.find_last_of('.'))
+            : filename.substr(0, filename.find_last_of('.'))
+        : filename;
 }
 
 void runMPM(llvm::Module *mod) {
     llvm::PassBuilder passBuilder;
 
-    llvm::ModuleAnalysisManager             mam;
-    llvm::CGSCCAnalysisManager              gam;
-    llvm::FunctionAnalysisManager           fam;
-    llvm::LoopAnalysisManager               lam;
+    llvm::ModuleAnalysisManager          mam;
+    llvm::CGSCCAnalysisManager           gam;
+    llvm::FunctionAnalysisManager        fam;
+    llvm::LoopAnalysisManager            lam;
 
-    passBuilder.registerModuleAnalyses      (mam);
-    passBuilder.registerCGSCCAnalyses       (gam);
-    passBuilder.registerFunctionAnalyses    (fam);
-    passBuilder.registerLoopAnalyses        (lam);
+    passBuilder.registerModuleAnalyses   (mam);
+    passBuilder.registerCGSCCAnalyses    (gam);
+    passBuilder.registerFunctionAnalyses (fam);
+    passBuilder.registerLoopAnalyses     (lam);
 
     passBuilder.crossRegisterProxies(lam, fam, gam, mam);
 
+    // TODO: make configurable
     auto mpm = passBuilder.buildPerModuleDefaultPipeline(
         llvm::PassBuilder::OptimizationLevel::O3);
-    
+
     mpm.run(*mod, mam);
 
     mam.clear();
@@ -83,7 +79,7 @@ void runMPM(llvm::Module *mod) {
     lam.clear();
 }
 
-void compileModuleToFile(llvm::Module *mod) {
+void compileModuleToFile(llvm::Module *mod, const std::string &output) {
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
@@ -110,10 +106,8 @@ void compileModuleToFile(llvm::Module *mod) {
 
     mod->setDataLayout(targetMachine->createDataLayout());
 
-    std::string outputFilename = mod->getModuleIdentifier() + ".o";
-
     std::error_code ec;
-    llvm::raw_fd_ostream dest(outputFilename, ec, llvm::sys::fs::OF_None);
+    llvm::raw_fd_ostream dest(output, ec, llvm::sys::fs::OF_None);
 
     if (ec) error(ERROR_COMPILER, ec.message());
 
@@ -128,27 +122,29 @@ void compileModuleToFile(llvm::Module *mod) {
         pm, dest, nullptr, llvm::CGFT_ObjectFile);
 
     if (objResult)
-        error(ERROR_COMPILER, "cannot write to file '" + outputFilename + "'");
+        error(ERROR_COMPILER, "cannot write to file '" + output + "'");
 
     pm.run(*mod);
     dest.flush();
-
-    int linkResult = system(("cc " + outputFilename + " -o "
-                                + mod->getModuleIdentifier()).c_str());
-
-    if (linkResult)
-        error(ERROR_COMPILER, "error while linking '" + outputFilename + "'");
-
-    if (std::remove(outputFilename.c_str()))
-        error(ERROR_DEFAULT, "cannot remove '" + outputFilename + "'");
 }
 
-void compile(const std::string& filename, std::vector<Expr*>& exprs) {
-    llvm::LLVMContext ctx;
-    llvm::Module mod(filename, ctx);
-    llvm::IRBuilder<> builder(ctx);
+void link(const std::string &obj, const std::string &exe) {
+    int linkResult = system(("cc " + obj + " -o " + exe).c_str());
 
-    addFilenameToModuleInfo(filename, &mod);
+    if (linkResult)
+        error(ERROR_COMPILER, "error while linking `" + exe + "'");
+
+    if (std::remove(obj.c_str()))
+        error(ERROR_DEFAULT, "cannot remove `" + obj + "'");
+}
+
+void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output) {
+    std::string filename = getFileName(output);
+    std::string moduleId = getModuleId(filename);
+
+    llvm::LLVMContext ctx;
+    llvm::Module mod(moduleId, ctx);
+    llvm::IRBuilder<> builder(ctx);
 
     CompileContext cctx(&mod, &builder);
     for (auto& expr : exprs) expr->llvmValue(cctx);
@@ -159,5 +155,7 @@ void compile(const std::string& filename, std::vector<Expr*>& exprs) {
 
     // mod.print(llvm::errs(), 0);
 
-    compileModuleToFile(&mod);
+    // TODO: randomize "tmp.o"
+    compileModuleToFile(&mod, exe ? "tmp.o" : output);
+    if (exe) link("tmp.o", output);
 }

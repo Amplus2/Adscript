@@ -3,30 +3,60 @@
 #include "compiler.hh"
 
 #include <iostream>
+#include <unistd.h>
 
 void printAST(const std::vector<Expr*>& ast) {
     for (auto& expr : ast) std::cout << expr->str() << std::endl;
 }
 
-void printUsage(char *argv0) {
-    std::cout << "usage: " << argv0 << " <file>" << std::endl;
+inline int printUsage(char **argv, int r) {
+    std::cout << "usage: " << argv[0] << "[-eh] [-o <file>] <file>" << std::endl;
+    return r;
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        printUsage(argv[0]);
-        return 1;
+    if (argc < 2) return printUsage(argv, 1);
+    std::string output;
+    bool exe = false;
+    int opt;
+    opterr = 0;
+    while ((opt = getopt(argc, argv, "eo:h")) != -1) {
+        switch (opt) {
+            case 'e': exe = true; break;
+            case 'o': output = optarg; break;
+            case 'h': return printUsage(argv, 0);
+            case '?': return printUsage(argv, 1);
+        }
     }
 
-    std::string text = readFile(argv[1]);
-    Lexer lexer(text);
-    Parser parser(lexer);
+    argc -= optind;
+    if (!argc) return printUsage(argv, 1);
+    argv += optind;
 
-    auto exprs = parser.parse();
+    if (output == "") {
+        for (int i = 0; i < argc; i++) {
+            std::string text = readFile(argv[i]);
+            Lexer lexer(text);
+            Parser parser(lexer);
+            auto exprs = parser.parse();
+            // TODO: remove ".adscript" at the end, add ".o" if exe = false
+            compile(exprs, exe, std::string(argv[i]) + ".out");
+            for (auto& expr : exprs) expr->~Expr();
+        }
+    } else {
+        std::vector<Expr*> exprs;
 
-    compile(argv[1], exprs);
+        for (int i = 0; i < argc; i++) {
+            std::string text = readFile(argv[i]);
+            Lexer lexer(text);
+            Parser parser(lexer);
+            auto newexprs = parser.parse();
+            exprs.insert(exprs.end(), newexprs.begin(), newexprs.end());
+        }
 
-    for (auto& expr : exprs) expr->~Expr();
+        compile(exprs, exe, output);
 
+        for (auto& expr : exprs) expr->~Expr();
+    }
     return 0;
 }

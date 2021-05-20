@@ -22,4 +22,4 @@ public:
     ctx_var_t getVar(const std::string& id);
 };
 
-void compile (const std::string& filename, std::vector<Expr*>& exprs);
+void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output);
