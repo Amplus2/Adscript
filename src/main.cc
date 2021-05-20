@@ -10,8 +10,16 @@ void printAST(const std::vector<Expr*>& ast) {
 }
 
 inline int printUsage(char **argv, int r) {
-    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] <file>" << std::endl;
+    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] <files>" << std::endl;
     return r;
+}
+
+std::string makeOutputPath(const std::string &input, bool exe) {
+    auto lastdot = input.find_last_of('.');
+    if (lastdot == std::string::npos)
+        error(ERROR_DEFAULT, "Input files have to have an extension.");
+    auto mod = input.substr(0, lastdot);
+    return exe ? mod : mod + ".o";
 }
 
 int main(int argc, char **argv) {
@@ -35,12 +43,13 @@ int main(int argc, char **argv) {
 
     if (output == "") {
         for (int i = 0; i < argc; i++) {
-            std::string text = readFile(argv[i]);
+            std::string input = std::string(argv[i]);
+            std::string output = makeOutputPath(input, exe);
+            std::string text = readFile(input);
             Lexer lexer(text);
             Parser parser(lexer);
             auto exprs = parser.parse();
-            // TODO: remove ".adscript" at the end, add ".o" if exe = false
-            compile(exprs, exe, std::string(argv[i]) + ".out");
+            compile(exprs, exe, output);
             for (auto& expr : exprs) expr->~Expr();
         }
     } else {
