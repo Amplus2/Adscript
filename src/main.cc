@@ -10,7 +10,7 @@ void printAST(const std::vector<Expr*>& ast) {
 }
 
 inline int printUsage(char **argv, int r) {
-    std::cout << "usage: " << argv[0] << "[-eh] [-o <file>] <file>" << std::endl;
+    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] <file>" << std::endl;
     return r;
 }
 
