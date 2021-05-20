@@ -133,7 +133,7 @@ void compileModuleToFile(llvm::Module *mod) {
     pm.run(*mod);
     dest.flush();
 
-    int linkResult = system(("gcc " + outputFilename + " -o "
+    int linkResult = system(("cc " + outputFilename + " -o "
                                 + mod->getModuleIdentifier()).c_str());
 
     if (linkResult)
