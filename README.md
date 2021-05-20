@@ -113,7 +113,5 @@ Equivalent to the asm "function" in c with llvm IR.
 Equivalent to the asm "function" in c but with c code.
 
 ### All C standard library functions
-As long as you have gcc on your system and provide header definitions, you
-probably will be able to use it.
-<!--TODO: It should work as long as ld and libc are present.-->
-
+As long as you have a C compiler (`cc`) on your system and provide
+header definitions, you probably will be able to use it.

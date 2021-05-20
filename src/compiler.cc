@@ -24,6 +24,8 @@
 #include <memory>
 #include <iostream>
 
+#include <unistd.h>
+
 bool CompileContext::isVar(const std::string& id) {
     return localVars.count(id) != 0;
 }
@@ -138,6 +140,12 @@ void link(const std::string &obj, const std::string &exe) {
         error(ERROR_DEFAULT, "cannot remove `" + obj + "'");
 }
 
+std::string tempfile() {
+    char file[] = "/tmp/adscript-XXXXXXXX.o";
+    mktemp(file);
+    return file;
+}
+
 void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output) {
     std::string filename = getFileName(output);
     std::string moduleId = getModuleId(filename);
@@ -155,7 +163,7 @@ void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output) {
 
     // mod.print(llvm::errs(), 0);
 
-    // TODO: randomize "tmp.o"
-    compileModuleToFile(&mod, exe ? "tmp.o" : output);
-    if (exe) link("tmp.o", output);
+    std::string obj = exe ? tempfile() : output;
+    compileModuleToFile(&mod, obj);
+    if (exe) link(obj, output);
 }
