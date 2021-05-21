@@ -142,7 +142,7 @@ void link(const std::string &obj, const std::string &exe) {
 
 std::string tempfile() {
     char file[] = "/tmp/adscript-XXXXXXXX.o";
-    mktemp(file);
+    mkstemp(file);
     return file;
 }
 

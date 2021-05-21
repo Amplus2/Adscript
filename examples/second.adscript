@@ -1,10 +1,6 @@
 (defn puts [char* s] int)
 (defn exit [i8 i] void)
 
-(defn abc [void* v] int
-    84)
-
 (defn main [int a] i8
     (puts #[\H\e\l\l\o \  \W\o\r\l\d \! 0])
-    (abc puts)
     (puts (#["41" "42" "43"] 1)))
