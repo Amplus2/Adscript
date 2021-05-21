@@ -55,21 +55,20 @@ public:
 class Parser {
 private:
     Lexer lexer;
-    Token tmpT;
 
-    Type* parseType();
+    Type* parseType(Token& tmpT);
 
-    Expr* parseExpr();
-    Expr* parseTopLevelExpr();
+    Expr* parseExpr(Token& tmpT);
+    Expr* parseTopLevelExpr(Token& tmpT);
 
-    Expr* parseArrayExpr();
-    Expr* parsePtrArrayExpr();
-    Expr* parseBinExpr(BinExprType bet);
-    Expr* parseCastExpr(Type *t);
-    Expr* parseIfExpr();
+    Expr* parseArrayExpr(Token& tmpT);
+    Expr* parsePtrArrayExpr(Token& tmpT);
+    Expr* parseBinExpr(Token& tmpT, BinExprType bet);
+    Expr* parseCastExpr(Token& tmpT, Type *t);
+    Expr* parseIfExpr(Token& tmpT);
 
-    Expr* parseFunction();
-    Expr* parseCall();
+    Expr* parseFunction(Token& tmpT);
+    Expr* parseCall(Token& tmpT);
 public:
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<Expr*> parse();
