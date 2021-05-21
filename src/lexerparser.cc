@@ -188,7 +188,7 @@ Expr* tokenToExpr(Token t) {
     }
 }
 
-Type* Parser::parseType(Token& tmpT) {
+Type* Parser::parseType() {
     Type *t = nullptr;
 
     // general types
@@ -235,48 +235,48 @@ Type* Parser::parseType(Token& tmpT) {
 }
 
 
-Expr* Parser::parseExpr(Token& tmpT) {
+Expr* Parser::parseExpr() {
     if (tmpT.tt == TT_PO) {
         tmpT = lexer.nextT();
         if (tmpT.tt == TT_EOF)
             error(ERROR_PARSER, "unexpected end of file");
         else if (tmpT.tt == TT_STAR)
-            return parseBinExpr(tmpT, BINEXPR_MUL);
+            return parseBinExpr(BINEXPR_MUL);
         else if (tmpT.tt == TT_ID) {
             if (!tmpT.val.compare("+"))
-                return parseBinExpr(tmpT, BINEXPR_ADD);
+                return parseBinExpr(BINEXPR_ADD);
             else if (!tmpT.val.compare("-"))
-                return parseBinExpr(tmpT, BINEXPR_SUB);
+                return parseBinExpr(BINEXPR_SUB);
             else if (!tmpT.val.compare("/"))
-                return parseBinExpr(tmpT, BINEXPR_DIV);
+                return parseBinExpr(BINEXPR_DIV);
             else if (!tmpT.val.compare("%"))
-                return parseBinExpr(tmpT, BINEXPR_MOD);
+                return parseBinExpr(BINEXPR_MOD);
             else if (!tmpT.val.compare("|"))
-                return parseBinExpr(tmpT, BINEXPR_OR);
+                return parseBinExpr(BINEXPR_OR);
             else if (!tmpT.val.compare("&"))
-                return parseBinExpr(tmpT, BINEXPR_AND);
+                return parseBinExpr(BINEXPR_AND);
             else if (!tmpT.val.compare("^"))
-                return parseBinExpr(tmpT, BINEXPR_XOR);
+                return parseBinExpr(BINEXPR_XOR);
             else if (!tmpT.val.compare("="))
-                return parseBinExpr(tmpT, BINEXPR_EQ);
+                return parseBinExpr(BINEXPR_EQ);
             else if (!tmpT.val.compare("<"))
-                return parseBinExpr(tmpT, BINEXPR_LT);
+                return parseBinExpr(BINEXPR_LT);
             else if (!tmpT.val.compare(">"))
-                return parseBinExpr(tmpT, BINEXPR_GT);
+                return parseBinExpr(BINEXPR_GT);
             else if (!tmpT.val.compare("<="))
-                return parseBinExpr(tmpT, BINEXPR_LTEQ);
+                return parseBinExpr(BINEXPR_LTEQ);
             else if (!tmpT.val.compare(">="))
-                return parseBinExpr(tmpT, BINEXPR_GTEQ);
+                return parseBinExpr(BINEXPR_GTEQ);
             else if (!tmpT.val.compare("or"))
-                return parseBinExpr(tmpT, BINEXPR_LOR);
+                return parseBinExpr(BINEXPR_LOR);
             else if (!tmpT.val.compare("and"))
-                return parseBinExpr(tmpT, BINEXPR_LAND);
+                return parseBinExpr(BINEXPR_LAND);
             else if (!tmpT.val.compare("xor"))
-                return parseBinExpr(tmpT, BINEXPR_LXOR);
+                return parseBinExpr(BINEXPR_LXOR);
             else if (!tmpT.val.compare("not"))
-                return parseBinExpr(tmpT, BINEXPR_NOT);
+                return parseBinExpr(BINEXPR_NOT);
             else if (!tmpT.val.compare("if"))
-                return parseIfExpr(tmpT);
+                return parseIfExpr();
             else if (!tmpT.val.compare("var")) {
                 // eat up 'var'
                 tmpT = lexer.nextT();
@@ -288,7 +288,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up id
                 tmpT = lexer.nextT();
 
-                auto val = parseExpr(tmpT);
+                auto val = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -298,12 +298,12 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'set'
                 tmpT = lexer.nextT();
 
-                auto ptr = parseExpr(tmpT);
+                auto ptr = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                auto val = parseExpr(tmpT);
+                auto val = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -313,7 +313,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'set'
                 tmpT = lexer.nextT();
 
-                auto val = parseExpr(tmpT);
+                auto val = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -323,7 +323,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'deref'
                 tmpT = lexer.nextT();
 
-                auto ptr = parseExpr(tmpT);
+                auto ptr = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -333,18 +333,18 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up 'heget'
                 tmpT = lexer.nextT();
 
-                auto t = parseType(tmpT);
+                auto t = parseType();
                 if (!t) parseError("data type", tmpT.val, lexer.pos());
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                auto ptr = parseExpr(tmpT);
+                auto ptr = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                auto idx = parseExpr(tmpT);
+                auto idx = parseExpr();
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -352,19 +352,19 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 return new HeGetExpr(t, ptr, idx);
             }
 
-            auto t = parseType(tmpT);
-            if (t) return parseCastExpr(tmpT, t);
+            auto t = parseType();
+            if (t) return parseCastExpr(t);
         }
 
-        return parseCall(tmpT);
+        return parseCall();
 
         // error if '(' isn't followed by a funcall
         parseError("identifier", tmpT.val, lexer.pos());
         return nullptr;
     } else if (tmpT.tt == TT_HASH) {
-        return parseArrayExpr(tmpT);
+        return parseArrayExpr();
     } else if (tmpT.tt == TT_BRO) {
-        return parsePtrArrayExpr(tmpT);
+        return parsePtrArrayExpr();
     } else {
         Expr* tmp = tokenToExpr(tmpT);
         if (!tmp) parseError("expression", tmpT.val, lexer.pos());
@@ -372,7 +372,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
     }
 }
 
-Expr* Parser::parseTopLevelExpr(Token& tmpT) {
+Expr* Parser::parseTopLevelExpr() {
     if (tmpT.tt == TT_PO) {
         tmpT = lexer.nextT();
         if (tmpT.tt == TT_EOF)
@@ -381,7 +381,7 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
             std::string tmpStr = tmpT.val;
 
             if (!tmpT.val.compare("defn"))
-                return parseFunction(tmpT);
+                return parseFunction();
             
             parseError("built-in top-level function call identifier",
                 tmpT.val, lexer.pos());
@@ -394,7 +394,7 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
     return nullptr;
 }
 
-Expr* Parser::parseArrayExpr(Token& tmpT) {
+Expr* Parser::parseArrayExpr() {
     // eat up '#'
     tmpT = lexer.nextT();
 
@@ -407,7 +407,7 @@ Expr* Parser::parseArrayExpr(Token& tmpT) {
     std::vector<Expr*> exprs;
 
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
-        exprs.push_back(parseExpr(tmpT));
+        exprs.push_back(parseExpr());
 
         // eat up remaining token
         tmpT = lexer.nextT();
@@ -419,14 +419,14 @@ Expr* Parser::parseArrayExpr(Token& tmpT) {
     return new ArrayExpr(exprs);
 }
 
-Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
+Expr* Parser::parsePtrArrayExpr() {
     // eat up '['
     tmpT = lexer.nextT();
 
     std::vector<Expr*> exprs;
 
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
-        exprs.push_back(parseExpr(tmpT));
+        exprs.push_back(parseExpr());
 
         // eat up remaining token
         tmpT = lexer.nextT();
@@ -438,13 +438,13 @@ Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
     return new PtrArrayExpr(exprs);
 }
 
-Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
+Expr* Parser::parseBinExpr(BinExprType bet) {
     // eat up operator
     tmpT = lexer.nextT();
 
     std::vector<Expr*> exprs;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
-        exprs.push_back(parseExpr(tmpT));
+        exprs.push_back(parseExpr());
 
         // eat up remaining token
         tmpT = lexer.nextT();
@@ -469,11 +469,11 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     return tmpExpr;
 }
 
-Expr* Parser::parseCastExpr(Token& tmpT, Type *t) {
+Expr* Parser::parseCastExpr(Type *t) {
     // eat remaining token
     tmpT = lexer.nextT();
 
-    auto expr = parseExpr(tmpT);
+    auto expr = parseExpr();
 
     // eat up remaining token
     tmpT = lexer.nextT();
@@ -481,21 +481,21 @@ Expr* Parser::parseCastExpr(Token& tmpT, Type *t) {
     return new CastExpr(t, expr);
 }
 
-Expr* Parser::parseIfExpr(Token& tmpT) {
+Expr* Parser::parseIfExpr() {
     // eat up 'if'
     tmpT = lexer.nextT();
 
-    auto cond = parseExpr(tmpT);
+    auto cond = parseExpr();
 
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    auto exprTrue = parseExpr(tmpT);
+    auto exprTrue = parseExpr();
 
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    auto exprFalse = parseExpr(tmpT);
+    auto exprFalse = parseExpr();
 
     // eat up remaining token
     tmpT = lexer.nextT();
@@ -503,7 +503,7 @@ Expr* Parser::parseIfExpr(Token& tmpT) {
     return new IfExpr(cond, exprTrue, exprFalse);
 }
 
-Expr* Parser::parseFunction(Token& tmpT) {
+Expr* Parser::parseFunction() {
     // eat up 'defn'
     tmpT = lexer.nextT();
 
@@ -521,7 +521,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     std::vector<std::pair<Type*, std::string>> args;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
         // get argument/parameter type
-        auto t = parseType(tmpT);
+        auto t = parseType();
         if (!t) parseError("data type", tmpT.val, lexer.pos());
 
         // eat up data type
@@ -542,7 +542,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up ']'
     tmpT = lexer.nextT();
 
-    auto retType = parseType(tmpT);
+    auto retType = parseType();
     if (!retType) parseError("return type", tmpT.val, lexer.pos());
 
     // eat up return type
@@ -551,7 +551,7 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // parse body
     std::vector<Expr*> body;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
-        body.push_back(parseExpr(tmpT));
+        body.push_back(parseExpr());
 
         // eat up remaining token
         tmpT = lexer.nextT();
@@ -563,12 +563,12 @@ Expr* Parser::parseFunction(Token& tmpT) {
     return new Function(id, args, retType, body);
 }
 
-Expr* Parser::parseCall(Token& tmpT) {
+Expr* Parser::parseCall() {
     if (!tmpT.val.compare("defn"))
         error(ERROR_PARSER,
             "functions can only be defined at top level", lexer.pos());
 
-    auto callee = parseExpr(tmpT);
+    auto callee = parseExpr();
 
     // eat up remaining token
     tmpT = lexer.nextT();
@@ -576,7 +576,7 @@ Expr* Parser::parseCall(Token& tmpT) {
     // parse arguments/parameters
     std::vector<Expr*> args;
     while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
-        args.push_back(parseExpr(tmpT));
+        args.push_back(parseExpr());
 
         // eat up remaining token
         tmpT = lexer.nextT();
@@ -597,7 +597,7 @@ std::vector<Expr*> Parser::parse() {
     std::vector<Expr*> tmpExprs;
 
     while (tmpT.tt != TT_EOF) {
-        result.push_back(parseTopLevelExpr(tmpT));
+        result.push_back(parseTopLevelExpr());
 
         // eat up remaining token
         tmpT = lexer.nextT();
