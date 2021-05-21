@@ -49,3 +49,5 @@ llvm::Value* cast(CompileContext& ctx, llvm::Value *v, llvm::Type *t);
 llvm::Value* createLogicalVal(CompileContext& ctx, llvm::Value *v);
 
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::Type *type);
+
+bool isNumTy(llvm::Type *t);

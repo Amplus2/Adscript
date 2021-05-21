@@ -134,10 +134,10 @@ void link(const std::string &obj, const std::string &exe) {
     int linkResult = system(("cc " + obj + " -o " + exe).c_str());
 
     if (linkResult)
-        error(ERROR_COMPILER, "error while linking `" + exe + "'");
+        error(ERROR_COMPILER, "error while linking '" + exe + "'");
 
     if (std::remove(obj.c_str()))
-        error(ERROR_DEFAULT, "cannot remove `" + obj + "'");
+        error(ERROR_DEFAULT, "cannot remove '" + obj + "'");
 }
 
 std::string tempfile() {

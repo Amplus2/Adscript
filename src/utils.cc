@@ -200,3 +200,8 @@ llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::Type *type) {
         &(f->getEntryBlock()), f->getEntryBlock().begin());
     return builder.CreateAlloca(type);
 }
+
+bool isNumTy(llvm::Type *t) {
+    return t->isFloatTy()
+        || t->isIntegerTy();
+}

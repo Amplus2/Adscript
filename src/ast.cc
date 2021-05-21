@@ -179,31 +179,44 @@ llvm::Value* CharExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
+    // get var out of context
     auto var = ctx.getVar(val);
+    
+    // error if var is not defined
     if (!var.second)
         error(ERROR_COMPILER, "undefined reference to '" + val + "'");
+    
+    // return alloca if reference is needed
     if (ctx.needsRef) return var.second;
+
+    // return load to alloca
     return ctx.builder->CreateLoad(var.first, var.second);
 }
 
 llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
+    // create and return pointer to global constant char array (i8*)
     return ctx.builder->CreateGlobalStringPtr(val);
 }
 
 llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
+    // get llvm value for expr
     auto v = expr->llvmValue(ctx);
 
     switch (type) {
+    // do nothing if the unary expression type is '+'
     case BINEXPR_ADD: return v;
     case BINEXPR_SUB: {
+        // create 0 - v if v is of type int
         if (v->getType()->isIntegerTy())
             return ctx.builder->CreateSub(
                 cast(ctx, constInt(ctx, 0), v->getType()), v);
+        // create 0.0 - v if v is of type float
         else if (v->getType()->isFloatingPointTy())
             return ctx.builder->CreateFSub(
                 cast(ctx, constFP(ctx, 0), v->getType()), v);
     }
     case BINEXPR_NOT: {
+        // create logical not
         return ctx.builder->CreateNot(
             createLogicalVal(ctx, expr->llvmValue(ctx)));
     }
@@ -216,13 +229,17 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
+    // get llvm values
     auto lv = left->llvmValue(ctx);
     auto rv = right->llvmValue(ctx);
 
+    // handle logical operators
     if (type >= BINEXPR_LOR && type <= BINEXPR_LXOR) {
+        // create logical values for both operands
         lv = createLogicalVal(ctx, lv);
         rv = createLogicalVal(ctx, rv);
 
+        // create instruction
         switch (type) {
         case BINEXPR_LOR:   return ctx.builder->CreateOr(lv, rv);
         case BINEXPR_LAND:  return ctx.builder->CreateAnd(lv, rv);
@@ -233,59 +250,67 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
         auto lvT = lv->getType();
         auto rvT = rv->getType();
 
-        if (lvT->isIntegerTy() && rvT->isIntegerTy()) {
-            auto calcIntType = llvm::Type::getInt64Ty(ctx.mod->getContext());
+        if (isNumTy(lvT) && isNumTy(rvT)) {
+            if (lvT->isFloatingPointTy() || rvT->isFloatingPointTy()) {
+                // get the data type used for the binary expression
+                auto calcType = llvm::Type::getDoubleTy(ctx.mod->getContext());
 
-            lv = cast(ctx, lv, calcIntType);
-            rv = cast(ctx, rv, calcIntType);
-        } else if (lvT->isFloatingPointTy() && rvT->isFloatingPointTy()) {
-            auto calcFPType = llvm::Type::getDoubleTy(ctx.mod->getContext());
+                // cast operands to the correct type
+                lv = cast(ctx, lv, calcType);
+                rv = cast(ctx, rv, calcType);
 
-            lv = cast(ctx, lv, calcFPType);
-            rv = cast(ctx, rv, calcFPType);
+                // create instruction
+                switch (type) {
+                case BINEXPR_ADD:   return ctx.builder->CreateFAdd(lv, rv);
+                case BINEXPR_SUB:   return ctx.builder->CreateFSub(lv, rv);
+                case BINEXPR_MUL:   return ctx.builder->CreateFMul(lv, rv);
+                case BINEXPR_DIV:   return ctx.builder->CreateFDiv(lv, rv);
+                case BINEXPR_MOD:   return ctx.builder->CreateFRem(lv, rv);
+
+                case BINEXPR_EQ:    return ctx.builder->CreateFCmpUEQ(lv, rv);
+                case BINEXPR_LT:    return ctx.builder->CreateFCmpULT(lv, rv);
+                case BINEXPR_GT:    return ctx.builder->CreateFCmpUGT(lv, rv);
+                case BINEXPR_LTEQ:  return ctx.builder->CreateFCmpULE(lv, rv);
+                case BINEXPR_GTEQ:  return ctx.builder->CreateFCmpUGE(lv, rv);
+                default: ;
+                }
+            } else {
+                // get the data type used for the binary expression
+                auto calcType = llvm::Type::getInt64Ty(ctx.mod->getContext());
+
+                // cast operands to the correct type
+                lv = cast(ctx, lv, calcType);
+                rv = cast(ctx, rv, calcType);
+
+                // create instruction
+                switch (type) {
+                case BINEXPR_ADD:   return ctx.builder->CreateAdd(lv, rv);
+                case BINEXPR_SUB:   return ctx.builder->CreateSub(lv, rv);
+                case BINEXPR_MUL:   return ctx.builder->CreateMul(lv, rv);
+                case BINEXPR_DIV:   return ctx.builder->CreateSDiv(lv, rv);
+                case BINEXPR_MOD:   return ctx.builder->CreateSRem(lv, rv);
+
+                case BINEXPR_EQ:    return ctx.builder->CreateICmpEQ(lv, rv);
+                case BINEXPR_LT:    return ctx.builder->CreateICmpULT(lv, rv);
+                case BINEXPR_GT:    return ctx.builder->CreateICmpUGT(lv, rv);
+                case BINEXPR_LTEQ:  return ctx.builder->CreateICmpULE(lv, rv);
+                case BINEXPR_GTEQ:  return ctx.builder->CreateICmpUGE(lv, rv);
+                default: ;
+                }
+            }
         } else {
-            error(ERROR_COMPILER,
-                "binary expression operand types do not match");
+            // error if operand types are incompatible with another
+            error(ERROR_COMPILER, "incompatible operand types (left: '"
+                + llvmTypeStr(lvT) + "', right: '" + llvmTypeStr(rvT) + "')");
         }
     }
 
+    // handle bitwise operators
     switch (type) {
     case BINEXPR_OR:        return ctx.builder->CreateOr(lv, rv);
     case BINEXPR_AND:       return ctx.builder->CreateAnd(lv, rv);
     case BINEXPR_XOR:       return ctx.builder->CreateXor(lv, rv);
     default: ;
-    }
-
-    if (lv->getType()->isIntegerTy()) {
-        switch (type) {
-        case BINEXPR_ADD:   return ctx.builder->CreateAdd(lv, rv);
-        case BINEXPR_SUB:   return ctx.builder->CreateSub(lv, rv);
-        case BINEXPR_MUL:   return ctx.builder->CreateMul(lv, rv);
-        case BINEXPR_DIV:   return ctx.builder->CreateSDiv(lv, rv);
-        case BINEXPR_MOD:   return ctx.builder->CreateSRem(lv, rv);
-
-        case BINEXPR_EQ:    return ctx.builder->CreateICmpEQ(lv, rv);
-        case BINEXPR_LT:    return ctx.builder->CreateICmpULT(lv, rv);
-        case BINEXPR_GT:    return ctx.builder->CreateICmpUGT(lv, rv);
-        case BINEXPR_LTEQ:  return ctx.builder->CreateICmpULE(lv, rv);
-        case BINEXPR_GTEQ:  return ctx.builder->CreateICmpUGE(lv, rv);
-        default: ;
-        }
-    } else if (lv->getType()->isFloatingPointTy()) {
-        switch (type) {
-        case BINEXPR_ADD:   return ctx.builder->CreateFAdd(lv, rv);
-        case BINEXPR_SUB:   return ctx.builder->CreateFSub(lv, rv);
-        case BINEXPR_MUL:   return ctx.builder->CreateFMul(lv, rv);
-        case BINEXPR_DIV:   return ctx.builder->CreateFDiv(lv, rv);
-        case BINEXPR_MOD:   return ctx.builder->CreateFRem(lv, rv);
-
-        case BINEXPR_EQ:    return ctx.builder->CreateFCmpUEQ(lv, rv);
-        case BINEXPR_LT:    return ctx.builder->CreateFCmpULT(lv, rv);
-        case BINEXPR_GT:    return ctx.builder->CreateFCmpUGT(lv, rv);
-        case BINEXPR_LTEQ:  return ctx.builder->CreateFCmpULE(lv, rv);
-        case BINEXPR_GTEQ:  return ctx.builder->CreateFCmpUGE(lv, rv);
-        default: ;
-        }
     }
 
     error(ERROR_COMPILER, "unknown type name in binary expression");
