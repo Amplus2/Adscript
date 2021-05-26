@@ -29,5 +29,5 @@ test: all
 clean:
 	rm -rf $(BUILD_DIR) $(OFILES)
 
-install:
+install: all
 	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
