@@ -6,6 +6,8 @@ BUILD_DIR ?= build
 EXE_NAME  ?= adscript
 OUTPUT    ?= $(BUILD_DIR)/$(EXE_NAME)
 
+PREFIX ?= /usr/local
+
 SFILES = $(wildcard src/*.cc)
 OFILES = $(SFILES:.cc=.o)
 
@@ -22,14 +24,10 @@ $(OUTPUT): $(OFILES)
 test: all
 	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o first ../examples/first.adscript
 	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o second ../examples/second.adscript
+	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o hello-world ../examples/hello-world.adscript
 
 clean:
 	rm -rf $(BUILD_DIR) $(OFILES)
 
-rebuild: clean all
-
-STATIC_LLVM_FLAGS = `llvm-config --cxxflags --ldflags --system-libs --link-static --libs all`
-static:
-	mkdir -p build
-	clang++ $(SFILES) -flto -O3 -Wall $(STATIC_LLVM_FLAGS) -o build/adscript-static
-	strip build/adscript-static
+install:
+	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
