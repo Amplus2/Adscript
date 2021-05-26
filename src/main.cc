@@ -5,12 +5,14 @@
 #include <iostream>
 #include <unistd.h>
 
+#include <llvm/Support/Host.h>
+
 void printAST(const std::vector<Expr*>& ast) {
     for (auto& expr : ast) std::cout << expr->str() << std::endl;
 }
 
 inline int printUsage(char **argv, int r) {
-    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] <files>" << std::endl;
+    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] [-t <target-triple>] <files>" << std::endl;
     return r;
 }
 
@@ -24,14 +26,15 @@ std::string makeOutputPath(const std::string &input, bool exe) {
 
 int main(int argc, char **argv) {
     if (argc < 2) return printUsage(argv, 1);
-    std::string output;
+    std::string output, target;
     bool exe = false;
     int opt;
     opterr = 0;
-    while ((opt = getopt(argc, argv, "eo:h")) != -1) {
+    while ((opt = getopt(argc, argv, "eo:t:h")) != -1) {
         switch (opt) {
             case 'e': exe = true; break;
             case 'o': output = optarg; break;
+            case 't': target = optarg; break;
             case 'h': return printUsage(argv, 0);
             case '?': return printUsage(argv, 1);
         }
@@ -41,6 +44,8 @@ int main(int argc, char **argv) {
     if (!argc) return printUsage(argv, 1);
     argv += optind;
 
+    if (target == "") target = llvm::sys::getDefaultTargetTriple();
+
     if (output == "") {
         for (int i = 0; i < argc; i++) {
             std::string input = std::string(argv[i]);
@@ -49,7 +54,7 @@ int main(int argc, char **argv) {
             Lexer lexer(text);
             Parser parser(lexer);
             auto exprs = parser.parse();
-            compile(exprs, exe, output);
+            compile(exprs, exe, output, target);
             for (auto& expr : exprs) expr->~Expr();
         }
     } else {
@@ -63,7 +68,7 @@ int main(int argc, char **argv) {
             exprs.insert(exprs.end(), newexprs.begin(), newexprs.end());
         }
 
-        compile(exprs, exe, output);
+        compile(exprs, exe, output, target);
 
         for (auto& expr : exprs) expr->~Expr();
     }

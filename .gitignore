@@ -1,7 +1,7 @@
-.vscode
-build
+.vscode/
+build/
 
-# just for the lazyness
+# shouldnt do this actually
 first
 second
 hello-world

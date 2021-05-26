@@ -81,28 +81,26 @@ void runMPM(llvm::Module *mod) {
     lam.clear();
 }
 
-void compileModuleToFile(llvm::Module *mod, const std::string &output) {
+void compileModuleToFile(llvm::Module *mod, const std::string &output, const std::string &target) {
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmParsers();
     llvm::InitializeAllAsmPrinters();
 
-    // TODO: make configurable
-    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
-    mod->setTargetTriple(targetTriple);
+    mod->setTargetTriple(target);
 
     std::string err;
-    const llvm::Target *target =
-        llvm::TargetRegistry::lookupTarget(targetTriple, err);
+    const llvm::Target *t =
+        llvm::TargetRegistry::lookupTarget(target, err);
 
-    if (!target) error(ERROR_COMPILER, err);
+    if (!t) error(ERROR_COMPILER, err);
 
-    llvm::TargetMachine *targetMachine = target->createTargetMachine(
-        targetTriple,
-        // TODO: make configurable
-        llvm::sys::getHostCPUName(), "",
+    llvm::TargetMachine *targetMachine = t->createTargetMachine(
+        target,
+        "", "",
         llvm::TargetOptions(),
+        // TODO: make configurable
         llvm::Reloc::PIC_
     );
 
@@ -146,7 +144,7 @@ std::string tempfile() {
     return file;
 }
 
-void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output) {
+void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output, const std::string &target) {
     std::string filename = getFileName(output);
     std::string moduleId = getModuleId(filename);
 
@@ -164,6 +162,6 @@ void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output) {
     // mod.print(llvm::errs(), 0);
 
     std::string obj = exe ? tempfile() : output;
-    compileModuleToFile(&mod, obj);
+    compileModuleToFile(&mod, obj, target);
     if (exe) link(obj, output);
 }
