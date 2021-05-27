@@ -442,32 +442,61 @@ llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
 }
 
 llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
+    // get the current 'needsRef' value
     bool b = ctx.needsRef;
-    ctx.needsRef = true;
-    llvm::Value* ptr = this->ptr->llvmValue(ctx);
-    if (!b) ctx.needsRef = false;
 
+    // set the 'needsRef' flag
+    ctx.needsRef = true;
+
+    // get pointer to store the value in
+    llvm::Value* ptr = this->ptr->llvmValue(ctx);
+    
+    // set 'needsRef' flag to the value stored in 'b'
+    ctx.needsRef = b;
+
+    // error if the value is not going to be stored in a pointer
     if (!ptr->getType()->isPointerTy())
         error(ERROR_COMPILER,
             "expected pointer type for set expression as first argument");
     
+    // get the type of the pointer
     auto valT = ptr->getType()->getPointerElementType();
+
+    // get the value to store
     auto val = this->val->llvmValue(ctx);
+
+    // try casting the value to the pointer's element type
     auto val1 = tryCast(ctx, val, valT);
+
+    // error if casting failed
     if (!val1)
         error(ERROR_COMPILER,
             "pointer of set instruction is unable to store (expected: "
             + llvmTypeStr(valT) + ", got: " + llvmTypeStr(val->getType())
             + ")");
 
+    // return stored value
     return val1;
 }
 
 llvm::Value* RefExpr::llvmValue(CompileContext& ctx) {
+    // get the current 'needsRef' value
     bool b = ctx.needsRef;
+
+    // set the 'needsRef' flag
     ctx.needsRef = true;
+
+    // get the reference value
     llvm::Value *v = val->llvmValue(ctx);
-    if (!b) ctx.needsRef = false;
+
+    // error if reference is no reference
+    if (!v->getType()->isPointerTy())
+        error(ERROR_COMPILER, "failed to create reference");
+
+    // set 'needsRef' flag to the value stored in 'b'
+    ctx.needsRef = b;
+
+    // return reference
     return v;
 }
 
@@ -488,7 +517,7 @@ llvm::Value* HeGetExpr::llvmValue(CompileContext& ctx) {
     if (!(t->isPointerTy() && t->getPointerElementType()->isPointerTy()))
         error(ERROR_COMPILER,
             "expected doubled pointer type for"
-            "heget expression as second argument");
+            "'heget' expression as the second argument");
     
     auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
     auto idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
