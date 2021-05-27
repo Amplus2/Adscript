@@ -313,83 +313,131 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
     default: ;
     }
 
+    // error if no valid operator was provided
     error(ERROR_COMPILER, "unknown type name in binary expression");
 
+    // return anything
     return nullptr;
 }
 
 llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
+    // get condition llvm value
     auto condV = createLogicalVal(ctx, cond->llvmValue(ctx));
 
+    // get conditional llvm values
     auto trueV = exprTrue->llvmValue(ctx);
     auto falseV = exprFalse->llvmValue(ctx);
 
+    // error if condition types do not match
     if (trueV->getType()->getPointerTo() != falseV->getType()->getPointerTo())
         error(ERROR_COMPILER, 
             "conditional expression operand types do not match");
 
+    // create and return llvm value
     return ctx.builder->CreateSelect(condV, trueV, falseV);
 }
 
 llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
+    // create llvm value vector for array elements
     std::vector<llvm::Value*> elements;
+
+    // add llvm values to the 'elements' vector
     for (auto& expr : exprs) elements.push_back(expr->llvmValue(ctx));
 
-    auto t = elements.size() == 0
+    // use void type if the size is equal to 0
+    // else use the type of the first element
+    auto elementT = elements.size() == 0
             ? llvm::Type::getVoidTy(ctx.mod->getContext())
             : elements[0]->getType();
-    auto arrT = llvm::ArrayType::get(t, elements.size());
+
+    // create array type using the element type
+    auto arrT = llvm::ArrayType::get(elementT, elements.size());
+
+    // create array alloca
     auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
+
+    // assign 'arr' to the pointer to the first element of the array
     arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
     for (size_t i = 0; i < elements.size(); i++) {
-        auto v = tryCast(ctx, elements[i], t);
+        // try casting the element to the array element type
+        auto v = tryCast(ctx, elements[i], elementT);
+
+        // error if casting fails
         if (!v)
             error(ERROR_COMPILER,
-                "element types do not match inside of homogenous array");
+                "element types do not match in homogenous array");
 
+        // get pointer to the element at index 'i'
         auto ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
+        // store the element's value into the pointer at index 'i'
         ctx.builder->CreateStore(v, ptr);
     }
 
+    // return the pointer to the first element
     return arr;
 }
 
 llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
+    // create llvm value vector for array elements
     std::vector<llvm::Value*> elements;
+
     for (auto& expr : exprs) {
+        // get llvm value for the element
         auto v = expr->llvmValue(ctx);
+
+        // create pointer for storing the element's data
         auto ptr = ctx.builder->CreateAlloca(v->getType());
+        
+        // store the element's data into the pointer
         ctx.builder->CreateStore(v, ptr);
+
+        // add the pointer to the 'elements' vector
         elements.push_back(ptr);
     }
 
+    // create the array's element type (void*)
     auto t = llvm::Type::getVoidTy(ctx.mod->getContext())->getPointerTo();
+
+    // create the array's type
     auto arrT = llvm::ArrayType::get(t, elements.size());
+
+    // create the array
     auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
+
+    // assign 'arr' to the pointer to the first element of the array
     arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
 
+    // store all the elements into the array
     for (size_t i = 0; i < elements.size(); i++) {
         auto ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
 
         ctx.builder->CreateStore(cast(ctx, elements[i], t), ptr);
     }
 
+    // return the array
     return arr;
 }
 
 llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
+    // error if variable is already defined
     if (ctx.isVar(id))
         error(ERROR_COMPILER, "var '" + id + "' already defined");
 
+    // get llvm value for the stored value
     auto v = val->llvmValue(ctx);
+
+    // create alloca for storing the the value
     auto alloca = ctx.builder->CreateAlloca(v->getType());
 
+    // store the value
     ctx.builder->CreateStore(v, alloca);
 
+    // add the alloca to the 'localVars' map
     ctx.localVars[id] = { v->getType(), alloca };
 
+    // return the alloca
     return alloca;
 }
 
