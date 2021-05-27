@@ -32,6 +32,9 @@ clean:
 install: all
 	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
 
+reinstall: clean all
+	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
+
 # some guys will need it though
 remove:
 	sudo rm -f $(PREFIX)/bin/$(EXE_NAME)
