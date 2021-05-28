@@ -13,10 +13,11 @@ future, but at the moment it is embedded here.
 | `char`    | `unsigned int`                  | `\A`       |
 | `int`     | `int64_t`                       | `42`       |
 | `float`   | `double`                        | `13.37`    |
-| `str`     | `std::string` (`char*`)         | `"hi"`     |
+| `str`     | `char*`                         | `"hi"`     |
 | `list`    | none (resolved at compile time) | `(f 1)`    |
-| `hetvec`  | `std::vector<void*>` (`void**`) | `["hi" 2]` |
-| `homovec` | `std::vector<T>` (`T*`)         | `#[1 2]`   |
+| `hetvec`  | `void**`                        | `["hi" 2]` |
+| `homovec` | `T*`                            | `#[1 2]`   |
+| `ptr`     | `T*`                            | `nullptr`  |
 
 Maps are to be defined. (Probably `{1 2}`)
 
@@ -29,6 +30,8 @@ In Adscript there is another native data type: The function. All functions that
 are not natively implemented are "first-class values".
 
 Functions can be created using the `fn` function and called using a `list`:
+
+Defining functions this way is not implemented yet.
 
 ```adscript
 (fn [<parameters>] <return type> <body>)
@@ -44,7 +47,7 @@ For example:
 
 <!--TODO: a defn++ with c++ mangline-->
 
-#### `def`, `const`
+#### `def`, `const` (not implemented yet)
 Defines a compile-time constant.
 
 ```adscript
@@ -65,28 +68,28 @@ is equal to
 (def <identifier> (fn [<parameters>] <return type> <body>))
 ```
 
-### let
+### `let` (not implemented yet)
 Defines a "final variable"/"run time constant", works like `let` in Clojure.
 ```adscript
 (let <identifier> <value>)
 (let a 42)
 ```
 
-### var
+### `var`
 Defines a variable that can be changed later.
 ```adscript
 (var <identifier> <value>)
 (var a 42)
 ```
 
-### set
-Sets the value for a pointer.
+### `set`
+Sets the value for a pointer/variable.
 ```adscript
 (set <pointer> <value>)
 (set a 42)
 ```
 
-### `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `=`, `<`, `>`, `<=`, `>=`, `or`, `and`, `xor`, `not`
+### `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `!`, `=`, `<`, `>`, `<=`, `>=`, `or`, `and`, `xor`, `not`
 These functions are so obvious that they will be documented later.
 
 ### `if`
