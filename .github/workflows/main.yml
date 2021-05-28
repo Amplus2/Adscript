@@ -1,0 +1,17 @@
+name: CI
+
+on: [push pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        #with:
+        #  submodules: recursive
+      - run: sudo apt install -y llvm-11 clang-11
+      - run: make -j$(nproc)
+      - uses: actions/upload-artifact@v2
+        with:
+          name: adscript
+          path: build/adscript
