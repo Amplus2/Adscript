@@ -4,16 +4,15 @@ based programming language that is natively compiled.
 
 Note: At least llvm version 11.0 is recommended for building adscipt.
 
-# Specifications
-Please read [this](SPEC.md).
+We have [a rough spec](SPEC.md).
 
 # Installation
-## On Linux, macOS, AmplOS2 and other UNIX-like operating systems
+## UNIX-like (Linux, macOS, AmplOS2, \*BSD and others)
 ```sh
 make install
 ```
 
-## On Windows (not implemented yet)
+## DOS-like (Windows and others) (not implemented yet)
 ```sh
 make install-win
 ```
