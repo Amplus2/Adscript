@@ -10,6 +10,7 @@ jobs:
         #with:
         #  submodules: recursive
       - run: sudo apt install -y llvm-11 clang-11
+      - run: sudo ln -s /usr/bin/llvm-config-11 /usr/bin/llvm-config
       - run: make -j$(nproc)
       - uses: actions/upload-artifact@v2
         with:
