@@ -89,7 +89,7 @@ Sets the value for a pointer/variable.
 (set a 42)
 ```
 
-### `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `!`, `=`, `<`, `>`, `<=`, `>=`, `or`, `and`, `xor`, `not`
+### `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `~`, `=`, `<`, `>`, `<=`, `>=`, `or`, `and`, `xor`, `not`
 These functions are so obvious that they will be documented later.
 
 ### `if`
