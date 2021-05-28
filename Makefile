@@ -32,8 +32,8 @@ clean:
 install: all
 	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
 
-reinstall: clean all
-	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
+# this should not exist
+reinstall: clean install
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(EXE_NAME)
