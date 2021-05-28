@@ -139,6 +139,7 @@ enum BinExprType {
     BINEXPR_LOR,
     BINEXPR_LAND,
     BINEXPR_LXOR,
+    BINEXPR_LNOT,
 };
 
 class UExpr : public Expr {

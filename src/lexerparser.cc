@@ -257,6 +257,8 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 return parseBinExpr(tmpT, BINEXPR_AND);
             else if (!tmpT.val.compare("^"))
                 return parseBinExpr(tmpT, BINEXPR_XOR);
+            else if (!tmpT.val.compare("~"))
+                return parseBinExpr(tmpT, BINEXPR_NOT);
             else if (!tmpT.val.compare("="))
                 return parseBinExpr(tmpT, BINEXPR_EQ);
             else if (!tmpT.val.compare("<"))
@@ -274,7 +276,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
             else if (!tmpT.val.compare("xor"))
                 return parseBinExpr(tmpT, BINEXPR_LXOR);
             else if (!tmpT.val.compare("not"))
-                return parseBinExpr(tmpT, BINEXPR_NOT);
+                return parseBinExpr(tmpT, BINEXPR_LNOT);
             else if (!tmpT.val.compare("if"))
                 return parseIfExpr(tmpT);
             else if (!tmpT.val.compare("var")) {

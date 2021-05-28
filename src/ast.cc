@@ -214,13 +214,13 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
         else if (v->getType()->isFloatingPointTy())
             return ctx.builder->CreateFSub(
                 cast(ctx, constFP(ctx, 0), v->getType()), v);
-    }
-    case BINEXPR_NOT: {
-        // create logical not
-        return ctx.builder->CreateNot(
-            createLogicalVal(ctx, expr->llvmValue(ctx)));
-    }
-    default: ;
+    } case BINEXPR_LNOT: {
+        // create a logical value for 'v'
+        v = createLogicalVal(ctx, v);
+    } case BINEXPR_NOT: {
+        // create not
+        return ctx.builder->CreateNot(v);
+    } default: ;
     }
 
     error(ERROR_COMPILER, "unknown type name in unary expression");
