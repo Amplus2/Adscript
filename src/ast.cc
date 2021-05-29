@@ -7,142 +7,6 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
-// AST str methods
-
-std::string IntExpr::str() {
-    return std::to_string(val);
-}
-
-std::string FloatExpr::str() {
-    return std::to_string(val);
-}
-
-std::string CharExpr::str() {
-    return "\\" + std::string(1, (char) val);
-}
-
-std::string IdExpr::str() {
-    return val;
-}
-
-std::string StrExpr::str() {
-    return val;
-}
-
-std::string UExpr::str() {
-    return std::string() + "UExpr: { "
-        + "op: " + betToStr(type)
-        + ", expr: " + expr->str()
-        + " }";
-}
-
-std::string BinExpr::str() {
-    return std::string() + "BinExpr: { "
-        + "op: " + betToStr(type)
-        + ", left: " + left->str()
-        + ", right: " + right->str()
-        + " }";
-}
-
-std::string IfExpr::str() {
-    return std::string() + "IfExpr: {"
-        + "cond: " + cond->str()
-        + ", exprTrue: " + exprTrue->str()
-        + ", exprFalse: " + exprFalse->str()
-        + " }";
-}
-
-
-std::string ArrayExpr::str() {
-    return std::string() + "ArrayExpr: {"
-        + "size: " + std::to_string(exprs.size())
-        + ", exprs: " + exprVectorToStr(exprs)
-        + " }";
-}
-
-
-std::string PtrArrayExpr::str() {
-    return std::string() + "PtrArrayExpr: {"
-        + "size: " + std::to_string(exprs.size())
-        + ", exprs: " + exprVectorToStr(exprs)
-        + " }";
-}
-
-std::string VarExpr::str() {
-    return std::string() + "VarExpr: {"
-        + "id: '" + id + "'";
-        + ", val: " + val->str()
-        + " }";
-}
-
-std::string SetExpr::str() {
-    return std::string() + "SetExpr: {"
-        + "ptr: " + ptr->str();
-        + ", val: " + val->str()
-        + " }";
-}
-
-std::string RefExpr::str() {
-    return std::string() + "RefExpr: {"
-        + "val: " + val->str()
-        + " }";
-}
-
-std::string DerefExpr::str() {
-    return std::string() + "DerefExpr: {"
-        + "ptr: " + ptr->str()
-        + " }";
-}
-
-std::string HeGetExpr::str() {
-    return std::string() + "HeGetExpr: {"
-        + "type: " + type->str()
-        + ", ptr: " + ptr->str()
-        + ", idx: " + idx->str()
-        + " }";
-}
-
-
-std::string PrimType::str() {
-    switch (type) {
-    case TYPE_I8: return "i8";
-    case TYPE_I16: return "i16";
-    case TYPE_I32: return "i32";
-    case TYPE_I64: return "i64";
-    case TYPE_FLOAT: return "float";
-    case TYPE_DOUBLE: return "double";
-    default: return "err";
-    }
-}
-
-std::string PointerType::str() {
-    return std::string() + "Pointer: " + type->str();
-}
-
-std::string CastExpr::str() {
-    return std::string() + "Cast { "
-        + "type: " + type->str()
-        + ", expr: " + expr->str()
-        + " }";
-}
-
-std::string Function::str() {
-    return std::string() + "Function: { "
-        + "id: '" + id + "'"
-        + ", args: " + argVectorToStr(args)
-        + ", type: " + retType->str()
-        + ", body: " + exprVectorToStr(body)
-        + " }";
-}
-
-std::string CallExpr::str() {
-    return std::string() + "FunctionCall: { "
-        + "calle: " + callee->str()
-        + ", args: " + exprVectorToStr(args)
-        + " }";
-}
-
-// AST llvm methods
 
 llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
@@ -604,6 +468,50 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
     return f;
 }
+
+llvm::Value* Lambda::llvmValue(CompileContext& ctx) {
+    if (body.size() <= 0)
+        error(ERROR_COMPILER, "lambda expressions cannot have an empty body");
+
+    std::vector<llvm::Type*> ftArgs;
+    for (auto& arg : args)
+        ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
+
+    auto ft = llvm::FunctionType::get(
+        retType->llvmType(ctx.mod->getContext()), ftArgs, false);
+
+    auto f = llvm::Function::Create(
+        ft, llvm::Function::PrivateLinkage, "", ctx.mod);
+
+    auto prevVars = ctx.localVars;
+    ctx.localVars.clear();
+    
+    size_t i = 0;
+    for (auto& arg : f->args()) {
+        if (args[i].second.size() <= 0)
+            error(ERROR_COMPILER, 
+                "lambda expression must have named arguments");
+
+        arg.setName(args[i].second);
+
+        auto alloca = createAlloca(f, ftArgs[i]);
+
+        ctx.builder->CreateStore(&arg, alloca);
+
+        ctx.localVars[args[i++].second] = { arg.getType(), alloca };
+    }
+
+    for (size_t i = 0; i < body.size() - 1; i++)
+        body[i]->llvmValue(ctx);
+
+    auto retVal = body[body.size() - 1]->llvmValue(ctx);
+    ctx.builder->CreateRet(cast(ctx, retVal, f->getReturnType()));
+
+    ctx.localVars = prevVars;
+
+    return f;
+}
+
 
 llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
     IdExpr *id = nullptr;

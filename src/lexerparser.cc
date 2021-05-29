@@ -1,4 +1,4 @@
-#include "utils.hh"
+#include "ast.hh"
 #include "lexerparser.hh"
 
 #include <iostream>
@@ -308,6 +308,8 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 return parseBinExpr(tmpT, BINEXPR_LNOT);
             else if (!tmpT.val.compare("if"))
                 return parseIfExpr(tmpT);
+            else if (!tmpT.val.compare("fn"))
+                return parseLambda(tmpT);
             else if (!tmpT.val.compare("var")) {
                 // eat up 'var'
                 tmpT = lexer.nextT();
@@ -500,7 +502,7 @@ Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
     return tmpExpr;
 }
 
-Expr* Parser::parseCastExpr(Token& tmpT, Type *t) {
+CastExpr* Parser::parseCastExpr(Token& tmpT, Type *t) {
     // eat remaining token
     tmpT = lexer.nextT();
 
@@ -512,7 +514,7 @@ Expr* Parser::parseCastExpr(Token& tmpT, Type *t) {
     return new CastExpr(t, expr);
 }
 
-Expr* Parser::parseIfExpr(Token& tmpT) {
+IfExpr* Parser::parseIfExpr(Token& tmpT) {
     // eat up 'if'
     tmpT = lexer.nextT();
 
@@ -534,13 +536,19 @@ Expr* Parser::parseIfExpr(Token& tmpT) {
     return new IfExpr(cond, exprTrue, exprFalse);
 }
 
-Expr* Parser::parseFunction(Token& tmpT) {
+Function* Parser::parseFunction(Token& tmpT) {
     // eat up 'defn'
     tmpT = lexer.nextT();
 
     auto id = tmpT.val;
 
-    // eat up identifier
+    auto lambda = parseLambda(tmpT);
+
+    return lambda->toFunc(id);
+}
+
+Lambda* Parser::parseLambda(Token& tmpT) {
+    // eat up 'fn' (or any other previous token)
     tmpT = lexer.nextT();
 
     std::vector<std::pair<Type*, std::string>> args;
@@ -593,10 +601,10 @@ Expr* Parser::parseFunction(Token& tmpT) {
     if (tmpT.tt == TT_EOF)
         error(ERROR_PARSER, "unexpected end of file");
 
-    return new Function(id, args, retType, body);
+    return new Lambda(args, retType, body);
 }
 
-Expr* Parser::parseCall(Token& tmpT) {
+CallExpr* Parser::parseCall(Token& tmpT) {
     if (!tmpT.val.compare("defn"))
         error(ERROR_PARSER,
             "functions can only be defined at top level", lexer.pos());

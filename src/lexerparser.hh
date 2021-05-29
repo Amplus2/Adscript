@@ -65,11 +65,12 @@ private:
     Expr* parseArrayExpr(Token& tmpT);
     Expr* parsePtrArrayExpr(Token& tmpT);
     Expr* parseBinExpr(Token& tmpT, BinExprType bet);
-    Expr* parseCastExpr(Token& tmpT, Type *t);
-    Expr* parseIfExpr(Token& tmpT);
+    CastExpr* parseCastExpr(Token& tmpT, Type *t);
+    IfExpr* parseIfExpr(Token& tmpT);
 
-    Expr* parseFunction(Token& tmpT);
-    Expr* parseCall(Token& tmpT);
+    Function* parseFunction(Token& tmpT);
+    Lambda* parseLambda(Token& tmpT);
+    CallExpr* parseCall(Token& tmpT);
 public:
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<Expr*> parse();

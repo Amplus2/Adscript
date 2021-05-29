@@ -10,14 +10,6 @@
 
 class CompileContext;
 
-class Type {
-public:
-    virtual ~Type() = default;
-    virtual std::string str() = 0;
-    virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
-};
-
-
 enum PT {
     TYPE_ERR,
 
@@ -28,95 +20,6 @@ enum PT {
     TYPE_I64,
     TYPE_FLOAT,
     TYPE_DOUBLE,
-};
-
-class PrimType : public Type {
-private:
-    PT type;
-public:
-    PrimType(PT type) : type(type) {}
-
-    std::string str() override;
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-};
-
-class PointerType : public Type {
-private:
-    Type *type;
-    uint8_t quantity;
-public:
-    PointerType(Type *type) : type(type), quantity(1) {}
-    PointerType(Type *type, uint8_t quantity)
-        : type(type), quantity(quantity) {}
-
-    std::string str() override;
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-
-    ~PointerType() {
-        delete type;
-    }
-};
-
-class Expr {
-public:
-    virtual ~Expr() = default;
-    virtual std::string str() = 0;
-    virtual llvm::Value* llvmValue(CompileContext& ctx) = 0;
-    virtual bool isIdExpr() { return false; }
-};
-
-class IntExpr : public Expr {
-private:
-    const int64_t val;
-public:
-    IntExpr(const int64_t val) : val(val) {}
-
-    std::string str() override;
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-};
-
-class FloatExpr : public Expr {
-private:
-    const double val;
-public:
-    FloatExpr(const double val) : val(val) {}
-
-    std::string str() override;
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-};
-
-class CharExpr : public Expr {
-private:
-    const char val;
-public:
-    CharExpr(const char val) : val(val) {}
-
-    std::string str() override;
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-};
-
-class IdExpr : public Expr {
-private:
-    const std::string val;
-public:
-    IdExpr(const std::string  val) : val(val) {}
-
-    std::string str() override;
-    std::string getVal() { return val; };
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    
-    bool isIdExpr() override { return true; }
-};
-
-class StrExpr : public Expr {
-private:
-    const std::string val;
-public:
-    StrExpr(const std::string  val) : val(val) {}
-
-    std::string str() override;
-    std::string getVal();
-    llvm::Value* llvmValue(CompileContext& ctx) override;
 };
 
 enum BinExprType {
@@ -142,6 +45,128 @@ enum BinExprType {
     BINEXPR_LNOT,
 };
 
+class Type {
+public:
+    virtual ~Type() = default;
+    virtual std::string str() = 0;
+    virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
+};
+
+class Expr {
+public:
+    virtual ~Expr() = default;
+    virtual std::string str() = 0;
+    virtual llvm::Value* llvmValue(CompileContext& ctx) = 0;
+    virtual bool isIdExpr() { return false; }
+};
+
+
+#include "utils.hh"
+
+
+class PrimType : public Type {
+private:
+    PT type;
+public:
+    PrimType(PT type) : type(type) {}
+
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    std::string str() override {
+        switch (type) {
+        case TYPE_I8: return "i8";
+        case TYPE_I16: return "i16";
+        case TYPE_I32: return "i32";
+        case TYPE_I64: return "i64";
+        case TYPE_FLOAT: return "float";
+        case TYPE_DOUBLE: return "double";
+        default: return "err";
+        }
+    }
+};
+
+class PointerType : public Type {
+private:
+    Type *type;
+    uint8_t quantity;
+public:
+    PointerType(Type *type) : type(type), quantity(1) {}
+    PointerType(Type *type, uint8_t quantity)
+        : type(type), quantity(quantity) {}
+
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    std::string str() override {
+        return std::string() + "PointerType: " + type->str();
+    }
+
+    ~PointerType() {
+        delete type;
+    }
+};
+
+class IntExpr : public Expr {
+private:
+    const int64_t val;
+public:
+    IntExpr(const int64_t val) : val(val) {}
+
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::to_string(val);
+    }
+};
+
+class FloatExpr : public Expr {
+private:
+    const double val;
+public:
+    FloatExpr(const double val) : val(val) {}
+
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::to_string(val);
+    }
+};
+
+class CharExpr : public Expr {
+private:
+    const char val;
+public:
+    CharExpr(const char val) : val(val) {}
+
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return "\\" + std::string(1, (char) val);
+    }
+};
+
+class IdExpr : public Expr {
+private:
+    const std::string val;
+public:
+    IdExpr(const std::string  val) : val(val) {}
+
+    std::string getVal() { return val; };
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return val;
+    }
+    
+    bool isIdExpr() override { return true; }
+};
+
+class StrExpr : public Expr {
+private:
+    const std::string val;
+public:
+    StrExpr(const std::string  val) : val(val) {}
+
+    std::string getVal();
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return val;
+    }
+};
+
 class UExpr : public Expr {
 private:
     BinExprType type;
@@ -150,8 +175,13 @@ public:
     UExpr(BinExprType type, Expr *expr)
         : type(type), expr(expr) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "UExpr: { "
+            + "op: " + betToStr(type)
+            + ", expr: " + expr->str()
+            + " }";
+    }
 
     ~UExpr() {
         delete expr;
@@ -166,8 +196,14 @@ public:
     BinExpr(BinExprType type, Expr *left, Expr *right)
         : type(type), left(left), right(right) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "BinExpr: { "
+            + "op: " + betToStr(type)
+            + ", left: " + left->str()
+            + ", right: " + right->str()
+            + " }";
+    }
 
     ~BinExpr() {
         delete left;
@@ -182,8 +218,14 @@ public:
     IfExpr(Expr *cond, Expr *exprTrue, Expr *exprFalse)
         : cond(cond), exprTrue(exprTrue), exprFalse(exprFalse) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "IfExpr: {"
+            + "cond: " + cond->str()
+            + ", exprTrue: " + exprTrue->str()
+            + ", exprFalse: " + exprFalse->str()
+            + " }";
+    }
 
     ~IfExpr() {
         delete cond;
@@ -198,8 +240,13 @@ private:
 public:
     ArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "ArrayExpr: {"
+            + "size: " + std::to_string(exprs.size())
+            + ", exprs: " + exprVectorToStr(exprs)
+            + " }";
+    }
 
     ~ArrayExpr() {
         for (auto& expr : exprs)
@@ -213,8 +260,13 @@ private:
 public:
     PtrArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "PtrArrayExpr: {"
+            + "size: " + std::to_string(exprs.size())
+            + ", exprs: " + exprVectorToStr(exprs)
+            + " }";
+    }
 
     ~PtrArrayExpr() {
         for (auto& expr : exprs)
@@ -229,8 +281,13 @@ private:
 public:
     VarExpr(Expr *val, const std::string& id) : val(val), id(id) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "VarExpr: {"
+            + "id: '" + id + "'";
+            + ", val: " + val->str()
+            + " }";
+    }
 
     ~VarExpr() {
         delete val;
@@ -243,8 +300,13 @@ private:
 public:
     SetExpr(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "SetExpr: {"
+            + "ptr: " + ptr->str();
+            + ", val: " + val->str()
+            + " }";
+    }
 
     ~SetExpr() {
         delete ptr;
@@ -258,8 +320,12 @@ private:
 public:
     RefExpr(Expr *val) : val(val) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "RefExpr: {"
+            + "val: " + val->str()
+            + " }";
+    }
 
     ~RefExpr() {
         delete val;
@@ -272,8 +338,12 @@ private:
 public:
     DerefExpr(Expr *ptr) : ptr(ptr) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "DerefExpr: {"
+            + "ptr: " + ptr->str()
+            + " }";
+    }
 
     ~DerefExpr() {
         delete ptr;
@@ -288,8 +358,14 @@ public:
     HeGetExpr(Type *type, Expr *ptr, Expr *idx)
         : type(type), ptr(ptr), idx(idx) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "HeGetExpr: {"
+            + "type: " + type->str()
+            + ", ptr: " + ptr->str()
+            + ", idx: " + idx->str()
+            + " }";
+    }
 
     ~HeGetExpr() {
         delete type;
@@ -305,8 +381,13 @@ private:
 public:
     CastExpr(Type *type, Expr *expr) : type(type), expr(expr) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "Cast { "
+            + "type: " + type->str()
+            + ", expr: " + expr->str()
+            + " }";
+    }
 
     ~CastExpr() {
         delete type;
@@ -322,14 +403,52 @@ private:
     std::vector<Expr*> body;
 public:
     Function(const std::string& id, 
-                std::vector<std::pair<Type*, std::string>>& args,
+                const std::vector<std::pair<Type*, std::string>>& args,
                 Type *retType, std::vector<Expr*>& body)
         : id(id), args(args), retType(retType), body(body) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "Function: { "
+            + "id: '" + id + "'"
+            + ", args: " + argVectorToStr(args)
+            + ", type: " + retType->str()
+            + ", body: " + exprVectorToStr(body)
+            + " }";
+    }
 
     ~Function() {
+        for (auto& arg : args)
+            delete arg.first;
+        for (auto& expr : body)
+            delete expr;
+    }
+};
+
+class Lambda : public Expr {
+private:
+    const std::vector<std::pair<Type*, std::string>> args;
+    Type *retType;
+    std::vector<Expr*> body;
+public:
+    Lambda(std::vector<std::pair<Type*, std::string>>& args,
+            Type *retType, std::vector<Expr*>& body)
+        : args(args), retType(retType), body(body) {}
+
+    llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "Lambda: { "
+            + "args: " + argVectorToStr(args)
+            + ", type: " + retType->str()
+            + ", body: " + exprVectorToStr(body)
+            + " }";
+    }
+
+    Function* toFunc(const std::string& id) {
+        return new Function(id, args, retType, body);
+    }
+
+    ~Lambda() {
         for (auto& arg : args)
             delete arg.first;
         for (auto& expr : body)
@@ -345,8 +464,13 @@ public:
     CallExpr(Expr *callee, const std::vector<Expr*>& args)
         : callee(callee), args(args) {}
 
-    std::string str() override;
     llvm::Value* llvmValue(CompileContext& ctx) override;
+    std::string str() override {
+        return std::string() + "FunctionCall: { "
+            + "calle: " + callee->str()
+            + ", args: " + exprVectorToStr(args)
+            + " }";
+    }
 
     ~CallExpr() {
         delete callee;
