@@ -17,7 +17,6 @@ future, but at the moment it is embedded here.
 | `list`    | none (resolved at compile time) | `(f 1)`    |
 | `hetvec`  | `void**`                        | `["hi" 2]` |
 | `homovec` | `T*`                            | `#[1 2]`   |
-| `ptr`     | `T*`                            | `nullptr`  |
 
 Maps are to be defined. (Probably `{1 2}`)
 
