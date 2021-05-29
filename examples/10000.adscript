@@ -1,4 +1,4 @@
-(defn puts [char~ s] int)
+(defn puts [char* s] int)
 (defn main [] int
     (puts "0")
     (puts "1")

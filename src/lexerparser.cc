@@ -20,6 +20,12 @@ static inline bool isSpecialChar(char c) {
         || c == '*';
 }
 
+static inline bool isHexChar(char c) {
+    return (c >= '0' && c <= '9')
+        || (c >= 'A' && c <= 'F')
+        || (c >= 'a' && c <= 'f');
+}
+
 bool Lexer::eofReached() {
     return idx >= text.size();
 }
@@ -87,7 +93,24 @@ Token Lexer::nextT() {
     // helper variable for temporary string storage
     std::string tmpStr;
 
-    // handle integers and front part of floats
+    // handle hex literals
+    if (getc(idx) == '0' && getc(idx +  1) == 'x') {
+        tmpStr += "0x";
+        idx += 2;
+
+        while (isHexChar((c = getc(idx)))) {
+            tmpStr += c;
+            idx += 1;
+        }
+
+        c = getc(idx);
+        if (!isWhitespace(c) && !isSpecialChar(c))
+            warning("no whitespace after hex literal", pos());
+
+        return Token(TT_HEX, tmpStr);
+    }
+
+    // handle integers and front part of FPs
     if (isDigit(getc(idx))) {
         while (isDigit((c = getc(idx)))) {
             tmpStr += c;
@@ -181,6 +204,7 @@ Expr* tokenToExpr(Token t) {
     switch (t.tt) {
     case TT_ID:     return new IdExpr(t.val);
     case TT_INT:    return new IntExpr(std::stol(t.val));
+    case TT_HEX:    return new IntExpr(std::stol(t.val, NULL, 16));
     case TT_FLOAT:  return new FloatExpr(std::stod(t.val));
     case TT_CHAR:   return new CharExpr(t.val[0]);
     case TT_STR:    return new StrExpr(unescapeStr(t.val));
@@ -192,9 +216,7 @@ Type* Parser::parseType(Token& tmpT) {
     Type *t = nullptr;
 
     // general types
-    if (!tmpT.val.compare("void"))
-        t = new PrimType(TYPE_VOID);
-    else if (strEq(tmpT.val, {"char", "i8"}))
+    if (strEq(tmpT.val, {"char", "i8"}))
         t = new PrimType(TYPE_I8);
     else if (!tmpT.val.compare("i16"))
         t = new PrimType(TYPE_I16);
@@ -216,7 +238,7 @@ Type* Parser::parseType(Token& tmpT) {
         tmpTmpT = tmpT;
         tmpIdx = lexer.getIdx();
 
-        // eat up '~'
+        // eat up '*'
         tmpT = lexer.nextT();
         
         uint8_t quanity = 1;
@@ -224,7 +246,7 @@ Type* Parser::parseType(Token& tmpT) {
             tmpTmpT = tmpT;
             tmpIdx = lexer.getIdx();
 
-            // eat up '~' 
+            // eat up '*' 
             tmpT = lexer.nextT();
 
             quanity += 1;
@@ -399,7 +421,9 @@ Expr* Parser::parseTopLevelExpr(Token& tmpT) {
         // error if '(' isn't followed by fun or funcall
         parseError("identifier", tmpT.val, lexer.pos());
     }
+
     parseError("top level expression", tmpT.val, lexer.pos());
+
     return nullptr;
 }
 
@@ -422,8 +446,7 @@ Expr* Parser::parseArrayExpr(Token& tmpT) {
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF)
-        error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == TT_EOF) error(ERROR_PARSER, "unexpected end of file");
 
     return new ArrayExpr(exprs);
 }
@@ -441,8 +464,7 @@ Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF)
-        error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == TT_EOF) error(ERROR_PARSER, "unexpected end of file");
 
     return new PtrArrayExpr(exprs);
 }

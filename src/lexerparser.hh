@@ -18,6 +18,7 @@ enum TokenType {
 
     TT_ID,      // [.^[0-9]]+
     TT_INT,     // [0-9]+
+    TT_HEX,     // "0x"[0-9A-Fa-f]+
     TT_FLOAT,   // [0-9]*'.'[0-9]+
     TT_CHAR,    // '\\'.
 

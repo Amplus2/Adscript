@@ -146,7 +146,6 @@ std::string CallExpr::str() {
 
 llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
-    case TYPE_VOID:     return llvm::Type::getVoidTy(ctx);
     case TYPE_I8:       return llvm::Type::getInt8Ty(ctx);
     case TYPE_I16:      return llvm::Type::getInt16Ty(ctx);
     case TYPE_I32:      return llvm::Type::getInt32Ty(ctx);
@@ -595,12 +594,10 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     for (size_t i = 0; i < body.size() - 1; i++)
         body[i]->llvmValue(ctx);
 
-    ctx.builder->CreateRet(
-        cast(ctx, body[body.size() - 1]->llvmValue(ctx), f->getReturnType()));
-
+    auto retVal = body[body.size() - 1]->llvmValue(ctx);
+    ctx.builder->CreateRet(cast(ctx, retVal, f->getReturnType()));
+    
     ctx.localVars.clear();
-
-    if (llvm::verifyFunction(*f)) f->print(llvm::errs());
 
     if (llvm::verifyFunction(*f))
         error(ERROR_COMPILER, "error in function '" + id + "'");

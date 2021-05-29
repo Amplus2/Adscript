@@ -22,6 +22,7 @@ std::string betToStr(BinExprType bet) {
     case BINEXPR_OR:    return "|";
     case BINEXPR_AND:   return "&";
     case BINEXPR_XOR:   return "^";
+    case BINEXPR_NOT:   return "~";
 
     case BINEXPR_EQ:    return "=";
     case BINEXPR_LT:    return "<";
@@ -31,7 +32,7 @@ std::string betToStr(BinExprType bet) {
     case BINEXPR_LOR:   return "or";
     case BINEXPR_LAND:  return "and";
     case BINEXPR_LXOR:  return "xor";
-    case BINEXPR_NOT:   return "not";
+    case BINEXPR_LNOT:  return "not";
     }
 }
 
@@ -58,6 +59,12 @@ void parseError(const std::string& expected, const std::string& got,
 
 void lexerEOFError() {
     error(ERROR_LEXER, "unexpected end of file");
+}
+
+void warning(const std::string& msg, const std::string& pos) {
+    std::cout << "warning: " << msg;
+    if (pos.size() > 0) std::cout << " (before " + pos + ")";
+    std::cout << std::endl;
 }
 
 std::string readFile(const std::string& filename) {

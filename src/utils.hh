@@ -5,10 +5,7 @@
 #include <string>
 #include <vector>
 
-bool strEq(const std::string& str, const std::vector<std::string>& eqVals);
-
-std::string betToStr(BinExprType bet);
-
+// errors and warnings
 enum ErrorType {
     ERROR_DEFAULT,
     ERROR_LEXER,
@@ -23,13 +20,20 @@ void parseError(const std::string& expected, const std::string& got,
                 const std::string& pos);
 void lexerEOFError();
 
+void warning(const std::string& msg, const std::string& pos = "");
+
+// other stuff
+bool strEq(const std::string& str, const std::vector<std::string>& eqVals);
+
 std::string readFile(const std::string& filename);
 
 std::string strReplaceAll(std::string str, const std::string& find,
                             const std::string& replace);
 std::string unescapeStr(std::string str);
 
-// AST helper functions
+// AST string helper functions
+
+std::string betToStr(BinExprType bet);
 
 std::string strVectorToStr(const std::vector<std::string>& vector);
 std::string exprVectorToStr(const std::vector<Expr*>& vector);

@@ -51,10 +51,15 @@ int main(int argc, char **argv) {
             std::string input = std::string(argv[i]);
             std::string output = makeOutputPath(input, exe);
             std::string text = readFile(input);
+
             Lexer lexer(text);
             Parser parser(lexer);
             auto exprs = parser.parse();
+
+            //printAST(exprs);
+            
             compile(exprs, exe, output, target);
+            
             for (auto& expr : exprs) expr->~Expr();
         }
     } else {
@@ -67,6 +72,8 @@ int main(int argc, char **argv) {
             auto newexprs = parser.parse();
             exprs.insert(exprs.end(), newexprs.begin(), newexprs.end());
         }
+
+        //printAST(exprs);
 
         compile(exprs, exe, output, target);
 
