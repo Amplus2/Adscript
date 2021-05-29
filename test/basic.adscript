@@ -1,0 +1,6 @@
+(defn fine void)
+(defn test1 int (+ (* 7 (/ 32 4)) 1 2 3 4))
+(defn test2 int (^ 0x67 (| 0x3 (& 0xf0 0x69))))
+(defn test3 [bool b] bool (xor (not b) true))
+(defn test4 [int* i] void (set (deref i) 42))
+(defn test5 void (fine))

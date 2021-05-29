@@ -1,3 +1,4 @@
+CFLAGS   ?= -O3 -Wall
 CXXFLAGS ?= -O3 -Wall
 CXXFLAGS += `llvm-config --cxxflags`
 LDFLAGS  += `llvm-config --ldflags --system-libs --libs all` -flto -lLLVM
@@ -21,10 +22,17 @@ $(OUTPUT): $(OFILES)
 %.o: %.cc
 	clang++ $(CXXFLAGS) -c $< -o $@
 
-test: all
-	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o first ../examples/first.adscript
-	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o second ../examples/second.adscript
-	cd $(BUILD_DIR) && ./$(EXE_NAME) -e -o hello-world ../examples/hello-world.adscript
+%.o: %.c
+	clang $(CFLAGS) -c $< -o $@
+
+%.o: %.adscript $(OUTPUT)
+	$(OUTPUT) -o $@ $<
+
+test/test: test/main.o test/basic.o
+	clang test/*.o -o test/test
+
+test: test/test
+	test/test
 
 clean:
 	rm -rf $(BUILD_DIR) $(OFILES)
@@ -37,3 +45,5 @@ reinstall: clean install
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(EXE_NAME)
+
+.PHONY: all test clean install reinstall uninstall
