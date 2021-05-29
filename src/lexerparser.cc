@@ -192,19 +192,19 @@ Type* Parser::parseType(Token& tmpT) {
     Type *t = nullptr;
 
     // general types
-    if (strEq(tmpT.val, {"void"}))
+    if (!tmpT.val.compare("void"))
         t = new PrimType(TYPE_VOID);
     else if (strEq(tmpT.val, {"char", "i8"}))
         t = new PrimType(TYPE_I8);
-    else if (strEq(tmpT.val, {"i16"}))
+    else if (!tmpT.val.compare("i16"))
         t = new PrimType(TYPE_I16);
     else if (strEq(tmpT.val, {"int", "i32", "bool"}))
         t = new PrimType(TYPE_I32);
     else if (strEq(tmpT.val, {"long", "i64"}))
         t = new PrimType(TYPE_I64);
-    else if (strEq(tmpT.val, {"float"}))
+    else if (!tmpT.val.compare("float"))
         t = new PrimType(TYPE_FLOAT);
-    else if (strEq(tmpT.val, {"double"}))
+    else if (!tmpT.val.compare("double"))
         t = new PrimType(TYPE_DOUBLE);
     else return nullptr;
 
