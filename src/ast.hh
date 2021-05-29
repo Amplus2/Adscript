@@ -8,7 +8,10 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/IRBuilder.h>
 
-class CompileContext;
+
+namespace Adscript {
+namespace Compiler { class Context; }
+namespace AST {
 
 enum PT {
     TYPE_ERR,
@@ -56,13 +59,17 @@ class Expr {
 public:
     virtual ~Expr() = default;
     virtual std::string str() = 0;
-    virtual llvm::Value* llvmValue(CompileContext& ctx) = 0;
-    virtual bool isIdExpr() { return false; }
+    virtual llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) = 0;
+    virtual bool isIdentifier() { return false; }
 };
 
+}
+}
 
 #include "utils.hh"
 
+namespace Adscript {
+namespace AST {
 
 class PrimType : public Type {
 private:
@@ -71,17 +78,7 @@ public:
     PrimType(PT type) : type(type) {}
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-    std::string str() override {
-        switch (type) {
-        case TYPE_I8: return "i8";
-        case TYPE_I16: return "i16";
-        case TYPE_I32: return "i32";
-        case TYPE_I64: return "i64";
-        case TYPE_FLOAT: return "float";
-        case TYPE_DOUBLE: return "double";
-        default: return "err";
-        }
-    }
+    std::string str() override;
 };
 
 class PointerType : public Type {
@@ -94,77 +91,65 @@ public:
         : type(type), quantity(quantity) {}
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-    std::string str() override {
-        return std::string() + "PointerType: " + type->str();
-    }
+    std::string str() override;
 
     ~PointerType() {
         delete type;
     }
 };
 
-class IntExpr : public Expr {
+class Int : public Expr {
 private:
     const int64_t val;
 public:
-    IntExpr(const int64_t val) : val(val) {}
+    Int(const int64_t val) : val(val) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::to_string(val);
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 };
 
-class FloatExpr : public Expr {
+class Float : public Expr {
 private:
     const double val;
 public:
-    FloatExpr(const double val) : val(val) {}
+    Float(const double val) : val(val) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::to_string(val);
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 };
 
-class CharExpr : public Expr {
+class Char : public Expr {
 private:
     const char val;
 public:
-    CharExpr(const char val) : val(val) {}
+    Char(const char val) : val(val) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return "\\" + std::string(1, (char) val);
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 };
 
-class IdExpr : public Expr {
+class Identifier : public Expr {
 private:
     const std::string val;
 public:
-    IdExpr(const std::string  val) : val(val) {}
+    Identifier(const std::string  val) : val(val) {}
 
     std::string getVal() { return val; };
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return val;
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
     
-    bool isIdExpr() override { return true; }
+    bool isIdentifier() override { return true; }
 };
 
-class StrExpr : public Expr {
+class String : public Expr {
 private:
     const std::string val;
 public:
-    StrExpr(const std::string  val) : val(val) {}
+    String(const std::string  val) : val(val) {}
 
     std::string getVal();
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return val;
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 };
 
 class UExpr : public Expr {
@@ -175,13 +160,8 @@ public:
     UExpr(BinExprType type, Expr *expr)
         : type(type), expr(expr) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "UExpr: { "
-            + "op: " + betToStr(type)
-            + ", expr: " + expr->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
     ~UExpr() {
         delete expr;
@@ -196,14 +176,8 @@ public:
     BinExpr(BinExprType type, Expr *left, Expr *right)
         : type(type), left(left), right(right) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "BinExpr: { "
-            + "op: " + betToStr(type)
-            + ", left: " + left->str()
-            + ", right: " + right->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
     ~BinExpr() {
         delete left;
@@ -211,185 +185,140 @@ public:
     }
 };
 
-class IfExpr : public Expr {
+class If : public Expr {
 private:
     Expr *cond, *exprTrue, *exprFalse;
 public:
-    IfExpr(Expr *cond, Expr *exprTrue, Expr *exprFalse)
+    If(Expr *cond, Expr *exprTrue, Expr *exprFalse)
         : cond(cond), exprTrue(exprTrue), exprFalse(exprFalse) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "IfExpr: {"
-            + "cond: " + cond->str()
-            + ", exprTrue: " + exprTrue->str()
-            + ", exprFalse: " + exprFalse->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~IfExpr() {
+    ~If() {
         delete cond;
         delete exprTrue;
         delete exprFalse;
     }
 };
 
-class ArrayExpr : public Expr {
+class HoArray : public Expr {
 private:
     std::vector<Expr*> exprs;
 public:
-    ArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
+    HoArray(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "ArrayExpr: {"
-            + "size: " + std::to_string(exprs.size())
-            + ", exprs: " + exprVectorToStr(exprs)
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~ArrayExpr() {
+    ~HoArray() {
         for (auto& expr : exprs)
             delete expr;
     }
 };
 
-class PtrArrayExpr : public Expr {
+class HeArray : public Expr {
 private:
     std::vector<Expr*> exprs;
 public:
-    PtrArrayExpr(const std::vector<Expr*>& exprs) : exprs(exprs) {}
+    HeArray(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "PtrArrayExpr: {"
-            + "size: " + std::to_string(exprs.size())
-            + ", exprs: " + exprVectorToStr(exprs)
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~PtrArrayExpr() {
+    ~HeArray() {
         for (auto& expr : exprs)
             delete expr;
     }
 };
 
-class VarExpr : public Expr {
+class Var : public Expr {
 private:
     Expr *val;
     const std::string id;
 public:
-    VarExpr(Expr *val, const std::string& id) : val(val), id(id) {}
+    Var(Expr *val, const std::string& id) : val(val), id(id) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "VarExpr: {"
-            + "id: '" + id + "'";
-            + ", val: " + val->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~VarExpr() {
+    ~Var() {
         delete val;
     }
 };
 
-class SetExpr : public Expr {
+class Set : public Expr {
 private:
     Expr *ptr, *val;
 public:
-    SetExpr(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
+    Set(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "SetExpr: {"
-            + "ptr: " + ptr->str();
-            + ", val: " + val->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~SetExpr() {
+    ~Set() {
         delete ptr;
         delete val;
     }
 };
 
-class RefExpr : public Expr {
+class Ref : public Expr {
 private:
     Expr *val;
 public:
-    RefExpr(Expr *val) : val(val) {}
+    Ref(Expr *val) : val(val) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "RefExpr: {"
-            + "val: " + val->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~RefExpr() {
+    ~Ref() {
         delete val;
     }
 };
 
-class DerefExpr : public Expr {
+class Deref : public Expr {
 private:
     Expr *ptr;
 public:
-    DerefExpr(Expr *ptr) : ptr(ptr) {}
+    Deref(Expr *ptr) : ptr(ptr) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "DerefExpr: {"
-            + "ptr: " + ptr->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~DerefExpr() {
+    ~Deref() {
         delete ptr;
     }
 };
 
-class HeGetExpr : public Expr {
+class HeGet : public Expr {
 private:
     Type *type;
     Expr *ptr, *idx;
 public:
-    HeGetExpr(Type *type, Expr *ptr, Expr *idx)
+    HeGet(Type *type, Expr *ptr, Expr *idx)
         : type(type), ptr(ptr), idx(idx) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "HeGetExpr: {"
-            + "type: " + type->str()
-            + ", ptr: " + ptr->str()
-            + ", idx: " + idx->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~HeGetExpr() {
+    ~HeGet() {
         delete type;
         delete ptr;
         delete idx;
     }
 };
 
-class CastExpr : public Expr {
+class Cast : public Expr {
 private:
     Type *type;
     Expr *expr;
 public:
-    CastExpr(Type *type, Expr *expr) : type(type), expr(expr) {}
+    Cast(Type *type, Expr *expr) : type(type), expr(expr) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "Cast { "
-            + "type: " + type->str()
-            + ", expr: " + expr->str()
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~CastExpr() {
+    ~Cast() {
         delete type;
         delete expr;
     }
@@ -407,15 +336,8 @@ public:
                 Type *retType, std::vector<Expr*>& body)
         : id(id), args(args), retType(retType), body(body) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "Function: { "
-            + "id: '" + id + "'"
-            + ", args: " + argVectorToStr(args)
-            + ", type: " + retType->str()
-            + ", body: " + exprVectorToStr(body)
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
     ~Function() {
         for (auto& arg : args)
@@ -435,14 +357,8 @@ public:
             Type *retType, std::vector<Expr*>& body)
         : args(args), retType(retType), body(body) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "Lambda: { "
-            + "args: " + argVectorToStr(args)
-            + ", type: " + retType->str()
-            + ", body: " + exprVectorToStr(body)
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
     Function* toFunc(const std::string& id) {
         return new Function(id, args, retType, body);
@@ -456,25 +372,23 @@ public:
     }
 };
 
-class CallExpr : public Expr {
+class Call : public Expr {
 public:
     Expr *callee;
     std::vector<Expr*> args;
 
-    CallExpr(Expr *callee, const std::vector<Expr*>& args)
+    Call(Expr *callee, const std::vector<Expr*>& args)
         : callee(callee), args(args) {}
 
-    llvm::Value* llvmValue(CompileContext& ctx) override;
-    std::string str() override {
-        return std::string() + "FunctionCall: { "
-            + "calle: " + callee->str()
-            + ", args: " + exprVectorToStr(args)
-            + " }";
-    }
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
 
-    ~CallExpr() {
+    ~Call() {
         delete callee;
         for (auto& expr : args)
             delete expr;
     }
 };
+
+}
+}

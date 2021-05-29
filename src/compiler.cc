@@ -26,23 +26,25 @@
 
 #include <unistd.h>
 
-bool CompileContext::isVar(const std::string& id) {
+using namespace Adscript;
+
+bool Compiler::Context::isVar(const std::string& id) {
     return localVars.count(id) != 0;
 }
 
-ctx_var_t CompileContext::getVar(const std::string& id) {
+Compiler::ctx_var_t Compiler::Context::getVar(const std::string& id) {
     if (localVars.count(id)) return localVars[id];
     llvm::Function *f = mod->getFunction(id);
     if (f) return { f->getType(), f };
     return { nullptr, nullptr };
 }
 
-inline std::string getFileName(const std::string& path) {
+std::string getFileName(const std::string& path) {
     auto s = path.find_last_of("/\\");
     return s == std::string::npos ? path : path.substr(s + 1);
 }
 
-inline std::string getModuleId(const std::string& filename) {
+std::string getModuleId(const std::string& filename) {
     size_t dotCount = std::count(filename.begin(), filename.end(), '.');
 
     return dotCount
@@ -94,7 +96,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
     const llvm::Target *t =
         llvm::TargetRegistry::lookupTarget(target, err);
 
-    if (!t) error(ERROR_COMPILER, err);
+    if (!t) Error::compiler(err);
 
     llvm::TargetMachine *targetMachine = t->createTargetMachine(
         target,
@@ -109,7 +111,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
     std::error_code ec;
     llvm::raw_fd_ostream dest(output, ec, llvm::sys::fs::OF_None);
 
-    if (ec) error(ERROR_COMPILER, ec.message());
+    if (ec) Error::compiler(ec.message());
 
     llvm::legacy::PassManager pm;
 
@@ -122,7 +124,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
         pm, dest, nullptr, llvm::CGFT_ObjectFile);
 
     if (objResult)
-        error(ERROR_COMPILER, "cannot write to file '" + output + "'");
+        Error::compiler("cannot write to file '" + output + "'");
 
     pm.run(*mod);
     dest.flush();
@@ -132,10 +134,10 @@ void link(const std::string &obj, const std::string &exe) {
     int linkResult = system(("cc " + obj + " -o " + exe).c_str());
 
     if (linkResult)
-        error(ERROR_COMPILER, "error while linking '" + exe + "'");
+        Error::compiler("error while linking '" + exe + "'");
 
     if (std::remove(obj.c_str()))
-        error(ERROR_DEFAULT, "cannot remove '" + obj + "'");
+        Error::def("cannot remove '" + obj + "'");
 }
 
 std::string tempfile() {
@@ -144,7 +146,7 @@ std::string tempfile() {
     return file;
 }
 
-void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output, const std::string &target) {
+void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target) {
     std::string filename = getFileName(output);
     std::string moduleId = getModuleId(filename);
 
@@ -152,7 +154,7 @@ void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output, con
     llvm::Module mod(moduleId, ctx);
     llvm::IRBuilder<> builder(ctx);
 
-    CompileContext cctx(&mod, &builder);
+    Compiler::Context cctx(&mod, &builder);
     for (auto& expr : exprs) expr->llvmValue(cctx);
 
     // mod.print(llvm::errs(), 0);

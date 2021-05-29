@@ -5,9 +5,13 @@
 #include <string>
 #include <vector>
 
+
+namespace Adscript {
+namespace Compiler {
+
 typedef std::pair<llvm::Type*, llvm::Value*> ctx_var_t;
 
-class CompileContext {
+class Context {
 public:
     llvm::Module *mod;
     llvm::IRBuilder<> *builder;
@@ -15,11 +19,14 @@ public:
 
     bool needsRef = false;
 
-    CompileContext(llvm::Module *mod, llvm::IRBuilder<> *builder)
+    Context(llvm::Module *mod, llvm::IRBuilder<> *builder)
         : mod(mod), builder(builder) {}
     
     bool isVar(const std::string& id);
     ctx_var_t getVar(const std::string& id);
 };
 
-void compile(std::vector<Expr*>& exprs, bool exe, const std::string &output, const std::string &target);
+void compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target);
+
+}
+}

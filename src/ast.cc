@@ -7,8 +7,151 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
+using namespace Adscript;
 
-llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
+// * STRING GENERATION METHODS
+
+std::string AST::PrimType::str() {
+    switch (type) {
+    case TYPE_I8: return "i8";
+    case TYPE_I16: return "i16";
+    case TYPE_I32: return "i32";
+    case TYPE_I64: return "i64";
+    case TYPE_FLOAT: return "float";
+    case TYPE_DOUBLE: return "double";
+    default: return "err";
+    }
+}
+
+std::string AST::PointerType::str() {
+    return std::string() + "PointerType: " + type->str();
+}
+
+std::string AST::Int::str() {
+    return std::to_string(val);
+}
+
+std::string AST::Float::str() {
+    return std::to_string(val);
+}
+
+std::string AST::Char::str() {
+    return "\\" + std::string(1, (char) val);
+}
+
+std::string AST::Identifier::str() {
+    return val;
+}
+
+std::string AST::String::str() {
+    return val;
+}
+
+std::string AST::UExpr::str() {
+    return std::string() + "UExpr: { "
+        + "op: " + AST::betToStr(type)
+        + ", expr: " + expr->str()
+        + " }";
+}
+
+std::string AST::BinExpr::str() {
+    return std::string() + "BinExpr: { "
+        + "op: " + AST::betToStr(type)
+        + ", left: " + left->str()
+        + ", right: " + right->str()
+        + " }";
+}
+
+std::string AST::If::str() {
+    return std::string() + "If: {"
+        + "cond: " + cond->str()
+        + ", exprTrue: " + exprTrue->str()
+        + ", exprFalse: " + exprFalse->str()
+        + " }";
+}
+
+std::string AST::HoArray::str() {
+    return std::string() + "HoArray: {"
+        + "size: " + std::to_string(exprs.size())
+        + ", exprs: " + AST::exprVectorToStr(exprs)
+        + " }";
+}
+
+std::string AST::HeArray::str() {
+    return std::string() + "HeArray: {"
+        + "size: " + std::to_string(exprs.size())
+        + ", exprs: " + AST::exprVectorToStr(exprs)
+        + " }";
+}
+
+std::string AST::Var::str() {
+    return std::string() + "Var: {"
+        + "id: '" + id + "'";
+        + ", val: " + val->str()
+        + " }";
+}
+
+std::string AST::Set::str() {
+    return std::string() + "Set: {"
+        + "ptr: " + ptr->str();
+        + ", val: " + val->str()
+        + " }";
+}
+
+std::string AST::Ref::str() {
+    return std::string() + "Ref: {"
+        + "val: " + val->str()
+        + " }";
+}
+
+std::string AST::Deref::str() {
+    return std::string() + "Deref: {"
+        + "ptr: " + ptr->str()
+        + " }";
+}
+
+std::string AST::HeGet::str() {
+    return std::string() + "HeGet: {"
+        + "type: " + type->str()
+        + ", ptr: " + ptr->str()
+        + ", idx: " + idx->str()
+        + " }";
+}
+
+std::string AST::Cast::str() {
+    return std::string() + "Cast { "
+        + "type: " + type->str()
+        + ", expr: " + expr->str()
+        + " }";
+}
+
+std::string AST::Function::str() {
+    return std::string() + "Function: { "
+        + "id: '" + id + "'"
+        + ", args: " + AST::argVectorToStr(args)
+        + ", type: " + retType->str()
+        + ", body: " + AST::exprVectorToStr(body)
+        + " }";
+}
+
+std::string AST::Lambda::str() {
+    return std::string() + "Lambda: { "
+        + "args: " + AST::argVectorToStr(args)
+        + ", type: " + retType->str()
+        + ", body: " + AST::exprVectorToStr(body)
+        + " }";
+}
+
+std::string AST::Call::str() {
+    return std::string() + "FunctionCall: { "
+        + "calle: " + callee->str()
+        + ", args: " + AST::exprVectorToStr(args)
+        + " }";
+}
+
+// * LLVM METHODS
+
+llvm::Type* AST::PrimType::llvmType(llvm::LLVMContext &ctx) {
     switch (type) {
     case TYPE_I8:       return llvm::Type::getInt8Ty(ctx);
     case TYPE_I16:      return llvm::Type::getInt16Ty(ctx);
@@ -16,38 +159,38 @@ llvm::Type* PrimType::llvmType(llvm::LLVMContext &ctx) {
     case TYPE_I64:      return llvm::Type::getInt64Ty(ctx);
     case TYPE_FLOAT:    return llvm::Type::getFloatTy(ctx);
     case TYPE_DOUBLE:   return llvm::Type::getDoubleTy(ctx);
-    default: error(ERROR_COMPILER, "unknown type name");
+    default: Error::compiler("unknown type name");
     }
     return nullptr;
 }
 
-llvm::Type* PointerType::llvmType(llvm::LLVMContext &ctx) {
+llvm::Type* AST::PointerType::llvmType(llvm::LLVMContext &ctx) {
     if (quantity == 0)
-        error(ERROR_COMPILER, "quantity of pointer type cannot be zero");
+        Error::compiler("quantity of pointer type cannot be zero");
     auto t = type->llvmType(ctx)->getPointerTo();
     for (int i = 1; i < quantity; i++) t = t->getPointerTo();
     return t;
 }
 
-llvm::Value* IntExpr::llvmValue(CompileContext& ctx) {
-    return constInt(ctx, val);
+llvm::Value* AST::Int::llvmValue(Compiler::Context& ctx) {
+    return Compiler::constInt(ctx, val);
 }
 
-llvm::Value* FloatExpr::llvmValue(CompileContext& ctx) {
-    return constFP(ctx, val);
+llvm::Value* AST::Float::llvmValue(Compiler::Context& ctx) {
+    return Compiler::constFP(ctx, val);
 }
 
-llvm::Value* CharExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Char::llvmValue(Compiler::Context& ctx) {
     return llvm::ConstantInt::get(llvm::Type::getInt8Ty(ctx.mod->getContext()), val);
 }
 
-llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Identifier::llvmValue(Compiler::Context& ctx) {
     // get var out of context
     auto var = ctx.getVar(val);
     
     // error if var is not defined
     if (!var.second)
-        error(ERROR_COMPILER, "undefined reference to '" + val + "'");
+        Error::compiler("undefined reference to '" + val + "'");
     
     // return alloca if reference is needed
     if (ctx.needsRef) return var.second;
@@ -56,12 +199,12 @@ llvm::Value* IdExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateLoad(var.first, var.second);
 }
 
-llvm::Value* StrExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::String::llvmValue(Compiler::Context& ctx) {
     // create and return pointer to global constant char array (i8*)
     return ctx.builder->CreateGlobalStringPtr(val);
 }
 
-llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::UExpr::llvmValue(Compiler::Context& ctx) {
     // get llvm value for expr
     auto v = expr->llvmValue(ctx);
 
@@ -72,11 +215,11 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
         // create 0 - v if v is of type int
         if (v->getType()->isIntegerTy())
             return ctx.builder->CreateSub(
-                cast(ctx, constInt(ctx, 0), v->getType()), v);
+                cast(ctx, Compiler::constInt(ctx, 0), v->getType()), v);
         // create 0.0 - v if v is of type float
         else if (v->getType()->isFloatingPointTy())
             return ctx.builder->CreateFSub(
-                cast(ctx, constFP(ctx, 0), v->getType()), v);
+                cast(ctx, Compiler::constFP(ctx, 0), v->getType()), v);
     } case BINEXPR_LNOT: {
         // create a logical value for 'v'
         v = createLogicalVal(ctx, v);
@@ -86,12 +229,12 @@ llvm::Value* UExpr::llvmValue(CompileContext& ctx) {
     } default: ;
     }
 
-    error(ERROR_COMPILER, "unknown type name in unary expression");
+    Error::compiler("unknown type name in unary expression");
 
     return nullptr;
 }
 
-llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::BinExpr::llvmValue(Compiler::Context& ctx) {
     // get llvm values
     auto lv = left->llvmValue(ctx);
     auto rv = right->llvmValue(ctx);
@@ -113,7 +256,7 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
         auto lvT = lv->getType();
         auto rvT = rv->getType();
 
-        if (isNumTy(lvT) && isNumTy(rvT)) {
+        if (Compiler::isNumTy(lvT) && Compiler::isNumTy(rvT)) {
             if (lvT->isFloatingPointTy() || rvT->isFloatingPointTy()) {
                 // get the data type used for the binary expression
                 auto calcType = llvm::Type::getDoubleTy(ctx.mod->getContext());
@@ -163,8 +306,9 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
             }
         } else {
             // error if operand types are incompatible with another
-            error(ERROR_COMPILER, "incompatible operand types (left: '"
-                + llvmTypeStr(lvT) + "', right: '" + llvmTypeStr(rvT) + "')");
+            Error::compiler("incompatible operand types (left: '"
+                + Compiler::llvmTypeStr(lvT) + "', right: '"
+                + Compiler::llvmTypeStr(rvT) + "')");
         }
     }
 
@@ -177,13 +321,13 @@ llvm::Value* BinExpr::llvmValue(CompileContext& ctx) {
     }
 
     // error if no valid operator was provided
-    error(ERROR_COMPILER, "unknown type name in binary expression");
+    Error::compiler("unknown type name in binary expression");
 
     // return anything
     return nullptr;
 }
 
-llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::If::llvmValue(Compiler::Context& ctx) {
     // get condition llvm value
     auto condV = createLogicalVal(ctx, cond->llvmValue(ctx));
 
@@ -193,14 +337,14 @@ llvm::Value* IfExpr::llvmValue(CompileContext& ctx) {
 
     // error if condition types do not match
     if (trueV->getType()->getPointerTo() != falseV->getType()->getPointerTo())
-        error(ERROR_COMPILER, 
+        Error::compiler(
             "conditional expression operand types do not match");
 
     // create and return llvm value
     return ctx.builder->CreateSelect(condV, trueV, falseV);
 }
 
-llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::HoArray::llvmValue(Compiler::Context& ctx) {
     // create llvm value vector for array elements
     std::vector<llvm::Value*> elements;
 
@@ -220,7 +364,7 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
     auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
 
     // assign 'arr' to the pointer to the first element of the array
-    arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
+    arr = ctx.builder->CreateGEP(arr, { Compiler::constInt(ctx, 0), Compiler::constInt(ctx, 0) });
 
     for (size_t i = 0; i < elements.size(); i++) {
         // try casting the element to the array element type
@@ -228,11 +372,10 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
 
         // error if casting fails
         if (!v)
-            error(ERROR_COMPILER,
-                "element types do not match in homogenous array");
+            Error::compiler(                "element types do not match in homogenous array");
 
         // get pointer to the element at index 'i'
-        auto ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
+        auto ptr = ctx.builder->CreateGEP(arr, Compiler::constInt(ctx, i));
 
         // store the element's value into the pointer at index 'i'
         ctx.builder->CreateStore(v, ptr);
@@ -242,7 +385,7 @@ llvm::Value* ArrayExpr::llvmValue(CompileContext& ctx) {
     return arr;
 }
 
-llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::HeArray::llvmValue(Compiler::Context& ctx) {
     // create llvm value vector for array elements
     std::vector<llvm::Value*> elements;
 
@@ -270,11 +413,11 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
     auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
 
     // assign 'arr' to the pointer to the first element of the array
-    arr = ctx.builder->CreateGEP(arr, { constInt(ctx, 0), constInt(ctx, 0) });
+    arr = ctx.builder->CreateGEP(arr, { Compiler::constInt(ctx, 0), Compiler::constInt(ctx, 0) });
 
     // store all the elements into the array
     for (size_t i = 0; i < elements.size(); i++) {
-        auto ptr = ctx.builder->CreateGEP(arr, constInt(ctx, i));
+        auto ptr = ctx.builder->CreateGEP(arr, Compiler::constInt(ctx, i));
 
         ctx.builder->CreateStore(cast(ctx, elements[i], t), ptr);
     }
@@ -283,10 +426,10 @@ llvm::Value* PtrArrayExpr::llvmValue(CompileContext& ctx) {
     return arr;
 }
 
-llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Var::llvmValue(Compiler::Context& ctx) {
     // error if variable is already defined
     if (ctx.isVar(id))
-        error(ERROR_COMPILER, "var '" + id + "' already defined");
+        Error::compiler("var '" + id + "' already defined");
 
     // get llvm value for the stored value
     auto v = val->llvmValue(ctx);
@@ -304,7 +447,7 @@ llvm::Value* VarExpr::llvmValue(CompileContext& ctx) {
     return alloca;
 }
 
-llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Set::llvmValue(Compiler::Context& ctx) {
     // get the current 'needsRef' value
     bool b = ctx.needsRef;
 
@@ -312,15 +455,14 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
     ctx.needsRef = true;
 
     // get pointer to store the value in
-    llvm::Value* ptr = this->ptr->llvmValue(ctx);
+    llvm::Value *ptr = this->ptr->llvmValue(ctx);
     
     // set 'needsRef' flag to the value stored in 'b'
     ctx.needsRef = b;
 
     // error if the value is not going to be stored in a pointer
     if (!ptr->getType()->isPointerTy())
-        error(ERROR_COMPILER,
-            "expected pointer type for set expression as first argument");
+        Error::compiler(            "expected pointer type for set expression as first argument");
     
     // get the type of the pointer
     auto valT = ptr->getType()->getPointerElementType();
@@ -333,16 +475,16 @@ llvm::Value* SetExpr::llvmValue(CompileContext& ctx) {
 
     // error if casting failed
     if (!val1)
-        error(ERROR_COMPILER,
+        Error::compiler(
             "pointer of set instruction is unable to store (expected: "
-            + llvmTypeStr(valT) + ", got: " + llvmTypeStr(val->getType())
-            + ")");
+            + Compiler::llvmTypeStr(valT) + ", got: "
+            + Compiler::llvmTypeStr(val->getType()) + ")");
 
     // return stored value
     return val1;
 }
 
-llvm::Value* RefExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Ref::llvmValue(Compiler::Context& ctx) {
     // get the current 'needsRef' value
     bool b = ctx.needsRef;
 
@@ -354,7 +496,7 @@ llvm::Value* RefExpr::llvmValue(CompileContext& ctx) {
 
     // error if reference is no reference
     if (!v->getType()->isPointerTy())
-        error(ERROR_COMPILER, "failed to create reference");
+        Error::compiler("failed to create reference");
 
     // set 'needsRef' flag to the value stored in 'b'
     ctx.needsRef = b;
@@ -363,30 +505,28 @@ llvm::Value* RefExpr::llvmValue(CompileContext& ctx) {
     return v;
 }
 
-llvm::Value* DerefExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Deref::llvmValue(Compiler::Context& ctx) {
     auto ptr = this->ptr->llvmValue(ctx);
 
     if (!ptr->getType()->isPointerTy())
-        error(ERROR_COMPILER, "expected pointer type for deref expression");
+        Error::compiler("expected pointer type for deref expression");
 
     return ctx.builder->CreateLoad(
         ptr->getType()->getPointerElementType(), ptr);
 }
 
-llvm::Value* HeGetExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::HeGet::llvmValue(Compiler::Context& ctx) {
     auto ptr = this->ptr->llvmValue(ctx);
 
     auto t = ptr->getType();
     if (!(t->isPointerTy() && t->getPointerElementType()->isPointerTy()))
-        error(ERROR_COMPILER,
-            "expected doubled pointer type for"
+        Error::compiler(            "expected doubled pointer type for"
             "'heget' expression as the second argument");
     
     auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
     auto idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
     if (!idx)
-        error(ERROR_COMPILER,
-            "expected integer type fot heget expression as third argument");
+        Error::compiler(            "expected integer type fot heget expression as third argument");
 
     t = type->llvmType(ctx.mod->getContext())->getPointerTo();
     
@@ -398,12 +538,12 @@ llvm::Value* HeGetExpr::llvmValue(CompileContext& ctx) {
     return ctx.builder->CreateLoad(t, ptr);
 }
 
-llvm::Value* CastExpr::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Cast::llvmValue(Compiler::Context& ctx) {
     return cast(ctx, expr->llvmValue(ctx),
         type->llvmType(ctx.mod->getContext()));
 }
 
-llvm::Value* Function::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
         ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
@@ -412,15 +552,13 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
 
     if (f) {
         if (ftArgs.size() != f->arg_size())
-            error(ERROR_COMPILER,
-                "invalid redefenition of function '" + id + "'");
+            Error::compiler(                "invalid redefenition of function '" + id + "'");
 
         for (size_t i = 0; i < ftArgs.size(); i++) {
             bool b = ftArgs.at(i)->getPointerTo()
                 != f->getArg(i)->getType()->getPointerTo();
             if (b)
-                error(ERROR_COMPILER,
-                    "invalid redefenition of function '" + id + "'");
+                Error::compiler(                    "invalid redefenition of function '" + id + "'");
         }
                 
     } else {
@@ -443,12 +581,12 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     size_t i = 0;
     for (auto& arg : f->args()) {
         if (args[i].second.size() <= 0)
-            error(ERROR_COMPILER, 
+            Error::compiler(
                 "function definiton with body must have named arguments");
 
         arg.setName(args[i].second);
 
-        auto alloca = createAlloca(f, ftArgs[i]);
+        auto alloca = Compiler::createAlloca(f, ftArgs[i]);
 
         ctx.builder->CreateStore(&arg, alloca);
 
@@ -464,14 +602,14 @@ llvm::Value* Function::llvmValue(CompileContext& ctx) {
     ctx.localVars.clear();
 
     if (llvm::verifyFunction(*f))
-        error(ERROR_COMPILER, "error in function '" + id + "'");
+        Error::compiler("error in function '" + id + "'");
 
     return f;
 }
 
-llvm::Value* Lambda::llvmValue(CompileContext& ctx) {
+llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
     if (body.size() <= 0)
-        error(ERROR_COMPILER, "lambda expressions cannot have an empty body");
+        Error::compiler("lambda expressions cannot have an empty body");
 
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
@@ -489,12 +627,12 @@ llvm::Value* Lambda::llvmValue(CompileContext& ctx) {
     size_t i = 0;
     for (auto& arg : f->args()) {
         if (args[i].second.size() <= 0)
-            error(ERROR_COMPILER, 
+            Error::compiler(
                 "lambda expression must have named arguments");
 
         arg.setName(args[i].second);
 
-        auto alloca = createAlloca(f, ftArgs[i]);
+        auto alloca = Compiler::createAlloca(f, ftArgs[i]);
 
         ctx.builder->CreateStore(&arg, alloca);
 
@@ -513,24 +651,22 @@ llvm::Value* Lambda::llvmValue(CompileContext& ctx) {
 }
 
 
-llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
-    IdExpr *id = nullptr;
-    if (callee->isIdExpr()) id = (IdExpr*) callee;
+llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
+    Identifier *id = nullptr;
+    if (callee->isIdentifier()) id = (Identifier*) callee;
 
     if (!id || ctx.isVar(id->getVal())) {
         if (args.size() != 1)
-            error(ERROR_COMPILER,
-                "expected exactly 1 argument for pointer-index-call");
+            Error::compiler(                "expected exactly 1 argument for pointer-index-call");
 
         auto ptr = callee->llvmValue(ctx);
         if (!ptr->getType()->isPointerTy())
-            error(ERROR_COMPILER,
-                "pointer-index-calls only work with pointers");
+            Error::compiler(                "pointer-index-calls only work with pointers");
 
         auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
         auto idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
         if (!idx)
-            error(ERROR_COMPILER, "argument in pointer-index-call "
+            Error::compiler("argument in pointer-index-call "
                 "must be convertable to an integer");
 
         llvm::Value *v = ctx.builder->CreateGEP(ptr, idx);
@@ -542,14 +678,13 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
 
     auto f = ctx.mod->getFunction(id->getVal());
 
-    if (!f) error(ERROR_COMPILER,
-        "undefined reference to '" + id->getVal() + "'");
+    if (!f) Error::compiler(        "undefined reference to '" + id->getVal() + "'");
 
     if (args.size() > f->arg_size())
-        error(ERROR_COMPILER, "too many arguments for function '"
+        Error::compiler("too many arguments for function '"
             + id->getVal() + "'");
     else if (args.size() < f->arg_size())
-        error(ERROR_COMPILER, "too few arguments for function '"
+        Error::compiler("too few arguments for function '"
             + id->getVal() + "'");
 
     std::vector<llvm::Value*> callArgs;
@@ -559,10 +694,10 @@ llvm::Value* CallExpr::llvmValue(CompileContext& ctx) {
         auto v = args[i++]->llvmValue(ctx);
         auto v1 = tryCast(ctx, v, arg.getType());
         if (!v1)
-            error(ERROR_COMPILER, "invalid argument type for function '"
+            Error::compiler("invalid argument type for function '"
                 + id->getVal() + "' (expected: '"
-                + llvmTypeStr(arg.getType()) + "', got: '"
-                + llvmTypeStr(v->getType()) + "')");
+                + Compiler::llvmTypeStr(arg.getType()) + "', got: '"
+                + Compiler::llvmTypeStr(v->getType()) + "')");
         callArgs.push_back(v1);
     }
 

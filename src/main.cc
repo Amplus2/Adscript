@@ -7,25 +7,10 @@
 
 #include <llvm/Support/Host.h>
 
-void printAST(const std::vector<Expr*>& ast) {
-    for (auto& expr : ast) std::cout << expr->str() << std::endl;
-}
-
-inline int printUsage(char **argv, int r) {
-    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] [-t <target-triple>] <files>" << std::endl;
-    return r;
-}
-
-std::string makeOutputPath(const std::string &input, bool exe) {
-    auto lastdot = input.find_last_of('.');
-    if (lastdot == std::string::npos)
-        error(ERROR_DEFAULT, "Input files have to have an extension.");
-    auto mod = input.substr(0, lastdot);
-    return exe ? mod : mod + ".o";
-}
+using namespace Adscript;
 
 int main(int argc, char **argv) {
-    if (argc < 2) return printUsage(argv, 1);
+    if (argc < 2) return Error::printUsage(argv, 1);
     std::string output, target;
     bool exe = false;
     int opt;
@@ -35,13 +20,13 @@ int main(int argc, char **argv) {
             case 'e': exe = true; break;
             case 'o': output = optarg; break;
             case 't': target = optarg; break;
-            case 'h': return printUsage(argv, 0);
-            case '?': return printUsage(argv, 1);
+            case 'h': return Error::printUsage(argv, 0);
+            case '?': return Error::printUsage(argv, 1);
         }
     }
 
     argc -= optind;
-    if (!argc) return printUsage(argv, 1);
+    if (!argc) return Error::printUsage(argv, 1);
     argv += optind;
 
     if (target == "") target = llvm::sys::getDefaultTargetTriple();
@@ -49,8 +34,8 @@ int main(int argc, char **argv) {
     if (output == "") {
         for (int i = 0; i < argc; i++) {
             std::string input = std::string(argv[i]);
-            std::string output = makeOutputPath(input, exe);
-            std::string text = readFile(input);
+            std::string output = Utils::makeOutputPath(input, exe);
+            std::string text = Utils::readFile(input);
 
             Lexer lexer(text);
             Parser parser(lexer);
@@ -58,15 +43,15 @@ int main(int argc, char **argv) {
 
             //printAST(exprs);
             
-            compile(exprs, exe, output, target);
+            Compiler::compile(exprs, exe, output, target);
             
             for (auto& expr : exprs) expr->~Expr();
         }
     } else {
-        std::vector<Expr*> exprs;
+        std::vector<AST::Expr*> exprs;
 
         for (int i = 0; i < argc; i++) {
-            std::string text = readFile(argv[i]);
+            std::string text = Utils::readFile(argv[i]);
             Lexer lexer(text);
             Parser parser(lexer);
             auto newexprs = parser.parse();
@@ -75,7 +60,7 @@ int main(int argc, char **argv) {
 
         //printAST(exprs);
 
-        compile(exprs, exe, output, target);
+        Compiler::compile(exprs, exe, output, target);
 
         for (auto& expr : exprs) expr->~Expr();
     }

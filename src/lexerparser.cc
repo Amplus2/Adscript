@@ -1,41 +1,21 @@
 #include "ast.hh"
+#include "utils.hh"
 #include "lexerparser.hh"
 
 #include <iostream>
 
-static inline bool isDigit(char c) {
-    return c >= '0' && c <= '9';
-}
-
-static inline bool isWhitespace(char c) {
-    return (c >= 0 && c <= 32) || c == ',';
-}
-
-static inline bool isSpecialChar(char c) {
-    return c == '('
-        || c == ')'
-        || c == '['
-        || c == ']'
-        || c == '#'
-        || c == '*';
-}
-
-static inline bool isHexChar(char c) {
-    return (c >= '0' && c <= '9')
-        || (c >= 'A' && c <= 'F')
-        || (c >= 'a' && c <= 'f');
-}
+using namespace Adscript;
 
 bool Lexer::eofReached() {
     return idx >= text.size();
 }
 
-inline char Lexer::getc(size_t idx) {
+char Lexer::getc(size_t idx) {
     if (idx >= text.size()) return -1;
     return text[idx];
 }
 
-Token Lexer::nextT() {
+Lexer::Token Lexer::nextT() {
     // helper variable
     char c;
 
@@ -43,7 +23,7 @@ Token Lexer::nextT() {
     nextT_start:
 
     // eat up whitespaces
-    while (isWhitespace(getc(idx)) && idx < text.size())
+    while (Utils::isWhitespace(getc(idx)) && idx < text.size())
         idx += 1;
     
     // handle comments
@@ -98,21 +78,21 @@ Token Lexer::nextT() {
         tmpStr += "0x";
         idx += 2;
 
-        while (isHexChar((c = getc(idx)))) {
+        while (Utils::isHexChar((c = getc(idx)))) {
             tmpStr += c;
             idx += 1;
         }
 
         c = getc(idx);
-        if (!isWhitespace(c) && !isSpecialChar(c))
-            warning("no whitespace after hex literal", pos());
+        if (!Utils::isWhitespace(c) && !Utils::isSpecialChar(c))
+            Error::warning("no whitespace after hex literal", pos());
 
         return Token(TT_HEX, tmpStr);
     }
 
     // handle integers and front part of FPs
-    if (isDigit(getc(idx))) {
-        while (isDigit((c = getc(idx)))) {
+    if (Utils::isDigit(getc(idx))) {
+        while (Utils::isDigit((c = getc(idx)))) {
             tmpStr += c;
             idx += 1;
         }
@@ -121,25 +101,26 @@ Token Lexer::nextT() {
     }
     
     // handle floats
-    if (getc(idx) == '.' && isDigit(getc(idx + 1))) {
+    if (getc(idx) == '.' && Utils::isDigit(getc(idx + 1))) {
         // append '.' to tmpStr
         tmpStr += getc(idx++);
 
-        if (eofReached()) lexerEOFError();
+        if (eofReached()) Error::lexerEOF();
 
         // append all digits after the '.' to tmpStr
-        while (isDigit(getc(idx))) tmpStr += getc(idx++);
+        while (Utils::isDigit(getc(idx))) tmpStr += getc(idx++);
 
         return Token(TT_FLOAT, tmpStr);
-    } else if ((c = getc(idx)) == '.')
-        error(ERROR_LEXER, "expected digit after '.', got '"
-            + std::string(1, c) + "'", pos());
+    } else if ((c = getc(idx)) == '.') {
+        Error::lexer("expected digit after '.', got '" + std::string(1, c)
+            + "'", pos());
+    }
 
     if (getc(idx) == '"') {
         // eat up '"'
         idx += 1;
 
-        if (eofReached()) lexerEOFError();
+        if (eofReached()) Error::lexerEOF();
 
         bool lastBS = false;
         while ((c = getc(idx)) != '"' || lastBS) {
@@ -147,7 +128,7 @@ Token Lexer::nextT() {
             lastBS = c == '\\';
             idx += 1;
 
-            if (eofReached()) lexerEOFError();
+            if (eofReached()) Error::lexerEOF();
         }
 
         // eat up '"'
@@ -158,7 +139,7 @@ Token Lexer::nextT() {
         // eat up '\\'
         idx += 1;
 
-        if (eofReached()) lexerEOFError();
+        if (eofReached()) Error::lexerEOF();
 
         c = getc(idx);
 
@@ -169,7 +150,7 @@ Token Lexer::nextT() {
     }
 
     // handle identifiers
-    while (!isWhitespace((c = getc(idx))) && !isSpecialChar(c)
+    while (!Utils::isWhitespace((c = getc(idx))) && !Utils::isSpecialChar(c)
             && idx < text.size())
         tmpStr += getc(idx++);
 
@@ -200,41 +181,41 @@ std::string Lexer::pos() {
     return std::to_string(line) + ":" + std::to_string(col);
 }
 
-Expr* tokenToExpr(Token t) {
+AST::Expr* tokenToExpr(Lexer::Token t) {
     switch (t.tt) {
-    case TT_ID:     return new IdExpr(t.val);
-    case TT_INT:    return new IntExpr(std::stol(t.val));
-    case TT_HEX:    return new IntExpr(std::stol(t.val, NULL, 16));
-    case TT_FLOAT:  return new FloatExpr(std::stod(t.val));
-    case TT_CHAR:   return new CharExpr(t.val[0]);
-    case TT_STR:    return new StrExpr(unescapeStr(t.val));
+    case Lexer::TT_ID:     return new AST::Identifier(t.val);
+    case Lexer::TT_INT:    return new AST::Int(std::stol(t.val));
+    case Lexer::TT_HEX:    return new AST::Int(std::stol(t.val, NULL, 16));
+    case Lexer::TT_FLOAT:  return new AST::Float(std::stod(t.val));
+    case Lexer::TT_CHAR:   return new AST::Char(t.val[0]);
+    case Lexer::TT_STR:    return new AST::String(Utils::unescapeStr(t.val));
     default:        return nullptr;
     }
 }
 
-Type* Parser::parseType(Token& tmpT) {
-    Type *t = nullptr;
+AST::Type* Parser::parseType(Lexer::Token& tmpT) {
+    AST::Type *t = nullptr;
 
     // general types
-    if (strEq(tmpT.val, {"char", "i8"}))
-        t = new PrimType(TYPE_I8);
+    if (Utils::strEq(tmpT.val, {"char", "i8"}))
+        t = new AST::PrimType(AST::TYPE_I8);
     else if (!tmpT.val.compare("i16"))
-        t = new PrimType(TYPE_I16);
-    else if (strEq(tmpT.val, {"int", "i32", "bool"}))
-        t = new PrimType(TYPE_I32);
-    else if (strEq(tmpT.val, {"long", "i64"}))
-        t = new PrimType(TYPE_I64);
+        t = new AST::PrimType(AST::TYPE_I16);
+    else if (Utils::strEq(tmpT.val, {"int", "i32", "bool"}))
+        t = new AST::PrimType(AST::TYPE_I32);
+    else if (Utils::strEq(tmpT.val, {"long", "i64"}))
+        t = new AST::PrimType(AST::TYPE_I64);
     else if (!tmpT.val.compare("float"))
-        t = new PrimType(TYPE_FLOAT);
+        t = new AST::PrimType(AST::TYPE_FLOAT);
     else if (!tmpT.val.compare("double"))
-        t = new PrimType(TYPE_DOUBLE);
+        t = new AST::PrimType(AST::TYPE_DOUBLE);
     else return nullptr;
 
-    Token tmpTmpT = tmpT;
+    Lexer::Token tmpTmpT = tmpT;
     size_t tmpIdx = lexer.getIdx();
     tmpT = lexer.nextT();
 
-    if (tmpT.tt == TT_STAR) {
+    if (tmpT.tt == Lexer::TT_STAR) {
         tmpTmpT = tmpT;
         tmpIdx = lexer.getIdx();
 
@@ -242,7 +223,7 @@ Type* Parser::parseType(Token& tmpT) {
         tmpT = lexer.nextT();
         
         uint8_t quanity = 1;
-        while (tmpT.tt == TT_STAR) {
+        while (tmpT.tt == Lexer::TT_STAR) {
             tmpTmpT = tmpT;
             tmpIdx = lexer.getIdx();
 
@@ -255,7 +236,7 @@ Type* Parser::parseType(Token& tmpT) {
         lexer.setIdx(tmpIdx);
         tmpT = tmpTmpT;
 
-        return new PointerType(t, quanity);
+        return new AST::PointerType(t, quanity);
     }
 
     lexer.setIdx(tmpIdx);
@@ -264,58 +245,58 @@ Type* Parser::parseType(Token& tmpT) {
 }
 
 
-Expr* Parser::parseExpr(Token& tmpT) {
-    if (tmpT.tt == TT_PO) {
+AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
+    if (tmpT.tt == Lexer::TT_PO) {
         tmpT = lexer.nextT();
-        if (tmpT.tt == TT_EOF)
-            error(ERROR_PARSER, "unexpected end of file");
-        else if (tmpT.tt == TT_STAR)
-            return parseBinExpr(tmpT, BINEXPR_MUL);
-        else if (tmpT.tt == TT_ID) {
+        if (tmpT.tt == Lexer::TT_EOF)
+            Error::parser("unexpected end of file");
+        else if (tmpT.tt == Lexer::TT_STAR)
+            return parseBinExpr(tmpT, AST::BINEXPR_MUL);
+        else if (tmpT.tt == Lexer::TT_ID) {
             if (!tmpT.val.compare("+"))
-                return parseBinExpr(tmpT, BINEXPR_ADD);
+                return parseBinExpr(tmpT, AST::BINEXPR_ADD);
             else if (!tmpT.val.compare("-"))
-                return parseBinExpr(tmpT, BINEXPR_SUB);
+                return parseBinExpr(tmpT, AST::BINEXPR_SUB);
             else if (!tmpT.val.compare("/"))
-                return parseBinExpr(tmpT, BINEXPR_DIV);
+                return parseBinExpr(tmpT, AST::BINEXPR_DIV);
             else if (!tmpT.val.compare("%"))
-                return parseBinExpr(tmpT, BINEXPR_MOD);
+                return parseBinExpr(tmpT, AST::BINEXPR_MOD);
             else if (!tmpT.val.compare("|"))
-                return parseBinExpr(tmpT, BINEXPR_OR);
+                return parseBinExpr(tmpT, AST::BINEXPR_OR);
             else if (!tmpT.val.compare("&"))
-                return parseBinExpr(tmpT, BINEXPR_AND);
+                return parseBinExpr(tmpT, AST::BINEXPR_AND);
             else if (!tmpT.val.compare("^"))
-                return parseBinExpr(tmpT, BINEXPR_XOR);
+                return parseBinExpr(tmpT, AST::BINEXPR_XOR);
             else if (!tmpT.val.compare("~"))
-                return parseBinExpr(tmpT, BINEXPR_NOT);
+                return parseBinExpr(tmpT, AST::BINEXPR_NOT);
             else if (!tmpT.val.compare("="))
-                return parseBinExpr(tmpT, BINEXPR_EQ);
+                return parseBinExpr(tmpT, AST::BINEXPR_EQ);
             else if (!tmpT.val.compare("<"))
-                return parseBinExpr(tmpT, BINEXPR_LT);
+                return parseBinExpr(tmpT, AST::BINEXPR_LT);
             else if (!tmpT.val.compare(">"))
-                return parseBinExpr(tmpT, BINEXPR_GT);
+                return parseBinExpr(tmpT, AST::BINEXPR_GT);
             else if (!tmpT.val.compare("<="))
-                return parseBinExpr(tmpT, BINEXPR_LTEQ);
+                return parseBinExpr(tmpT, AST::BINEXPR_LTEQ);
             else if (!tmpT.val.compare(">="))
-                return parseBinExpr(tmpT, BINEXPR_GTEQ);
+                return parseBinExpr(tmpT, AST::BINEXPR_GTEQ);
             else if (!tmpT.val.compare("or"))
-                return parseBinExpr(tmpT, BINEXPR_LOR);
+                return parseBinExpr(tmpT, AST::BINEXPR_LOR);
             else if (!tmpT.val.compare("and"))
-                return parseBinExpr(tmpT, BINEXPR_LAND);
+                return parseBinExpr(tmpT, AST::BINEXPR_LAND);
             else if (!tmpT.val.compare("xor"))
-                return parseBinExpr(tmpT, BINEXPR_LXOR);
+                return parseBinExpr(tmpT, AST::BINEXPR_LXOR);
             else if (!tmpT.val.compare("not"))
-                return parseBinExpr(tmpT, BINEXPR_LNOT);
+                return parseBinExpr(tmpT, AST::BINEXPR_LNOT);
             else if (!tmpT.val.compare("if"))
-                return parseIfExpr(tmpT);
+                return parseIf(tmpT);
             else if (!tmpT.val.compare("fn"))
                 return parseLambda(tmpT);
             else if (!tmpT.val.compare("var")) {
                 // eat up 'var'
                 tmpT = lexer.nextT();
 
-                if (tmpT.tt != TT_ID)
-                    parseError("identifier", tmpT.val, lexer.pos());
+                if (tmpT.tt != Lexer::TT_ID)
+                    Error::parserExpected("identifier", tmpT.val, lexer.pos());
                 auto id = tmpT.val;
 
                 // eat up id
@@ -326,7 +307,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                return new VarExpr(val, id);
+                return new AST::Var(val, id);
             } else if (!tmpT.val.compare("set")) {
                 // eat up 'set'
                 tmpT = lexer.nextT();
@@ -341,7 +322,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                return new SetExpr(ptr, val);
+                return new AST::Set(ptr, val);
             } else if (!tmpT.val.compare("ref")) {
                 // eat up 'set'
                 tmpT = lexer.nextT();
@@ -351,7 +332,7 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                return new RefExpr(val);
+                return new AST::Ref(val);
             } else if (!tmpT.val.compare("deref")) {
                 // eat up 'deref'
                 tmpT = lexer.nextT();
@@ -361,13 +342,14 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                return new DerefExpr(ptr);
+                return new AST::Deref(ptr);
             } else if (!tmpT.val.compare("heget")) {
                 // eat up 'heget'
                 tmpT = lexer.nextT();
 
                 auto t = parseType(tmpT);
-                if (!t) parseError("data type", tmpT.val, lexer.pos());
+                if (!t)
+                    Error::parserExpected("data type", tmpT.val, lexer.pos());
 
                 // eat up remaining token
                 tmpT = lexer.nextT();
@@ -382,127 +364,126 @@ Expr* Parser::parseExpr(Token& tmpT) {
                 // eat up remaining token
                 tmpT = lexer.nextT();
 
-                return new HeGetExpr(t, ptr, idx);
+                return new AST::HeGet(t, ptr, idx);
             }
 
             auto t = parseType(tmpT);
-            if (t) return parseCastExpr(tmpT, t);
+            if (t) return parseCast(tmpT, t);
         }
 
         return parseCall(tmpT);
 
         // error if '(' isn't followed by a funcall
-        parseError("identifier", tmpT.val, lexer.pos());
+        Error::parserExpected("identifier", tmpT.val, lexer.pos());
         return nullptr;
-    } else if (tmpT.tt == TT_HASH) {
-        return parseArrayExpr(tmpT);
-    } else if (tmpT.tt == TT_BRO) {
-        return parsePtrArrayExpr(tmpT);
+    } else if (tmpT.tt == Lexer::TT_HASH) {
+        return parseHoArray(tmpT);
+    } else if (tmpT.tt == Lexer::TT_BRO) {
+        return parseHeArray(tmpT);
     } else {
-        Expr* tmp = tokenToExpr(tmpT);
-        if (!tmp) parseError("expression", tmpT.val, lexer.pos());
+        AST::Expr *tmp = tokenToExpr(tmpT);
+        if (!tmp) Error::parserExpected("expression", tmpT.val, lexer.pos());
         return tmp;
     }
 }
 
-Expr* Parser::parseTopLevelExpr(Token& tmpT) {
-    if (tmpT.tt == TT_PO) {
+AST::Expr* Parser::parseTopLevelExpr(Lexer::Token& tmpT) {
+    if (tmpT.tt == Lexer::TT_PO) {
         tmpT = lexer.nextT();
-        if (tmpT.tt == TT_EOF)
-            error(ERROR_PARSER, "unexpected end of file");
-        else if (tmpT.tt == TT_ID) {
+        if (tmpT.tt == Lexer::TT_EOF)
+            Error::parser("unexpected end of file");
+        else if (tmpT.tt == Lexer::TT_ID) {
             std::string tmpStr = tmpT.val;
 
             if (!tmpT.val.compare("defn"))
                 return parseFunction(tmpT);
             
-            parseError("built-in top-level function call identifier",
+            Error::parserExpected("built-in top-level function call identifier",
                 tmpT.val, lexer.pos());
         }
         
         // error if '(' isn't followed by fun or funcall
-        parseError("identifier", tmpT.val, lexer.pos());
+        Error::parserExpected("identifier", tmpT.val, lexer.pos());
     }
 
-    parseError("top level expression", tmpT.val, lexer.pos());
+    Error::parserExpected("top level expression", tmpT.val, lexer.pos());
 
     return nullptr;
 }
 
-Expr* Parser::parseArrayExpr(Token& tmpT) {
+AST::Expr* Parser::parseHoArray(Lexer::Token& tmpT) {
     // eat up '#'
     tmpT = lexer.nextT();
 
-    if (tmpT.tt != TT_BRO)
-        parseError("'['", tmpT.val, lexer.pos());
+    if (tmpT.tt != Lexer::TT_BRO)
+        Error::parserExpected("'['", tmpT.val, lexer.pos());
     
     // eat up '['
     tmpT = lexer.nextT();
 
-    std::vector<Expr*> exprs;
+    std::vector<AST::Expr*> exprs;
 
-    while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+    while (tmpT.tt != Lexer::TT_EOF && tmpT.tt != Lexer::TT_BRC) {
         exprs.push_back(parseExpr(tmpT));
 
         // eat up remaining token
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF) error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == Lexer::TT_EOF) Error::parser("unexpected end of file");
 
-    return new ArrayExpr(exprs);
+    return new AST::HoArray(exprs);
 }
 
-Expr* Parser::parsePtrArrayExpr(Token& tmpT) {
+AST::Expr* Parser::parseHeArray(Lexer::Token& tmpT) {
     // eat up '['
     tmpT = lexer.nextT();
 
-    std::vector<Expr*> exprs;
+    std::vector<AST::Expr*> exprs;
 
-    while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+    while (tmpT.tt != Lexer::TT_EOF && tmpT.tt != Lexer::TT_BRC) {
         exprs.push_back(parseExpr(tmpT));
 
         // eat up remaining token
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF) error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == Lexer::TT_EOF) Error::parser("unexpected end of file");
 
-    return new PtrArrayExpr(exprs);
+    return new AST::HeArray(exprs);
 }
 
-Expr* Parser::parseBinExpr(Token& tmpT, BinExprType bet) {
+AST::Expr* Parser::parseBinExpr(Lexer::Token& tmpT, AST::BinExprType bet) {
     // eat up operator
     tmpT = lexer.nextT();
 
-    std::vector<Expr*> exprs;
-    while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
+    std::vector<AST::Expr*> exprs;
+    while (tmpT.tt != Lexer::TT_EOF && tmpT.tt != Lexer::TT_PC) {
         exprs.push_back(parseExpr(tmpT));
 
         // eat up remaining token
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF)
-        error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == Lexer::TT_EOF)
+        Error::parser("unexpected end of file");
 
-    if (exprs.size() == 1 && ((bet >= BINEXPR_ADD && bet <= BINEXPR_SUB)
-        || bet == BINEXPR_NOT))
-        return new UExpr(bet, exprs[0]);
-    else if (bet == BINEXPR_NOT && exprs.size() != 1)
-        error(ERROR_PARSER,
-            "too many arguments for unary expression", lexer.pos());
+    if (exprs.size() == 1 && ((bet >= AST::BINEXPR_ADD && bet <= AST::BINEXPR_SUB)
+        || bet == AST::BINEXPR_NOT))
+        return new AST::UExpr(bet, exprs[0]);
+    else if (bet == AST::BINEXPR_NOT && exprs.size() != 1)
+        Error::parser("too many arguments for unary expression", lexer.pos());
     else if (exprs.size() < 1)
-        error(ERROR_PARSER, "expected at least 2 arguments", lexer.pos());
+        Error::parser("expected at least 2 arguments", lexer.pos());
 
-    auto tmpExpr = new BinExpr(bet, exprs[0], exprs[1]);
+    auto tmpExpr = new AST::BinExpr(bet, exprs[0], exprs[1]);
     for (size_t i = 2; i < exprs.size(); i++)
-        tmpExpr = new BinExpr(bet, tmpExpr, exprs[i]);
+        tmpExpr = new AST::BinExpr(bet, tmpExpr, exprs[i]);
 
     return tmpExpr;
 }
 
-CastExpr* Parser::parseCastExpr(Token& tmpT, Type *t) {
+AST::Cast* Parser::parseCast(Lexer::Token& tmpT, AST::Type *t) {
     // eat remaining token
     tmpT = lexer.nextT();
 
@@ -511,10 +492,10 @@ CastExpr* Parser::parseCastExpr(Token& tmpT, Type *t) {
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    return new CastExpr(t, expr);
+    return new AST::Cast(t, expr);
 }
 
-IfExpr* Parser::parseIfExpr(Token& tmpT) {
+AST::If* Parser::parseIf(Lexer::Token& tmpT) {
     // eat up 'if'
     tmpT = lexer.nextT();
 
@@ -533,10 +514,10 @@ IfExpr* Parser::parseIfExpr(Token& tmpT) {
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    return new IfExpr(cond, exprTrue, exprFalse);
+    return new AST::If(cond, exprTrue, exprFalse);
 }
 
-Function* Parser::parseFunction(Token& tmpT) {
+AST::Function* Parser::parseFunction(Lexer::Token& tmpT) {
     // eat up 'defn'
     tmpT = lexer.nextT();
 
@@ -547,33 +528,33 @@ Function* Parser::parseFunction(Token& tmpT) {
     return lambda->toFunc(id);
 }
 
-Lambda* Parser::parseLambda(Token& tmpT) {
+AST::Lambda* Parser::parseLambda(Lexer::Token& tmpT) {
     // eat up 'fn' (or any other previous token)
     tmpT = lexer.nextT();
 
-    std::vector<std::pair<Type*, std::string>> args;
+    std::vector<std::pair<AST::Type*, std::string>> args;
 
     auto retType = parseType(tmpT);
 
     if (!retType) {
-        if (tmpT.tt != TT_BRO) parseError("'['", tmpT.val, lexer.pos());
+        if (tmpT.tt != Lexer::TT_BRO) Error::parserExpected("'['", tmpT.val, lexer.pos());
 
         // eat up '['
         tmpT = lexer.nextT();
 
         // parse arguments/parameters
-        while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+        while (tmpT.tt != Lexer::TT_EOF && tmpT.tt != Lexer::TT_BRC) {
             // get argument/parameter type
             auto t = parseType(tmpT);
-            if (!t) parseError("data type", tmpT.val, lexer.pos());
+            if (!t) Error::parserExpected("data type", tmpT.val, lexer.pos());
 
             // eat up data type
             tmpT = lexer.nextT();
 
             // get argument/parameter id
-            if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val, lexer.pos());
+            if (tmpT.tt != Lexer::TT_ID) Error::parserExpected("identifier", tmpT.val, lexer.pos());
 
-            args.push_back(std::pair<Type*, std::string>(t, tmpT.val));
+            args.push_back(std::pair<AST::Type*, std::string>(t, tmpT.val));
 
             // eat up identifier
             tmpT = lexer.nextT();
@@ -584,30 +565,28 @@ Lambda* Parser::parseLambda(Token& tmpT) {
     }
 
     retType = parseType(tmpT);
-    if (!retType) parseError("return type", tmpT.val, lexer.pos());
+    if (!retType) Error::parserExpected("return type", tmpT.val, lexer.pos());
 
     // eat up return type
     tmpT = lexer.nextT();
 
     // parse body
-    std::vector<Expr*> body;
-    while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
+    std::vector<AST::Expr*> body;
+    while (tmpT.tt != Lexer::TT_EOF && tmpT.tt != Lexer::TT_PC) {
         body.push_back(parseExpr(tmpT));
 
         // eat up remaining token
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF)
-        error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == Lexer::TT_EOF) Error::parser("unexpected end of file");
 
-    return new Lambda(args, retType, body);
+    return new AST::Lambda(args, retType, body);
 }
 
-CallExpr* Parser::parseCall(Token& tmpT) {
+AST::Call* Parser::parseCall(Lexer::Token& tmpT) {
     if (!tmpT.val.compare("defn"))
-        error(ERROR_PARSER,
-            "functions can only be defined at top level", lexer.pos());
+        Error::parser("functions can only be defined at top level", lexer.pos());
 
     auto callee = parseExpr(tmpT);
 
@@ -615,29 +594,29 @@ CallExpr* Parser::parseCall(Token& tmpT) {
     tmpT = lexer.nextT();
 
     // parse arguments/parameters
-    std::vector<Expr*> args;
-    while (tmpT.tt != TT_EOF && tmpT.tt != TT_PC) {
+    std::vector<AST::Expr*> args;
+    while (tmpT.tt != Lexer::TT_EOF && tmpT.tt != Lexer::TT_PC) {
         args.push_back(parseExpr(tmpT));
 
         // eat up remaining token
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF)
-        error(ERROR_PARSER, "unexpected end of file");
+    if (tmpT.tt == Lexer::TT_EOF)
+        Error::parser("unexpected end of file");
 
-    return new CallExpr(callee, args);
+    return new AST::Call(callee, args);
 }
 
-std::vector<Expr*> Parser::parse() {
-    std::vector<Expr*> result;
+std::vector<AST::Expr*> Parser::parse() {
+    std::vector<AST::Expr*> result;
 
     // helper variables
-    Token tmpT = lexer.nextT();
+    Lexer::Token tmpT = lexer.nextT();
     std::string tmpStr;
-    std::vector<Expr*> tmpExprs;
+    std::vector<AST::Expr*> tmpExprs;
 
-    while (tmpT.tt != TT_EOF) {
+    while (tmpT.tt != Lexer::TT_EOF) {
         result.push_back(parseTopLevelExpr(tmpT));
 
         // eat up remaining token
