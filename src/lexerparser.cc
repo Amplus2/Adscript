@@ -192,13 +192,20 @@ Type* Parser::parseType(Token& tmpT) {
     Type *t = nullptr;
 
     // general types
-    if (strEq(tmpT.val, {"void"}))              t = new PrimType(TYPE_VOID);
-    else if (strEq(tmpT.val, {"char", "i8"}))   t = new PrimType(TYPE_I8);
-    else if (strEq(tmpT.val, {"i16"}))          t = new PrimType(TYPE_I16);
-    else if (strEq(tmpT.val, {"int", "i32"}))   t = new PrimType(TYPE_I32);
-    else if (strEq(tmpT.val, {"long", "i64"}))  t = new PrimType(TYPE_I64);
-    else if (strEq(tmpT.val, {"float"}))        t = new PrimType(TYPE_FLOAT);
-    else if (strEq(tmpT.val, {"double"}))       t = new PrimType(TYPE_DOUBLE);
+    if (strEq(tmpT.val, {"void"}))
+        t = new PrimType(TYPE_VOID);
+    else if (strEq(tmpT.val, {"char", "i8"}))
+        t = new PrimType(TYPE_I8);
+    else if (strEq(tmpT.val, {"i16"}))
+        t = new PrimType(TYPE_I16);
+    else if (strEq(tmpT.val, {"int", "i32", "bool"}))
+        t = new PrimType(TYPE_I32);
+    else if (strEq(tmpT.val, {"long", "i64"}))
+        t = new PrimType(TYPE_I64);
+    else if (strEq(tmpT.val, {"float"}))
+        t = new PrimType(TYPE_FLOAT);
+    else if (strEq(tmpT.val, {"double"}))
+        t = new PrimType(TYPE_DOUBLE);
     else return nullptr;
 
     Token tmpTmpT = tmpT;
@@ -514,37 +521,39 @@ Expr* Parser::parseFunction(Token& tmpT) {
     // eat up identifier
     tmpT = lexer.nextT();
 
-    if (tmpT.tt != TT_BRO) parseError("'['", tmpT.val, lexer.pos());
-
-    // eat up '['
-    tmpT = lexer.nextT();
-
-    // parse arguments/parameters
     std::vector<std::pair<Type*, std::string>> args;
-    while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
-        // get argument/parameter type
-        auto t = parseType(tmpT);
-        if (!t) parseError("data type", tmpT.val, lexer.pos());
 
-        // eat up data type
+    auto retType = parseType(tmpT);
+
+    if (!retType) {
+        if (tmpT.tt != TT_BRO) parseError("'['", tmpT.val, lexer.pos());
+
+        // eat up '['
         tmpT = lexer.nextT();
 
-        // get argument/parameter id
-        if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val, lexer.pos());
+        // parse arguments/parameters
+        while (tmpT.tt != TT_EOF && tmpT.tt != TT_BRC) {
+            // get argument/parameter type
+            auto t = parseType(tmpT);
+            if (!t) parseError("data type", tmpT.val, lexer.pos());
 
-        args.push_back(std::pair<Type*, std::string>(t, tmpT.val));
+            // eat up data type
+            tmpT = lexer.nextT();
 
-        // eat up identifier
+            // get argument/parameter id
+            if (tmpT.tt != TT_ID) parseError("identifier", tmpT.val, lexer.pos());
+
+            args.push_back(std::pair<Type*, std::string>(t, tmpT.val));
+
+            // eat up identifier
+            tmpT = lexer.nextT();
+        }
+
+        // eat up ']'
         tmpT = lexer.nextT();
     }
 
-    if (tmpT.tt == TT_EOF)
-        error(ERROR_PARSER, "unexpected end of file");
-
-    // eat up ']'
-    tmpT = lexer.nextT();
-
-    auto retType = parseType(tmpT);
+    retType = parseType(tmpT);
     if (!retType) parseError("return type", tmpT.val, lexer.pos());
 
     // eat up return type
