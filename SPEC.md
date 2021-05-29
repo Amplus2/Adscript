@@ -43,6 +43,13 @@ For example:
 ((fn [int i] int i) 1)
 ```
 
+### Structs (not implemented yet)
+By quoting a list you can create a struct data type.
+
+```adscript
+'(int a int b int c)
+```
+
 ### Additional builtin functions
 
 <!--TODO: a defn++ with c++ mangline-->
@@ -126,3 +133,5 @@ Equivalent to the asm "function" in c but with c code.
 
 ### native-c++ (not implemented yet)
 Equivalent to the asm "function" in c but with c++ code.
+
+
