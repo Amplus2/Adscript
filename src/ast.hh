@@ -262,6 +262,21 @@ public:
     }
 };
 
+class SetPtr : public Expr {
+private:
+    Expr *ptr, *val;
+public:
+    SetPtr(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
+
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::string str() override;
+
+    ~SetPtr() {
+        delete ptr;
+        delete val;
+    }
+};
+
 class Ref : public Expr {
 private:
     Expr *val;

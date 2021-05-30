@@ -98,6 +98,13 @@ std::string AST::Set::str() {
         + " }";
 }
 
+std::string AST::SetPtr::str() {
+    return std::string() + "SetPtr: {"
+        + "ptr: " + ptr->str();
+        + ", val: " + val->str()
+        + " }";
+}
+
 std::string AST::Ref::str() {
     return std::string() + "Ref: {"
         + "val: " + val->str()
@@ -372,7 +379,7 @@ llvm::Value* AST::HoArray::llvmValue(Compiler::Context& ctx) {
 
         // error if casting fails
         if (!v)
-            Error::compiler(                "element types do not match in homogenous array");
+            Error::compiler("element types do not match in homogenous array");
 
         // get pointer to the element at index 'i'
         auto ptr = ctx.builder->CreateGEP(arr, Compiler::constInt(ctx, i));
@@ -462,7 +469,7 @@ llvm::Value* AST::Set::llvmValue(Compiler::Context& ctx) {
 
     // error if the value is not going to be stored in a pointer
     if (!ptr->getType()->isPointerTy())
-        Error::compiler(            "expected pointer type for set expression as first argument");
+        Error::compiler("expected pointer type for set expression as first argument");
     
     // get the type of the pointer
     auto valT = ptr->getType()->getPointerElementType();
@@ -479,6 +486,38 @@ llvm::Value* AST::Set::llvmValue(Compiler::Context& ctx) {
             "pointer of set instruction is unable to store (expected: "
             + Compiler::llvmTypeStr(valT) + ", got: "
             + Compiler::llvmTypeStr(val->getType()) + ")");
+
+    ctx.builder->CreateStore(val1, ptr);
+
+    // return stored value
+    return val1;
+}
+
+llvm::Value* AST::SetPtr::llvmValue(Compiler::Context& ctx) {
+    // get pointer to store the value in
+    llvm::Value *ptr = this->ptr->llvmValue(ctx);
+
+    // error if the value is not going to be stored in a pointer
+    if (!ptr->getType()->isPointerTy())
+        Error::compiler("expected pointer type for setptr expression as first argument");
+    
+    // get the type of the pointer
+    auto valT = ptr->getType()->getPointerElementType();
+
+    // get the value to store
+    auto val = this->val->llvmValue(ctx);
+
+    // try casting the value to the pointer's element type
+    auto val1 = tryCast(ctx, val, valT);
+
+    // error if casting failed
+    if (!val1)
+        Error::compiler(
+            "pointer of setptr instruction is unable to store (expected: "
+            + Compiler::llvmTypeStr(valT) + ", got: "
+            + Compiler::llvmTypeStr(val->getType()) + ")");
+
+    ctx.builder->CreateStore(val1, ptr);
 
     // return stored value
     return val1;
@@ -520,13 +559,13 @@ llvm::Value* AST::HeGet::llvmValue(Compiler::Context& ctx) {
 
     auto t = ptr->getType();
     if (!(t->isPointerTy() && t->getPointerElementType()->isPointerTy()))
-        Error::compiler(            "expected doubled pointer type for"
+        Error::compiler("expected doubled pointer type for"
             "'heget' expression as the second argument");
     
     auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
     auto idx = tryCast(ctx, this->idx->llvmValue(ctx), idxT);
     if (!idx)
-        Error::compiler(            "expected integer type fot heget expression as third argument");
+        Error::compiler("expected integer type fot heget expression as third argument");
 
     t = type->llvmType(ctx.mod->getContext())->getPointerTo();
     
@@ -552,13 +591,13 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
 
     if (f) {
         if (ftArgs.size() != f->arg_size())
-            Error::compiler(                "invalid redefenition of function '" + id + "'");
+            Error::compiler("invalid redefenition of function '" + id + "'");
 
         for (size_t i = 0; i < ftArgs.size(); i++) {
             bool b = ftArgs.at(i)->getPointerTo()
                 != f->getArg(i)->getType()->getPointerTo();
             if (b)
-                Error::compiler(                    "invalid redefenition of function '" + id + "'");
+                Error::compiler("invalid redefenition of function '" + id + "'");
         }
                 
     } else {
@@ -601,8 +640,10 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
     
     ctx.localVars.clear();
 
-    if (llvm::verifyFunction(*f))
+    if (llvm::verifyFunction(*f)) {
+        // f->print(llvm::errs());
         Error::compiler("error in function '" + id + "'");
+    }
 
     return f;
 }
@@ -657,11 +698,11 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
 
     if (!id || ctx.isVar(id->getVal())) {
         if (args.size() != 1)
-            Error::compiler(                "expected exactly 1 argument for pointer-index-call");
+            Error::compiler("expected exactly 1 argument for pointer-index-call");
 
         auto ptr = callee->llvmValue(ctx);
         if (!ptr->getType()->isPointerTy())
-            Error::compiler(                "pointer-index-calls only work with pointers");
+            Error::compiler("pointer-index-calls only work with pointers");
 
         auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
         auto idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
@@ -678,7 +719,7 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
 
     auto f = ctx.mod->getFunction(id->getVal());
 
-    if (!f) Error::compiler(        "undefined reference to '" + id->getVal() + "'");
+    if (!f) Error::compiler("undefined reference to '" + id->getVal() + "'");
 
     if (args.size() > f->arg_size())
         Error::compiler("too many arguments for function '"

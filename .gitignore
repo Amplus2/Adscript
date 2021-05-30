@@ -8,4 +8,5 @@ hello-world
 10000
 
 *.o
+*.out
 *.tmp

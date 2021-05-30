@@ -324,6 +324,21 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
                 tmpT = lexer.nextT();
 
                 return new AST::Set(ptr, val);
+            } else if (!tmpT.val.compare("setptr")) {
+                // eat up 'setptr'
+                tmpT = lexer.nextT();
+
+                auto ptr = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                auto val = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new AST::SetPtr(ptr, val);
             } else if (!tmpT.val.compare("ref")) {
                 // eat up 'set'
                 tmpT = lexer.nextT();

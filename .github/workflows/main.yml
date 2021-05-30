@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
@@ -16,3 +16,11 @@ jobs:
         with:
           name: adscript
           path: build/adscript
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: build/adscript test/basic.adscript
+      - run: clang test/main.c test/basic.o -o test/test.out
+      - run: test/test.out
+
