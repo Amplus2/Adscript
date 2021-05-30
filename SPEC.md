@@ -62,16 +62,10 @@ Defines a compile-time constant.
 ```
 
 #### `defn`
-An abbreviation of `def` `fn`.
+This defines non-anonymous functions.
 
 ```adscript
 (defn <identifier> [<parameters>] <return type> <body>)
-```
-
-is equal to
-
-```adscript
-(def <identifier> (fn [<parameters>] <return type> <body>))
 ```
 
 ### `let` (not implemented yet)
@@ -89,10 +83,23 @@ Defines a variable that can be changed later.
 ```
 
 ### `set`
-Sets the value for a pointer/variable.
+Sets the value for a variable or array element.
 ```adscript
 (set <pointer> <value>)
+
 (set a 42)
+
+(var b #[1 2 4 8 1])
+(set (b 4) 16)
+```
+
+### `setptr`
+Sets the value for a pointer.
+```adscript
+(setptr <pointer> <value>)
+
+(var i 21)
+(setptr (ref i) 42)
 ```
 
 ### `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `~`, `=`, `<`, `>`, `<=`, `>=`, `or`, `and`, `xor`, `not`
@@ -107,6 +114,7 @@ A conditional expression, exactly like in Clojure.
 ```
 
 ### `ref`
+<!-- This sentence makes absolutely no sense. (TODO: fix it) -->
 Creates a pointer to a reference.
 
 ```adscript
