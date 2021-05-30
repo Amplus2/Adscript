@@ -21,6 +21,10 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/download-artifact@master
+        with:
+          name: adscript
+          path: build/artifact
       - run: build/adscript test/basic.adscript
       - run: clang test/main.c test/basic.o -o test/test.out
       - run: test/test.out
