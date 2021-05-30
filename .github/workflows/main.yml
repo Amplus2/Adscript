@@ -26,5 +26,7 @@ jobs:
           name: adscript
           path: build/
       - run: chmod +x build/adscript
-      - run: make -j test
+      - run: build/adscript test/basic.adscript
+      - run: clang test/main.c test/basic.o -o test/test.out
+      - run: test/test.out
 
