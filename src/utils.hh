@@ -76,6 +76,7 @@ llvm::Value* createLogicalVal(::Adscript::Compiler::Context& ctx, llvm::Value *v
 llvm::AllocaInst* createAlloca(llvm::Function *f, llvm::Type *type);
 
 bool isNumTy(llvm::Type *t);
+bool isFunctionTy(llvm::Type *t);
 
 }
 }

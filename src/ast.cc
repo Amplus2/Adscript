@@ -662,6 +662,11 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
     auto f = llvm::Function::Create(
         ft, llvm::Function::PrivateLinkage, "", ctx.mod);
 
+    auto prevBB = ctx.builder->GetInsertBlock();
+    auto fnBB = llvm::BasicBlock::Create(ctx.mod->getContext(), "", f);
+    
+    ctx.builder->SetInsertPoint(fnBB);
+
     auto prevVars = ctx.localVars;
     ctx.localVars.clear();
     
@@ -686,7 +691,14 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
     auto retVal = body[body.size() - 1]->llvmValue(ctx);
     ctx.builder->CreateRet(cast(ctx, retVal, f->getReturnType()));
 
+    ctx.builder->SetInsertPoint(prevBB);
+
     ctx.localVars = prevVars;
+
+    if (llvm::verifyFunction(*f)) {
+        // f->print(llvm::errs());
+        Error::compiler("error in lambda expression");
+    }
 
     return f;
 }
@@ -696,28 +708,37 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
     Identifier *id = nullptr;
     if (callee->isIdentifier()) id = (Identifier*) callee;
 
-    if (!id || ctx.isVar(id->getVal())) {
-        if (args.size() != 1)
-            Error::compiler("expected exactly 1 argument for pointer-index-call");
+    llvm::Function *f = nullptr;
 
+    if (callee->isLambda()) f = (llvm::Function*) callee->llvmValue(ctx);
+
+    if (!f && (!id || ctx.isVar(id->getVal()))) {
         auto ptr = callee->llvmValue(ctx);
-        if (!ptr->getType()->isPointerTy())
+
+        if (Compiler::isFunctionTy(ptr->getType())) {
+            f = (llvm::Function*) ptr;
+        } else if (!ptr->getType()->isPointerTy()) {
             Error::compiler("pointer-index-calls only work with pointers");
+        } else {
+            if (args.size() != 1)
+                Error::compiler(
+                    "expected exactly 1 argument for pointer-index-call");
 
-        auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
-        auto idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
-        if (!idx)
-            Error::compiler("argument in pointer-index-call "
-                "must be convertable to an integer");
+            auto idxT = llvm::Type::getInt64Ty(ctx.mod->getContext());
+            auto idx = tryCast(ctx, args[0]->llvmValue(ctx), idxT);
+            if (!idx)
+                Error::compiler("argument in pointer-index-call "
+                    "must be convertable to an integer");
 
-        llvm::Value *v = ctx.builder->CreateGEP(ptr, idx);
+            llvm::Value *v = ctx.builder->CreateGEP(ptr, idx);
 
-        if (ctx.needsRef) return v;
-        return ctx.builder->CreateLoad(
-            v->getType()->getPointerElementType(), v);
+            if (ctx.needsRef) return v;
+            return ctx.builder->CreateLoad(
+                v->getType()->getPointerElementType(), v);
+        }
     }
 
-    auto f = ctx.mod->getFunction(id->getVal());
+    if (!f) f = ctx.mod->getFunction(id->getVal());
 
     if (!f) Error::compiler("undefined reference to '" + id->getVal() + "'");
 

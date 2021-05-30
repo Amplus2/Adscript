@@ -60,6 +60,7 @@ public:
     virtual ~Expr() = default;
     virtual std::string str() = 0;
     virtual llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) = 0;
+    virtual bool isLambda() { return false; }
     virtual bool isIdentifier() { return false; }
 };
 
@@ -374,6 +375,8 @@ public:
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
     std::string str() override;
+
+    bool isLambda() override { return true; }
 
     Function* toFunc(const std::string& id) {
         return new Function(id, args, retType, body);

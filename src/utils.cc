@@ -271,3 +271,7 @@ bool Compiler::isNumTy(llvm::Type *t) {
     return t->isFloatTy()
         || t->isIntegerTy();
 }
+
+bool Compiler::isFunctionTy(llvm::Type *t) {
+    return t->isFunctionTy();
+}
