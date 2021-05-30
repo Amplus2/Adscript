@@ -27,9 +27,10 @@ Lexer::Token Lexer::nextT() {
         idx += 1;
     
     // handle comments
-    if (getc(idx) == ';' && getc(idx + 1) == ';') {
-        // eat up ';;'
-        idx += 2;
+    if (getc(idx) == ';') {
+        if (getc(++idx) != ';') {
+            Error::warning("comment beginning with only one ';'", pos());
+        }
 
         // eat up until end of line
         while ((c = getc(idx)) != '\n' && c != '\r' && idx <= text.size())
@@ -468,10 +469,13 @@ AST::Expr* Parser::parseBinExpr(Lexer::Token& tmpT, AST::BinExprType bet) {
     if (tmpT.tt == Lexer::TT_EOF)
         Error::parser("unexpected end of file");
 
-    if (exprs.size() == 1 && ((bet >= AST::BINEXPR_ADD && bet <= AST::BINEXPR_SUB)
-        || bet == AST::BINEXPR_NOT))
+    auto unaryOP = bet == AST::BINEXPR_LNOT || bet == AST::BINEXPR_NOT;
+    auto isUnaryExpr = exprs.size() == 1
+        && ((bet >= AST::BINEXPR_ADD && bet <= AST::BINEXPR_SUB) || unaryOP);
+
+    if (isUnaryExpr)
         return new AST::UExpr(bet, exprs[0]);
-    else if (bet == AST::BINEXPR_NOT && exprs.size() != 1)
+    else if (unaryOP && exprs.size() != 1)
         Error::parser("too many arguments for unary expression", lexer.pos());
     else if (exprs.size() < 1)
         Error::parser("expected at least 2 arguments", lexer.pos());
