@@ -30,8 +30,6 @@ are not natively implemented are "first-class values".
 
 Functions can be created using the `fn` function and called using a `list`:
 
-Defining functions this way is not implemented yet.
-
 ```adscript
 (fn [<parameters>] <return type> <body>)
 ```
