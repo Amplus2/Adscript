@@ -28,11 +28,11 @@ $(OUTPUT): $(OFILES)
 %.o: %.adscript $(OUTPUT)
 	$(OUTPUT) -o $@ $<
 
-test/test: test/main.o test/basic.o
-	clang test/*.o -o test/test
+test/test.out: test/main.o test/basic.o
+	clang test/*.o -o test/test.out
 
-test: test/test
-	test/test
+test: test/test.out
+	test/test.out
 
 clean:
 	rm -rf $(BUILD_DIR) $(OFILES)
