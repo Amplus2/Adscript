@@ -2,5 +2,5 @@
 (defn test1 int (+ (* 7 (/ 32 4)) 1 2 3 4))
 (defn test2 int (^ 0x67 (| 0x3 (& 0xf0 0x69))))
 (defn test3 [bool b] i32 (xor (not b) 1)) 
-(defn test4 [int* i] i32 (set (deref i) 42))
+(defn test4 [i64* i] i32 (setptr i 42))
 (defn test5 i8 (fine))
