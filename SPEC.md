@@ -130,7 +130,7 @@ Dereferences a pointer.
 (deref (ref ("ABC*" 3)))
 ```
 
-<!--TODO: prttify this-->
+<!--TODO: prettify this-->
 
 ### native-llvm (not implemented yet)
 Equivalent to the asm "function" in c with llvm IR.
