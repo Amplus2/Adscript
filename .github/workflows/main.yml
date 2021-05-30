@@ -22,12 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@master
-        with:
-          name: adscript
-          path: build/artifact
-      - run: sudo apt install tree
-      - run: tree
-      #- run: adscript test/basic.adscript
-      #- run: clang test/main.c test/basic.o -o test/test.out
-      #- run: test/test.out
+      - run: build/adscript test/basic.adscript
+      - run: clang test/main.c test/basic.o -o test/test.out
+      - run: test/test.out
 
