@@ -25,7 +25,9 @@ jobs:
         with:
           name: adscript
           path: build/artifact
-      - run: adscript test/basic.adscript
-      - run: clang test/main.c test/basic.o -o test/test.out
-      - run: test/test.out
+      - run: sudo apt install tree
+      - run: tree
+      #- run: adscript test/basic.adscript
+      #- run: clang test/main.c test/basic.o -o test/test.out
+      #- run: test/test.out
 
