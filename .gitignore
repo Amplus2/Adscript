@@ -1,7 +1,7 @@
 .vscode/
 build/
 
-# shouldnt do this actually - well, I (Luddifee) am lazy
+adscript
 first
 second
 hello-world
