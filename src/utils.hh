@@ -7,12 +7,16 @@
 
 
 std::ostream& operator << (std::ostream& os, const std::u32string& s);
+std::u32string operator + (std::u32string& us, const std::string& s);
+std::u32string operator + (const std::u32string& us, const char *s);
 
 namespace std {
+
 long stol(u32string str, size_t *idx = nullptr, long base = 10);
 double stod(u32string str);
 u32string stou32(string str);
 string to_string(u32string str);
+
 }
 
 namespace Adscript {

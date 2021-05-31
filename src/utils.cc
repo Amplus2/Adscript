@@ -11,6 +11,14 @@ std::ostream& operator << (std::ostream& os, const std::u32string& s) {
     return (os << std::to_string(s));
 }
 
+std::u32string operator + (const std::u32string& us, const std::string& s) {
+    return us + std::stou32(s);
+}
+
+std::u32string operator + (const std::u32string& us, const char *s) {
+    return us + std::stou32(s);
+}
+
 long std::stol(std::u32string str, size_t *idx, long base) {
     std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
     return stol(cv.to_bytes(str), idx, base);
