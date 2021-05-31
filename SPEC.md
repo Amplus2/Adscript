@@ -81,8 +81,11 @@ Defines a variable that can be changed later.
 
 ### `set`
 Sets the value for a variable or array element.
+It can also be used for setting a pointer's value, please use `setptr` instead.
+
 ```adscript
-(set <pointer> <value>)
+(set <id> <value>)
+(set <element> <value>)
 
 (set a 42)
 
