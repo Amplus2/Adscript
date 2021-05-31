@@ -217,8 +217,19 @@ llvm::Value* AST::Identifier::llvmValue(Compiler::Context& ctx) {
 }
 
 llvm::Value* AST::String::llvmValue(Compiler::Context& ctx) {
-    // create and return pointer to global constant char array (i8*)
-    return ctx.builder->CreateGlobalStringPtr(std::to_string(val));
+    if (Utils::isAscii(val)) {
+        // create and return pointer to global constant char array (i8*)
+        return ctx.builder->CreateGlobalStringPtr(std::to_string(val));
+    }
+
+    auto elementT = llvm::Type::getInt32Ty(ctx.mod->getContext());
+    auto arrayT = llvm::ArrayType::get(elementT, val.size() + 1);
+
+    std::vector<llvm::Constant*> elements;
+
+    for (auto& c : val) elements.push_back(llvm::ConstantInt::get(elementT, c));
+
+    return llvm::ConstantArray::get(arrayT, elements);
 }
 
 llvm::Value* AST::UExpr::llvmValue(Compiler::Context& ctx) {
@@ -765,7 +776,7 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
     for (auto& arg : f->args()) {
         auto v = args[i++]->llvmValue(ctx);
         auto v1 = tryCast(ctx, v, arg.getType());
-        if (!v1)
+        if (!v1 || v->getType() != v1->getType())
             Error::compiler(U"invalid argument type for function '"
                 + std::stou32(id->getVal()) + U"' (expected: '"
                 + Compiler::llvmTypeStr(arg.getType()) + U"', got: '"

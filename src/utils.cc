@@ -8,7 +8,7 @@
 #include <iostream>
 
 std::ostream& operator << (std::ostream& os, const std::u32string& s) {
-    return (os << s.c_str());
+    return (os << std::to_string(s));
 }
 
 long std::stol(std::u32string str, size_t *idx, long base) {
@@ -147,6 +147,13 @@ bool Utils::isHexChar(char c) {
     return (c >= '0' && c <= '9')
         || (c >= 'A' && c <= 'F')
         || (c >= 'a' && c <= 'f');
+}
+
+bool Utils::isAscii(const std::u32string& str) {
+    for (auto& c : str)
+        if (c >= 0 && c < 256)
+            return false;
+    return true;
 }
 
 std::string Utils::makeOutputPath(const std::string &input, bool exe) {

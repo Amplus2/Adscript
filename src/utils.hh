@@ -49,10 +49,13 @@ std::u32string readFile(const std::string& filename);
 std::u32string strReplaceAll(std::u32string str, const std::u32string& find,
                             const std::u32string& replace);
 std::u32string unescapeStr(const std::u32string& str);
+
 bool isDigit(char c);
 bool isWhitespace(char c);
 bool isSpecialChar(char c);
 bool isHexChar(char c);
+
+bool isAscii(const std::u32string& str);
 
 std::string makeOutputPath(const std::string &input, bool exe);
 
