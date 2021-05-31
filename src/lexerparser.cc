@@ -132,13 +132,13 @@ Lexer::Token Lexer::nextT() {
         if (eofReached()) Error::lexerEOF();
 
         bool lastBS = false;
-        while ((c = getc(idx)) != '"' || lastBS) {
+        while (((c = getc(idx)) != '"' || lastBS) && idx <= text.size()) {
             tmpStr += c;
-            lastBS = c == '\\';
+            lastBS = !lastBS && c == '\\';
             idx += 1;
-
-            if (eofReached()) Error::lexerEOF();
         }
+
+        if (eofReached()) Error::lexerEOF();
 
         // eat up '"'
         idx += 1;
