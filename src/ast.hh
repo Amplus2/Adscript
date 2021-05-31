@@ -249,6 +249,21 @@ public:
     }
 };
 
+class Deft : public Expr {
+private:
+    Type *type;
+    const std::string id;
+public:
+    Deft(Type *type, const std::string& id) : type(type), id(id) {}
+
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::u32string str() override;
+
+    ~Deft() {
+        delete type;
+    }
+};
+
 class Var : public Expr {
 private:
     Expr *val;

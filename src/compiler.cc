@@ -32,6 +32,10 @@ bool Compiler::Context::isVar(const std::string& id) {
     return localVars.find(id) != localVars.end();
 }
 
+bool Compiler::Context::isType(const std::string& id) {
+    return types.find(id) != types.end();
+}
+
 Compiler::ctx_var_t Compiler::Context::getVar(const std::string& id) {
     if (isVar(id)) return localVars[id];
     llvm::Function *f = mod->getFunction(id);

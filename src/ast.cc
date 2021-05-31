@@ -90,6 +90,13 @@ std::u32string AST::HeArray::str() {
         + U" }";
 }
 
+std::u32string AST::Deft::str() {
+    return std::u32string() + U"Deft: {"
+        + U"id: '" + std::stou32(id) + U"'";
+        + U", type: " + type->str()
+        + U" }";
+}
+
 std::u32string AST::Var::str() {
     return std::u32string() + U"Var: {"
         + U"id: '" + std::stou32(id) + U"'";
@@ -463,6 +470,23 @@ llvm::Value* AST::HeArray::llvmValue(Compiler::Context& ctx) {
 
     // return the array
     return arr;
+}
+
+llvm::Value* AST::Deft::llvmValue(Compiler::Context& ctx) {
+    // error if variable is already defined
+    if (ctx.isVar(id))
+        Error::compiler(U"var '" + std::stou32(id) + U"' already defined");
+    else if (ctx.isType(id))
+        Error::compiler(U"type '" + std::stou32(id) + U"' already defined");
+
+    // get llvm value for the stored value
+    auto t = type->llvmType(ctx.mod->getContext());
+
+    // add the alloca to the 'localVars' map
+    ctx.types[id] = t;
+
+    // return the alloca
+    return constInt(ctx, 0);
 }
 
 llvm::Value* AST::Var::llvmValue(Compiler::Context& ctx) {

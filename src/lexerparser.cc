@@ -420,6 +420,26 @@ AST::Expr* Parser::parseTopLevelExpr(Lexer::Token& tmpT) {
         else if (tmpT.tt == Lexer::TT_ID) {
             if (!tmpT.val.compare(U"defn"))
                 return parseFunction(tmpT);
+            else if (!tmpT.val.compare(U"deft")) {
+                // eat up 'deft'
+                tmpT = lexer.nextT();
+
+                // error if token is not of type identifier
+                if (tmpT.tt != Lexer::TT_ID)
+                    Error::parserExpected(U"identifer", tmpT.val);
+                
+                auto id = tmpT.val;
+
+                // eat up identifier
+                tmpT = lexer.nextT();
+
+                auto type = parseType(tmpT);
+
+                // error if no type was parsed
+                if (!type) Error::parserExpected(U"data type", tmpT.val);
+
+                return new AST::Deft(type, std::to_string(id));
+            }
             
             Error::parserExpected(U"built-in top-level function call identifier",
                 tmpT.val, lexer.pos());
@@ -613,6 +633,8 @@ AST::Lambda* Parser::parseLambda(Lexer::Token& tmpT) {
 AST::Call* Parser::parseCall(Lexer::Token& tmpT) {
     if (!tmpT.val.compare(U"defn"))
         Error::parser(U"functions can only be defined at top level", lexer.pos());
+    else if (!tmpT.val.compare(U"deft"))
+        Error::parser(U"data types can only be defined at top level", lexer.pos());
 
     auto callee = parseExpr(tmpT);
 

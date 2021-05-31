@@ -15,6 +15,7 @@ class Context {
 public:
     llvm::Module *mod;
     llvm::IRBuilder<> *builder;
+    std::map<std::string, llvm::Type*> types;
     std::map<std::string, ctx_var_t> localVars;
 
     bool needsRef = false;
@@ -23,6 +24,7 @@ public:
         : mod(mod), builder(builder) {}
     
     bool isVar(const std::string& id);
+    bool isType(const std::string& id);
     ctx_var_t getVar(const std::string& id);
 };
 
