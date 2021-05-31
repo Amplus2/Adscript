@@ -118,9 +118,11 @@ Lexer::Token Lexer::nextT() {
         }
 
         return Token(TT_FLOAT, tmpStr);
-    } else if ((c = getc(idx)) == '.') {
-        Error::lexer("expected digit after '.', got '" + std::string(1, c)
-            + "'", pos());
+    } else if (tmpStr.size() > 0 && c == '.') {
+        return Token(TT_FLOAT, tmpStr + ".0");
+    } else if (c == '.') {
+        Error::lexer("expected digit after '.', got '"
+            + std::string(1, getc(idx + 1)) + "'", pos());
     }
 
     if (c == '"') {
