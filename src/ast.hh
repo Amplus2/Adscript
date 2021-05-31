@@ -51,14 +51,14 @@ enum BinExprType {
 class Type {
 public:
     virtual ~Type() = default;
-    virtual std::string str() = 0;
+    virtual std::u32string str() = 0;
     virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
 };
 
 class Expr {
 public:
     virtual ~Expr() = default;
-    virtual std::string str() = 0;
+    virtual std::u32string str() = 0;
     virtual llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) = 0;
     virtual bool isLambda() { return false; }
     virtual bool isIdentifier() { return false; }
@@ -79,7 +79,7 @@ public:
     PrimType(PT type) : type(type) {}
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 };
 
 class PointerType : public Type {
@@ -92,7 +92,7 @@ public:
         : type(type), quantity(quantity) {}
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~PointerType() {
         delete type;
@@ -107,7 +107,7 @@ public:
         : attrs(attrs) {}
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 };
 
 class Int : public Expr {
@@ -117,7 +117,7 @@ public:
     Int(const int64_t val) : val(val) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 };
 
 class Float : public Expr {
@@ -127,7 +127,7 @@ public:
     Float(const double val) : val(val) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 };
 
 class Char : public Expr {
@@ -137,31 +137,31 @@ public:
     Char(const char val) : val(val) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 };
 
 class Identifier : public Expr {
 private:
     const std::string val;
 public:
-    Identifier(const std::string  val) : val(val) {}
+    Identifier(const std::string& val) : val(val) {}
 
     std::string getVal() { return val; };
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
     
     bool isIdentifier() override { return true; }
 };
 
 class String : public Expr {
 private:
-    const std::string val;
+    const std::u32string val;
 public:
-    String(const std::string  val) : val(val) {}
+    String(const std::u32string& val) : val(val) {}
 
-    std::string getVal();
+    std::u32string getVal();
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 };
 
 class UExpr : public Expr {
@@ -173,7 +173,7 @@ public:
         : type(type), expr(expr) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~UExpr() {
         delete expr;
@@ -189,7 +189,7 @@ public:
         : type(type), left(left), right(right) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~BinExpr() {
         delete left;
@@ -205,7 +205,7 @@ public:
         : cond(cond), exprTrue(exprTrue), exprFalse(exprFalse) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~If() {
         delete cond;
@@ -221,7 +221,7 @@ public:
     HoArray(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~HoArray() {
         for (auto& expr : exprs)
@@ -236,7 +236,7 @@ public:
     HeArray(const std::vector<Expr*>& exprs) : exprs(exprs) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~HeArray() {
         for (auto& expr : exprs)
@@ -252,7 +252,7 @@ public:
     Var(Expr *val, const std::string& id) : val(val), id(id) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Var() {
         delete val;
@@ -266,7 +266,7 @@ public:
     Set(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Set() {
         delete ptr;
@@ -281,7 +281,7 @@ public:
     SetPtr(Expr *ptr, Expr *val) : ptr(ptr), val(val) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~SetPtr() {
         delete ptr;
@@ -296,7 +296,7 @@ public:
     Ref(Expr *val) : val(val) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Ref() {
         delete val;
@@ -310,7 +310,7 @@ public:
     Deref(Expr *ptr) : ptr(ptr) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Deref() {
         delete ptr;
@@ -326,7 +326,7 @@ public:
         : type(type), ptr(ptr), idx(idx) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~HeGet() {
         delete type;
@@ -343,7 +343,7 @@ public:
     Cast(Type *type, Expr *expr) : type(type), expr(expr) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Cast() {
         delete type;
@@ -364,7 +364,7 @@ public:
         : id(id), args(args), retType(retType), body(body) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Function() {
         for (auto& arg : args)
@@ -385,7 +385,7 @@ public:
         : args(args), retType(retType), body(body) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     bool isLambda() override { return true; }
 
@@ -410,7 +410,7 @@ public:
         : callee(callee), args(args) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
-    std::string str() override;
+    std::u32string str() override;
 
     ~Call() {
         delete callee;

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < argc; i++) {
             std::string input = std::string(argv[i]);
             std::string output = Utils::makeOutputPath(input, exe);
-            std::string text = Utils::readFile(input);
+            std::u32string text = Utils::readFile(input);
 
             Lexer lexer(text);
             Parser parser(lexer);
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
         std::vector<AST::Expr*> exprs;
 
         for (int i = 0; i < argc; i++) {
-            std::string text = Utils::readFile(argv[i]);
+            std::u32string text = Utils::readFile(argv[i]);
             Lexer lexer(text);
             Parser parser(lexer);
             auto newexprs = parser.parse();

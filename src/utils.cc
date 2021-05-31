@@ -1,10 +1,35 @@
 #include "utils.hh"
 #include "compiler.hh"
 
-#include <regex>
+#include <locale>
+#include <codecvt>
 #include <fstream>
 #include <sstream>
 #include <iostream>
+
+std::ostream& operator << (std::ostream& os, const std::u32string& s) {
+    return (os << s.c_str());
+}
+
+long std::stol(std::u32string str, size_t *idx, long base) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
+    return stol(cv.to_bytes(str), idx, base);
+}
+
+double std::stod(std::u32string str) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
+    return stod(cv.to_bytes(str));
+}
+
+std::u32string std::stou32(std::string str) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
+    return cv.from_bytes(str);
+}
+
+std::string std::to_string(std::u32string str) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
+    return cv.to_bytes(str);
+}
 
 using namespace Adscript;
 
@@ -17,41 +42,40 @@ std::string Error::etToStr(ErrorType et) {
     }
 }
 
-void Error::error(ErrorType et, const std::string& msg, const std::string& pos) {
+void Error::error(ErrorType et, const std::u32string& msg, const std::u32string& pos) {
     std::cout << "\x1B[91m\x1B[1m" << etToStr(et) << ":\x1B[0m " << msg;
-    if (pos.size() > 0) std::cout << " (before " + pos + ")";
+    if (pos.size() > 0) std::cout << U" (before " + pos + U")";
     std::cout << std::endl;
     exit(1);
 }
 
-void Error::def(const std::string& msg, const std::string& pos) {
+void Error::def(const std::u32string& msg, const std::u32string& pos) {
     Error::error(Error::ERROR_DEFAULT, msg, pos);
 }
 
-void Error::lexer(const std::string& msg, const std::string& pos) {
+void Error::lexer(const std::u32string& msg, const std::u32string& pos) {
     Error::error(Error::ERROR_LEXER, msg, pos);
 }
 
-void Error::parser(const std::string& msg, const std::string& pos) {
+void Error::parser(const std::u32string& msg, const std::u32string& pos) {
     Error::error(Error::ERROR_PARSER, msg, pos);
 }
 
-void Error::compiler(const std::string& msg, const std::string& pos) {
+void Error::compiler(const std::u32string& msg, const std::u32string& pos) {
     Error::error(Error::ERROR_COMPILER, msg, pos);
 }
 
-void Error::parserExpected(const std::string& expected, const std::string& got,
-                const std::string& pos) {
-    Error::parser("expected " + expected + ", got '" + got + "'", pos);
+void Error::parserExpected(const std::u32string& expected, const std::u32string& got, const std::u32string& pos) {
+    Error::parser(U"expected " + expected + U", got '" + got, pos);
 }
 
 void Error::lexerEOF() {
-    Error::lexer("unexpected end of file");
+    Error::lexer(U"unexpected end of file");
 }
 
-void Error::warning(const std::string& msg, const std::string& pos) {
+void Error::warning(const std::u32string& msg, const std::u32string& pos) {
     std::cout << "\x1B[95m\x1B[1m" << "warning:\x1B[0m " << msg;
-    if (pos.size() > 0) std::cout << " (before " + pos + ")";
+    if (pos.size() > 0) std::cout << U" (before " + pos + U")";
     std::cout << std::endl;
 }
 
@@ -61,22 +85,23 @@ int Error::printUsage(char **argv, int r) {
 }
 
 
-bool Utils::strEq(const std::string& str, const std::vector<std::string>& eqVals) {
+bool Utils::strEq(const std::u32string& str, const std::vector<std::u32string>& eqVals) {
     for (auto& val : eqVals) if (!str.compare(val)) return true;
     return false;
 }
 
-std::string Utils::readFile(const std::string& filename) {
+std::u32string Utils::readFile(const std::string& filename) {
     std::ifstream ifstream(filename);
     if (ifstream.bad())
         Error::error(Error::ERROR_DEFAULT,
-            "cannot read from file '" + filename + "'");
+            U"cannot read from file '" + std::stou32(filename) + U"'");
+    ifstream.imbue(std::locale(std::locale::classic(), new std::codecvt_utf8<char32_t>));
     std::stringstream sstream;
     sstream << ifstream.rdbuf();
-    return sstream.str();
+    return std::stou32(sstream.str());
 }
 
-std::string Utils::strReplaceAll(std::string str,const std::string& find, const std::string& replace) {
+std::u32string Utils::strReplaceAll(std::u32string str, const std::u32string& find, const std::u32string& replace) {
     std::string::size_type st = 0;
     while ((st = str.find(find, st)) != std::string::npos) {
         str.replace(st, find.size(), replace);
@@ -85,19 +110,19 @@ std::string Utils::strReplaceAll(std::string str,const std::string& find, const 
     return str;
 }
 
-std::string Utils::unescapeStr(const std::string& s) {
-    std::string str = s;
-    str = Utils::strReplaceAll(str, "\\\"", "\"");
-    str = Utils::strReplaceAll(str, "\\\\", "\\");
-    str = Utils::strReplaceAll(str, "\\a", "\a");
-    str = Utils::strReplaceAll(str, "\\b", "\b");
-    str = Utils::strReplaceAll(str, "\\f", "\f");
-    str = Utils::strReplaceAll(str, "\\n", "\n");
-    str = Utils::strReplaceAll(str, "\\r", "\r");
-    str = Utils::strReplaceAll(str, "\\t", "\t");
-    str = Utils::strReplaceAll(str, "\\v", "\v");
-    str = Utils::strReplaceAll(str, "\\'", "\'");
-    str = Utils::strReplaceAll(str, "\\?", "\?");
+std::u32string Utils::unescapeStr(const std::u32string& s) {
+    std::u32string str = s;
+    str = Utils::strReplaceAll(str, U"\\\"", U"\"");
+    str = Utils::strReplaceAll(str, U"\\\\", U"\\");
+    str = Utils::strReplaceAll(str, U"\\a", U"\a");
+    str = Utils::strReplaceAll(str, U"\\b", U"\b");
+    str = Utils::strReplaceAll(str, U"\\f", U"\f");
+    str = Utils::strReplaceAll(str, U"\\n", U"\n");
+    str = Utils::strReplaceAll(str, U"\\r", U"\r");
+    str = Utils::strReplaceAll(str, U"\\t", U"\t");
+    str = Utils::strReplaceAll(str, U"\\v", U"\v");
+    str = Utils::strReplaceAll(str, U"\\'", U"\'");
+    str = Utils::strReplaceAll(str, U"\\?", U"\?");
     return str;
 }
 
@@ -127,56 +152,59 @@ bool Utils::isHexChar(char c) {
 std::string Utils::makeOutputPath(const std::string &input, bool exe) {
     auto lastdot = input.find_last_of('.');
     if (lastdot == std::string::npos)
-        Error::def("Input files have to have an extension.");
+        Error::def(U"Input files have to have an extension.");
     auto mod = input.substr(0, lastdot);
     return exe ? mod : mod + ".o";
 }
 
 
-std::string AST::betToStr(AST::BinExprType bet) {
+std::u32string AST::betToStr(AST::BinExprType bet) {
     switch (bet) {
-    case AST::BINEXPR_ADD:   return "+";
-    case AST::BINEXPR_SUB:   return "-";
-    case AST::BINEXPR_MUL:   return "*";
-    case AST::BINEXPR_DIV:   return "/";
-    case AST::BINEXPR_MOD:   return "%";
+    case AST::BINEXPR_ADD:   return U"+";
+    case AST::BINEXPR_SUB:   return U"-";
+    case AST::BINEXPR_MUL:   return U"*";
+    case AST::BINEXPR_DIV:   return U"/";
+    case AST::BINEXPR_MOD:   return U"%";
 
-    case AST::BINEXPR_OR:    return "|";
-    case AST::BINEXPR_AND:   return "&";
-    case AST::BINEXPR_XOR:   return "^";
-    case AST::BINEXPR_NOT:   return "~";
+    case AST::BINEXPR_OR:    return U"|";
+    case AST::BINEXPR_AND:   return U"&";
+    case AST::BINEXPR_XOR:   return U"^";
+    case AST::BINEXPR_NOT:   return U"~";
 
-    case AST::BINEXPR_EQ:    return "=";
-    case AST::BINEXPR_LT:    return "<";
-    case AST::BINEXPR_GT:    return ">";
-    case AST::BINEXPR_LTEQ:  return "<=";
-    case AST::BINEXPR_GTEQ:  return ">=";
-    case AST::BINEXPR_LOR:   return "or";
-    case AST::BINEXPR_LAND:  return "and";
-    case AST::BINEXPR_LXOR:  return "xor";
-    case AST::BINEXPR_LNOT:  return "not";
+    case AST::BINEXPR_EQ:    return U"=";
+    case AST::BINEXPR_LT:    return U"<";
+    case AST::BINEXPR_GT:    return U">";
+    case AST::BINEXPR_LTEQ:  return U"<=";
+    case AST::BINEXPR_GTEQ:  return U">=";
+    case AST::BINEXPR_LOR:   return U"or";
+    case AST::BINEXPR_LAND:  return U"and";
+    case AST::BINEXPR_LXOR:  return U"xor";
+    case AST::BINEXPR_LNOT:  return U"not";
     }
 }
 
-std::string AST::strVectorToStr(const std::vector<std::string>& vector) {
-    if (vector.size() <= 0) return "{ }";
-    std::string result = "{ ";
+std::u32string AST::strVectorToStr(const std::vector<std::u32string>& vector) {
+    if (vector.size() <= 0) return U"{ }";
+    std::u32string result = U"{ ";
     for (size_t i = 0; i < vector.size() - 1; i++)
-        result += vector.at(i) + ", ";
-    return result + vector.at(vector.size() - 1) + " }";
+        result += vector.at(i) + U", ";
+    return result + vector.at(vector.size() - 1) + U" }";
 }
 
-std::string AST::exprVectorToStr(const std::vector<AST::Expr*>& vector) {
-    std::vector<std::string> tmp;
+std::u32string AST::exprVectorToStr(const std::vector<AST::Expr*>& vector) {
+    std::vector<std::u32string> tmp;
     for (size_t i = 0; i < vector.size(); i++)
         tmp.push_back(vector.at(i)->str());
     return AST::strVectorToStr(tmp);
 }
 
-std::string AST::argVectorToStr(const std::vector<std::pair<AST::Type*, std::string>>& vector) {
-    std::vector<std::string> tmp;
-    for (size_t i = 0; i < vector.size(); i++)
-        tmp.push_back(vector.at(i).second + ": " + vector.at(i).first->str());
+std::u32string AST::argVectorToStr(const std::vector<std::pair<AST::Type*, std::string>>& vector) {
+    std::vector<std::u32string> tmp;
+    for (size_t i = 0; i < vector.size(); i++) {
+        std::u32string str =
+            std::stou32(vector.at(i).second) + U": " + vector.at(i).first->str();
+        tmp.push_back(str);
+    }
     return AST::strVectorToStr(tmp);
 }
 
@@ -198,11 +226,11 @@ bool Compiler::llvmTypeEq(llvm::Value *v, llvm::Type *t) {
     return v->getType()->getPointerTo() == t->getPointerTo();
 }
 
-std::string Compiler::llvmTypeStr(llvm::Type *t) {
+std::u32string Compiler::llvmTypeStr(llvm::Type *t) {
     std::string _s;
     llvm::raw_string_ostream s(_s);
     t->print(s);
-    return s.str();
+    return std::stou32(s.str());
 }
 
 llvm::Value* Compiler::tryCast(Compiler::Context& ctx, llvm::Value *v, llvm::Type *t) {
@@ -236,8 +264,8 @@ llvm::Value* Compiler::tryCast(Compiler::Context& ctx, llvm::Value *v, llvm::Typ
 
 llvm::Value* Compiler::cast(Compiler::Context& ctx, llvm::Value *v, llvm::Type *t) {
     auto v1 = Compiler::tryCast(ctx, v, t);
-    if (!v1) Error::error(Error::ERROR_COMPILER, "unable to create cast from '"
-                + llvmTypeStr(v->getType()) + "' to '" + llvmTypeStr(t) + "'");
+    if (!v1) Error::error(Error::ERROR_COMPILER, U"unable to create cast from '"
+                + llvmTypeStr(v->getType()) + U"' to '" + llvmTypeStr(t) + U"'");
     return v1;
 }
 
@@ -256,7 +284,7 @@ llvm::Value* Compiler::createLogicalVal(Compiler::Context& ctx, llvm::Value *v) 
             Compiler::constInt(ctx, 0)
         );
 
-    Error::error(Error::ERROR_COMPILER, "unable to create logical value");
+    Error::error(Error::ERROR_COMPILER, U"unable to create logical value");
 
     return nullptr;
 }

@@ -96,7 +96,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
     const llvm::Target *t =
         llvm::TargetRegistry::lookupTarget(target, err);
 
-    if (!t) Error::compiler(err);
+    if (!t) Error::compiler(std::stou32(err));
 
     llvm::TargetMachine *targetMachine = t->createTargetMachine(
         target,
@@ -111,7 +111,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
     std::error_code ec;
     llvm::raw_fd_ostream dest(output, ec, llvm::sys::fs::OF_None);
 
-    if (ec) Error::compiler(ec.message());
+    if (ec) Error::compiler(std::stou32(ec.message()));
 
     llvm::legacy::PassManager pm;
 
@@ -124,7 +124,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
         pm, dest, nullptr, llvm::CGFT_ObjectFile);
 
     if (objResult)
-        Error::compiler("cannot write to file '" + output + "'");
+        Error::compiler(std::stou32("cannot write to file '" + output + "'"));
 
     pm.run(*mod);
     dest.flush();
@@ -134,10 +134,10 @@ void link(const std::string &obj, const std::string &exe) {
     int linkResult = system(("cc " + obj + " -o " + exe).c_str());
 
     if (linkResult)
-        Error::compiler("error while linking '" + exe + "'");
+        Error::compiler(std::stou32("error while linking '" + exe + "'"));
 
     if (std::remove(obj.c_str()))
-        Error::def("cannot remove '" + obj + "'");
+        Error::def(std::stou32("cannot remove '" + obj + "'"));
 }
 
 std::string tempfile() {
