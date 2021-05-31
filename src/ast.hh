@@ -99,6 +99,17 @@ public:
     }
 };
 
+class StructType : public Type {
+private:
+    std::vector<std::pair<Type*, std::string>> attrs;
+public:
+    StructType(const std::vector<std::pair<Type*, std::string>>& attrs)
+        : attrs(attrs) {}
+
+    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    std::string str() override;
+};
+
 class Int : public Expr {
 private:
     const int64_t val;

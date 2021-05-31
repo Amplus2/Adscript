@@ -18,7 +18,7 @@ std::string Error::etToStr(ErrorType et) {
 }
 
 void Error::error(ErrorType et, const std::string& msg, const std::string& pos) {
-    std::cout << etToStr(et) << ": " << msg;
+    std::cout << "\x1B[91m\x1B[1m" << etToStr(et) << ":\x1B[0m " << msg;
     if (pos.size() > 0) std::cout << " (before " + pos + ")";
     std::cout << std::endl;
     exit(1);
@@ -46,11 +46,11 @@ void Error::parserExpected(const std::string& expected, const std::string& got,
 }
 
 void Error::lexerEOF() {
-    error(ERROR_LEXER, "unexpected end of file");
+    Error::lexer("unexpected end of file");
 }
 
 void Error::warning(const std::string& msg, const std::string& pos) {
-    std::cout << "warning: " << msg;
+    std::cout << "\x1B[95m\x1B[1m" << "warning:\x1B[0m " << msg;
     if (pos.size() > 0) std::cout << " (before " + pos + ")";
     std::cout << std::endl;
 }

@@ -27,6 +27,12 @@ std::string AST::PointerType::str() {
     return std::string() + "PointerType: " + type->str();
 }
 
+std::string AST::StructType::str() {
+    return std::string() + "StructType: { "
+        + "attrs: " + argVectorToStr(attrs)
+        + " }";
+}
+
 std::string AST::Int::str() {
     return std::to_string(val);
 }
@@ -177,6 +183,10 @@ llvm::Type* AST::PointerType::llvmType(llvm::LLVMContext &ctx) {
     auto t = type->llvmType(ctx)->getPointerTo();
     for (int i = 1; i < quantity; i++) t = t->getPointerTo();
     return t;
+}
+
+llvm::Type* AST::StructType::llvmType(llvm::LLVMContext &ctx) {
+    return nullptr;
 }
 
 llvm::Value* AST::Int::llvmValue(Compiler::Context& ctx) {

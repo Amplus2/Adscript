@@ -16,18 +16,18 @@ char Lexer::getc(size_t idx) {
 }
 
 Lexer::Token Lexer::nextT() {
-    // helper variable
-    char c;
-
     // section declaration for goto statement we need later on
     nextT_start:
 
+    // helper variable
+    char c = getc(idx);
+
     // eat up whitespaces
-    while (Utils::isWhitespace(getc(idx)) && idx < text.size())
+    while (Utils::isWhitespace((c = getc(idx))) && idx < text.size())
         idx += 1;
     
     // handle comments
-    if (getc(idx) == ';') {
+    if (c == ';') {
         if (getc(++idx) != ';') {
             Error::warning("comment beginning with only one ';'", pos());
         }
@@ -47,7 +47,7 @@ Lexer::Token Lexer::nextT() {
     if (eofReached()) return Token(TT_EOF, "end of file");
 
     // handle parentheses and brackets
-    switch (getc(idx)) {
+    switch (c) {
     case '(':
         idx += 1;
         return Token(TT_PO, "(");
@@ -75,7 +75,7 @@ Lexer::Token Lexer::nextT() {
     std::string tmpStr;
 
     // handle hex literals
-    if (getc(idx) == '0' && getc(idx +  1) == 'x') {
+    if (c == '0' && getc(idx +  1) == 'x') {
         tmpStr += "0x";
         idx += 2;
 
@@ -92,24 +92,30 @@ Lexer::Token Lexer::nextT() {
     }
 
     // handle integers and front part of FPs
-    if (Utils::isDigit(getc(idx))) {
+    if (Utils::isDigit(c)) {
+        idx+= 1;
+        tmpStr += c;
+
         while (Utils::isDigit((c = getc(idx)))) {
-            tmpStr += c;
             idx += 1;
+            tmpStr += c;
         }
 
         if (c != '.') return Token(TT_INT, tmpStr);
     }
     
     // handle floats
-    if (getc(idx) == '.' && Utils::isDigit(getc(idx + 1))) {
+    if (c == '.' && Utils::isDigit(getc(idx + 1))) {
         // append '.' to tmpStr
         tmpStr += getc(idx++);
 
         if (eofReached()) Error::lexerEOF();
 
         // append all digits after the '.' to tmpStr
-        while (Utils::isDigit(getc(idx))) tmpStr += getc(idx++);
+        while (Utils::isDigit((c = getc(idx)))) {
+            idx += 1;
+            tmpStr += c;
+        }
 
         return Token(TT_FLOAT, tmpStr);
     } else if ((c = getc(idx)) == '.') {
@@ -117,7 +123,7 @@ Lexer::Token Lexer::nextT() {
             + "'", pos());
     }
 
-    if (getc(idx) == '"') {
+    if (c == '"') {
         // eat up '"'
         idx += 1;
 
@@ -151,9 +157,10 @@ Lexer::Token Lexer::nextT() {
     }
 
     // handle identifiers
-    while (!Utils::isWhitespace((c = getc(idx))) && !Utils::isSpecialChar(c)
-            && idx < text.size())
-        tmpStr += getc(idx++);
+    while (!Utils::isWhitespace((c = getc(idx))) && !Utils::isSpecialChar(c) && idx < text.size()) {
+        idx += 1;
+        tmpStr += c;
+    }
 
     return Token(TT_ID, tmpStr);
 }
