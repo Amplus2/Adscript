@@ -1,7 +1,7 @@
 (defn puts [char* s] int)
 
 (defn main [int a] i8
-    (var hw 42)
+    (var hw "42")
     (puts hw)
-    ((fn [char** s] int (setptr s "42")) (ref hw))
+    ((fn [char** s] int (setptr s "Hello World")) (ref hw))
     (puts hw))
