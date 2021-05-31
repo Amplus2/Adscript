@@ -22,8 +22,9 @@ double std::stod(std::u32string str) {
 }
 
 std::u32string std::stou32(std::string str) {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
-    return cv.from_bytes(str);
+    return std::u32string(str.begin(), str.end());
+    // std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
+    // return cv.from_bytes(str);
 }
 
 std::string std::to_string(std::u32string str) {
@@ -151,7 +152,7 @@ bool Utils::isHexChar(char c) {
 
 bool Utils::isAscii(const std::u32string& str) {
     for (auto& c : str)
-        if (c >= 0 && c < 256)
+        if (c < 0 || c > 255)
             return false;
     return true;
 }
@@ -241,29 +242,34 @@ std::u32string Compiler::llvmTypeStr(llvm::Type *t) {
 }
 
 llvm::Value* Compiler::tryCast(Compiler::Context& ctx, llvm::Value *v, llvm::Type *t) {
-    if (v->getType()->getPointerTo() == t->getPointerTo()) return v;
+    llvm::Type *vT = v->getType();
+    if (vT->getPointerTo() == t->getPointerTo()) return v;
 
-    if (v->getType()->isIntegerTy()) {
-        if (t->isIntegerTy())
+    if (vT->isIntegerTy()) {
+        if (t->isIntegerTy()) {
             return ctx.builder->CreateIntCast(v, t, true);
-        else if (t->isFloatingPointTy())
+        } else if (t->isFloatingPointTy()) {
             return ctx.builder->CreateSIToFP(v, t);
-        else if (t->isPointerTy())
+        } else if (t->isPointerTy()) {
             return ctx.builder->CreateIntToPtr(v, t);
-    } else if (v->getType()->isFloatingPointTy()) {
-        if (t->isIntegerTy())
+        }
+    } else if (vT->isFloatingPointTy()) {
+        if (t->isIntegerTy()) {
             return ctx.builder->CreateFPToSI(v, t);
-        else if (t->isFloatingPointTy())
+        } else if (t->isFloatingPointTy()) {
             return ctx.builder->CreateFPCast(v, t);
-    } else if (v->getType()->isPointerTy()) {
-        if (t->isIntegerTy())
+        }
+    } else if (vT->isPointerTy()) {
+        if (t->isIntegerTy()) {
             return ctx.builder->CreatePtrToInt(v, t);
-        else if (t->isPointerTy())
+        } else if (t->isPointerTy()) {
             return ctx.builder->CreatePointerCast(v, t);
-    } else if (v->getType()->isArrayTy()) {
-        if (t->isPointerTy())
-            return ctx.builder->CreateGEP(v, 
-                {Compiler::constInt(ctx, 0), Compiler::constInt(ctx, 0)});
+        }
+    } else if (vT->isArrayTy()) {
+        if (t->isPointerTy()) {
+            return ctx.builder->CreateGEP(
+                v, { Compiler::constInt(ctx, 0), Compiler::constInt(ctx, 0) });
+        }
     }
 
     return nullptr;

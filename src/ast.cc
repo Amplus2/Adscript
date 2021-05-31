@@ -229,7 +229,13 @@ llvm::Value* AST::String::llvmValue(Compiler::Context& ctx) {
 
     for (auto& c : val) elements.push_back(llvm::ConstantInt::get(elementT, c));
 
-    return llvm::ConstantArray::get(arrayT, elements);
+    auto array = llvm::ConstantArray::get(arrayT, elements);
+
+    auto var = new llvm::GlobalVariable(
+        *(ctx.mod), elementT->getPointerTo(), true,
+        llvm::GlobalValue::ExternalLinkage, array);
+
+    return ctx.builder->CreateLoad(elementT->getPointerTo(), var);
 }
 
 llvm::Value* AST::UExpr::llvmValue(Compiler::Context& ctx) {
@@ -776,7 +782,7 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
     for (auto& arg : f->args()) {
         auto v = args[i++]->llvmValue(ctx);
         auto v1 = tryCast(ctx, v, arg.getType());
-        if (!v1 || v->getType() != v1->getType())
+        if (!v1)
             Error::compiler(U"invalid argument type for function '"
                 + std::stou32(id->getVal()) + U"' (expected: '"
                 + Compiler::llvmTypeStr(arg.getType()) + U"', got: '"

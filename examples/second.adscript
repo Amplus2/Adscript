@@ -3,5 +3,5 @@
 (defn rand [] long)
 
 (defn main [int a] i8
-    ;(puts #[\H\e\l\l\o \  \W\o\r\l\d \! \🔥 0])
+    (puts "Hello World ");;☀")
     ((fn int (puts (#["41" "42" "43"] 1)) 42)))
