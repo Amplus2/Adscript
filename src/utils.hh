@@ -71,6 +71,7 @@ std::u32string betToStr(BinExprType bet);
 std::u32string strVectorToStr(const std::vector<std::u32string>& vector);
 std::u32string exprVectorToStr(const std::vector<Expr*>& vector);
 std::u32string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector);
+std::u32string attrMapToStr(const std::map<std::string, Type*>& map);
 
 void print(const std::vector<Expr*>& ast);
 

@@ -101,9 +101,9 @@ public:
 
 class StructType : public Type {
 private:
-    std::vector<std::pair<Type*, std::string>> attrs;
+    std::map<std::string, Type*> attrs;
 public:
-    StructType(const std::vector<std::pair<Type*, std::string>>& attrs)
+    StructType(const std::map<std::string, Type*>& attrs)
         : attrs(attrs) {}
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
@@ -111,7 +111,7 @@ public:
 
     ~StructType() {
         for (auto& attr : attrs)
-            delete attr.first;
+            delete attr.second;
     }
 };
 

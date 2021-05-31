@@ -29,7 +29,7 @@ std::u32string AST::PointerType::str() {
 
 std::u32string AST::StructType::str() {
     return std::u32string() + U"StructType: { "
-        + U"attrs: " + argVectorToStr(attrs)
+        + U"attrs: " + attrMapToStr(attrs)
         + U" }";
 }
 
@@ -186,7 +186,12 @@ llvm::Type* AST::PointerType::llvmType(llvm::LLVMContext &ctx) {
 }
 
 llvm::Type* AST::StructType::llvmType(llvm::LLVMContext &ctx) {
-    return nullptr;
+    std::vector<llvm::Type*> llvmAttrs;
+
+    for (auto& attr : attrs)
+        llvmAttrs.push_back(attr.second->llvmType(ctx));
+
+    return llvm::StructType::get(ctx, llvmAttrs);
 }
 
 llvm::Value* AST::Int::llvmValue(Compiler::Context& ctx) {

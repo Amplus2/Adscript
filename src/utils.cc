@@ -224,6 +224,16 @@ std::u32string AST::argVectorToStr(const std::vector<std::pair<AST::Type*, std::
     return AST::strVectorToStr(tmp);
 }
 
+std::u32string AST::attrMapToStr(const std::map<std::string, AST::Type*>& map) {
+    std::u32string result = U"{ ";
+    size_t i = 0;
+    for (auto& attr : map) {
+        result += std::stou32(attr.first) + U": " + attr.second->str();
+        if (i < map.size() - 1) result += U", ";
+    }
+    return result + U" }";
+}
+
 void AST::print(const std::vector<AST::Expr*>& ast) {
     for (auto& expr : ast) std::cout << expr->str() << std::endl;
 }

@@ -58,8 +58,17 @@ Defines a compile-time constant.
 (def <identifier> <value>)
 ```
 
+#### `deft`
+Defines a data type (only at compile time).
+
+```adscript
+(deft <identifier> <data type>)
+
+(deft xy '(int x int y))
+```
+
 #### `defn`
-This defines non-anonymous functions.
+Defines non-anonymous functions.
 
 ```adscript
 (defn <identifier> [<parameters>] <return type> <body>)
