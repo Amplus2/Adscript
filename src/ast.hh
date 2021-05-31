@@ -108,6 +108,11 @@ public:
 
     llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
     std::u32string str() override;
+
+    ~StructType() {
+        for (auto& attr : attrs)
+            delete attr.first;
+    }
 };
 
 class Int : public Expr {
