@@ -1,7 +1,7 @@
 (defn puts [char* s] int)
-(defn exit [i8 i] int)
-(defn rand [] long)
 
 (defn main [int a] i8
-    (puts "Hello World ");;☀")
-    ((fn int (puts (#["41" "42" "43"] 1)) 42)))
+    (var hw 42)
+    (puts hw)
+    ((fn [char** s] int (setptr s "42")) (ref hw))
+    (puts hw))

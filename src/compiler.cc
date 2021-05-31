@@ -29,11 +29,11 @@
 using namespace Adscript;
 
 bool Compiler::Context::isVar(const std::string& id) {
-    return localVars.count(id) != 0;
+    return localVars.find(id) != localVars.end();
 }
 
 Compiler::ctx_var_t Compiler::Context::getVar(const std::string& id) {
-    if (localVars.count(id)) return localVars[id];
+    if (isVar(id)) return localVars[id];
     llvm::Function *f = mod->getFunction(id);
     if (f) return { f->getType(), f };
     return { nullptr, nullptr };
