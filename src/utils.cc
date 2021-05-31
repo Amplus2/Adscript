@@ -75,7 +75,7 @@ void Error::compiler(const std::u32string& msg, const std::u32string& pos) {
 }
 
 void Error::parserExpected(const std::u32string& expected, const std::u32string& got, const std::u32string& pos) {
-    Error::parser(U"expected " + expected + U", got '" + got, pos);
+    Error::parser(U"expected " + expected + U", got '" + got + U"'", pos);
 }
 
 void Error::lexerEOF() {

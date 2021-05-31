@@ -71,7 +71,7 @@ private:
     AST::Expr* parseHoArray(Lexer::Token& tmpT);
     AST::Expr* parseHeArray(Lexer::Token& tmpT);
     AST::Expr* parseBinExpr(Lexer::Token& tmpT, AST::BinExprType bet);
-    AST::Cast* parseCast(Lexer::Token& tmpT, AST::Type *t);
+    AST::Cast* parseCast(Lexer::Token& tmpT);
     AST::If* parseIf(Lexer::Token& tmpT);
 
     AST::Function* parseFunction(Lexer::Token& tmpT);

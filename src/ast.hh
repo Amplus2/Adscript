@@ -52,7 +52,7 @@ class Type {
 public:
     virtual ~Type() = default;
     virtual std::u32string str() = 0;
-    virtual llvm::Type* llvmType(llvm::LLVMContext &ctx) = 0;
+    virtual llvm::Type* llvmType(::Adscript::Compiler::Context &ctx) = 0;
 };
 
 class Expr {
@@ -78,7 +78,7 @@ private:
 public:
     PrimType(PT type) : type(type) {}
 
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    llvm::Type* llvmType(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
 };
 
@@ -91,7 +91,7 @@ public:
     PointerType(Type *type, uint8_t quantity)
         : type(type), quantity(quantity) {}
 
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    llvm::Type* llvmType(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
 
     ~PointerType() {
@@ -106,13 +106,23 @@ public:
     StructType(const std::map<std::string, Type*>& attrs)
         : attrs(attrs) {}
 
-    llvm::Type* llvmType(llvm::LLVMContext &ctx) override;
+    llvm::Type* llvmType(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
 
     ~StructType() {
         for (auto& attr : attrs)
             delete attr.second;
     }
+};
+
+class IdentifierType : public Type {
+private:
+    std::string id;
+public:
+    IdentifierType(const std::string& id) : id(id) {}
+
+    llvm::Type* llvmType(::Adscript::Compiler::Context& ctx) override;
+    std::u32string str() override;
 };
 
 class Int : public Expr {

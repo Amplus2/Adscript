@@ -207,19 +207,21 @@ AST::Type* Parser::parseType(Lexer::Token& tmpT) {
     AST::Type *t = nullptr;
 
     // general types
-    if (Utils::strEq(tmpT.val, {U"char", U"i8"}))
+    if (Utils::strEq(tmpT.val, {U"char", U"i8"})) {
         t = new AST::PrimType(AST::TYPE_I8);
-    else if (!tmpT.val.compare(U"i16"))
+    } else if (!tmpT.val.compare(U"i16")) {
         t = new AST::PrimType(AST::TYPE_I16);
-    else if (Utils::strEq(tmpT.val, {U"int", U"i32", U"bool"}))
+    } else if (Utils::strEq(tmpT.val, {U"int", U"i32", U"bool"})) {
         t = new AST::PrimType(AST::TYPE_I32);
-    else if (Utils::strEq(tmpT.val, {U"long", U"i64"}))
+    } else if (Utils::strEq(tmpT.val, {U"long", U"i64"})) {
         t = new AST::PrimType(AST::TYPE_I64);
-    else if (!tmpT.val.compare(U"float"))
+    } else if (!tmpT.val.compare(U"float")) {
         t = new AST::PrimType(AST::TYPE_FLOAT);
-    else if (!tmpT.val.compare(U"double"))
+    } else if (!tmpT.val.compare(U"double")) {
         t = new AST::PrimType(AST::TYPE_DOUBLE);
-    else return nullptr;
+    } else if (tmpT.tt == Lexer::TT_ID) {
+        t = new AST::IdentifierType(std::to_string(tmpT.val));
+    } else return nullptr;
 
     Lexer::Token tmpTmpT = tmpT;
     size_t tmpIdx = lexer.getIdx();
@@ -301,6 +303,8 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
                 return parseIf(tmpT);
             else if (!tmpT.val.compare(U"fn"))
                 return parseLambda(tmpT);
+            else if (!tmpT.val.compare(U"cast"))
+                return parseCast(tmpT);
             else if (!tmpT.val.compare(U"var")) {
                 // eat up 'var'
                 tmpT = lexer.nextT();
@@ -391,9 +395,6 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
 
                 return new AST::HeGet(t, ptr, idx);
             }
-
-            auto t = parseType(tmpT);
-            if (t) return parseCast(tmpT, t);
         }
 
         return parseCall(tmpT);
@@ -437,6 +438,9 @@ AST::Expr* Parser::parseTopLevelExpr(Lexer::Token& tmpT) {
 
                 // error if no type was parsed
                 if (!type) Error::parserExpected(U"data type", tmpT.val);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
 
                 return new AST::Deft(type, std::to_string(id));
             }
@@ -529,8 +533,15 @@ AST::Expr* Parser::parseBinExpr(Lexer::Token& tmpT, AST::BinExprType bet) {
     return tmpExpr;
 }
 
-AST::Cast* Parser::parseCast(Lexer::Token& tmpT, AST::Type *t) {
-    // eat remaining token
+AST::Cast* Parser::parseCast(Lexer::Token& tmpT) {
+    // eat up 'cast'
+    tmpT = lexer.nextT();
+
+    auto type = parseType(tmpT);
+
+    if (!type) Error::parserExpected(U"data type", tmpT.val);
+
+    // eat up remaining token
     tmpT = lexer.nextT();
 
     auto expr = parseExpr(tmpT);
@@ -538,7 +549,7 @@ AST::Cast* Parser::parseCast(Lexer::Token& tmpT, AST::Type *t) {
     // eat up remaining token
     tmpT = lexer.nextT();
 
-    return new AST::Cast(t, expr);
+    return new AST::Cast(type, expr);
 }
 
 AST::If* Parser::parseIf(Lexer::Token& tmpT) {

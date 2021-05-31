@@ -33,6 +33,11 @@ std::u32string AST::StructType::str() {
         + U" }";
 }
 
+std::u32string AST::IdentifierType::str() {
+    return std::u32string() + U"IdentifierType: { "
+        + U"id: " + std::stou32(id) + U" }";
+}
+
 std::u32string AST::Int::str() {
     return std::stou32(std::to_string(val));
 }
@@ -171,20 +176,20 @@ std::u32string AST::Call::str() {
 
 // * LLVM METHODS
 
-llvm::Type* AST::PrimType::llvmType(llvm::LLVMContext &ctx) {
+llvm::Type* AST::PrimType::llvmType(Compiler::Context &ctx) {
     switch (type) {
-    case TYPE_I8:       return llvm::Type::getInt8Ty(ctx);
-    case TYPE_I16:      return llvm::Type::getInt16Ty(ctx);
-    case TYPE_I32:      return llvm::Type::getInt32Ty(ctx);
-    case TYPE_I64:      return llvm::Type::getInt64Ty(ctx);
-    case TYPE_FLOAT:    return llvm::Type::getFloatTy(ctx);
-    case TYPE_DOUBLE:   return llvm::Type::getDoubleTy(ctx);
+    case TYPE_I8:       return llvm::Type::getInt8Ty(ctx.mod->getContext());
+    case TYPE_I16:      return llvm::Type::getInt16Ty(ctx.mod->getContext());
+    case TYPE_I32:      return llvm::Type::getInt32Ty(ctx.mod->getContext());
+    case TYPE_I64:      return llvm::Type::getInt64Ty(ctx.mod->getContext());
+    case TYPE_FLOAT:    return llvm::Type::getFloatTy(ctx.mod->getContext());
+    case TYPE_DOUBLE:   return llvm::Type::getDoubleTy(ctx.mod->getContext());
     default: Error::compiler(U"unknown type name");
     }
     return nullptr;
 }
 
-llvm::Type* AST::PointerType::llvmType(llvm::LLVMContext &ctx) {
+llvm::Type* AST::PointerType::llvmType(Compiler::Context &ctx) {
     if (quantity == 0)
         Error::compiler(U"quantity of pointer type cannot be zero");
     auto t = type->llvmType(ctx)->getPointerTo();
@@ -192,13 +197,19 @@ llvm::Type* AST::PointerType::llvmType(llvm::LLVMContext &ctx) {
     return t;
 }
 
-llvm::Type* AST::StructType::llvmType(llvm::LLVMContext &ctx) {
+llvm::Type* AST::StructType::llvmType(Compiler::Context &ctx) {
     std::vector<llvm::Type*> llvmAttrs;
 
-    for (auto& attr : attrs)
-        llvmAttrs.push_back(attr.second->llvmType(ctx));
+    for (auto& attr : attrs) llvmAttrs.push_back(attr.second->llvmType(ctx));
 
-    return llvm::StructType::get(ctx, llvmAttrs);
+    return llvm::StructType::get(ctx.mod->getContext(), llvmAttrs);
+}
+
+llvm::Type* AST::IdentifierType::llvmType(Compiler::Context &ctx) {
+    if (!ctx.isType(id))
+        Error::compiler(U"undefined reference to '" + std::stou32(id) + U"'");
+
+    return ctx.types[id];
 }
 
 llvm::Value* AST::Int::llvmValue(Compiler::Context& ctx) {
@@ -480,7 +491,7 @@ llvm::Value* AST::Deft::llvmValue(Compiler::Context& ctx) {
         Error::compiler(U"type '" + std::stou32(id) + U"' already defined");
 
     // get llvm value for the stored value
-    auto t = type->llvmType(ctx.mod->getContext());
+    auto t = type->llvmType(ctx);
 
     // add the alloca to the 'localVars' map
     ctx.types[id] = t;
@@ -623,7 +634,7 @@ llvm::Value* AST::HeGet::llvmValue(Compiler::Context& ctx) {
     if (!idx)
         Error::compiler(U"expected integer type fot heget expression as third argument");
 
-    t = type->llvmType(ctx.mod->getContext())->getPointerTo();
+    t = type->llvmType(ctx)->getPointerTo();
     
     ptr = ctx.builder->CreateGEP(ptr, idx);
     ptr = ctx.builder->CreatePointerCast(
@@ -635,13 +646,13 @@ llvm::Value* AST::HeGet::llvmValue(Compiler::Context& ctx) {
 
 llvm::Value* AST::Cast::llvmValue(Compiler::Context& ctx) {
     return cast(ctx, expr->llvmValue(ctx),
-        type->llvmType(ctx.mod->getContext()));
+        type->llvmType(ctx));
 }
 
 llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
-        ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
+        ftArgs.push_back(arg.first->llvmType(ctx));
 
     auto f = ctx.mod->getFunction(id);
 
@@ -658,7 +669,7 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
                 
     } else {
         auto ft = llvm::FunctionType::get(
-            retType->llvmType(ctx.mod->getContext()), ftArgs, false);
+            retType->llvmType(ctx), ftArgs, false);
 
         f = llvm::Function::Create(
             ft, llvm::Function::ExternalLinkage, id, ctx.mod);
@@ -710,10 +721,10 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
 
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
-        ftArgs.push_back(arg.first->llvmType(ctx.mod->getContext()));
+        ftArgs.push_back(arg.first->llvmType(ctx));
 
     auto ft = llvm::FunctionType::get(
-        retType->llvmType(ctx.mod->getContext()), ftArgs, false);
+        retType->llvmType(ctx), ftArgs, false);
 
     auto f = llvm::Function::Create(
         ft, llvm::Function::PrivateLinkage, "", ctx.mod);
