@@ -54,7 +54,7 @@ By quoting a list you can create a struct data type.
 
 <!--TODO: a defn++ with c++ mangline-->
 
-#### `defv` (not implemented yet)
+#### `def`
 Defines a compile-time constant.
 
 ```adscript

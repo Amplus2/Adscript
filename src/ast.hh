@@ -274,6 +274,21 @@ public:
     }
 };
 
+class Def : public Expr {
+private:
+    Expr *val;
+    const std::string id;
+public:
+    Def(Expr *val, const std::string& id) : val(val), id(id) {}
+
+    llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
+    std::u32string str() override;
+
+    ~Def() {
+        delete val;
+    }
+};
+
 class Var : public Expr {
 private:
     Expr *val;

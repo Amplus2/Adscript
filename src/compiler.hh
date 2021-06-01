@@ -16,7 +16,8 @@ public:
     llvm::Module *mod;
     llvm::IRBuilder<> *builder;
     std::map<std::string, llvm::Type*> types;
-    std::map<std::string, ctx_var_t> localVars;
+    std::map<std::string, AST::Expr*> consts;
+    std::map<std::string, ctx_var_t> vars;
 
     bool needsRef = false;
 
@@ -25,7 +26,12 @@ public:
     
     bool isVar(const std::string& id);
     bool isType(const std::string& id);
+    bool isConst(const std::string& id);
+    bool isFunction(const std::string& id);
+
     ctx_var_t getVar(const std::string& id);
+    AST::Expr* getConst(const std::string& id);
+    llvm::Function* getFunction(const std::string& id);
 };
 
 void compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target);

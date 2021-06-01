@@ -29,18 +29,39 @@
 using namespace Adscript;
 
 bool Compiler::Context::isVar(const std::string& id) {
-    return localVars.find(id) != localVars.end();
+    return vars.find(id) != vars.end();
 }
 
 bool Compiler::Context::isType(const std::string& id) {
     return types.find(id) != types.end();
 }
 
+bool Compiler::Context::isConst(const std::string& id) {
+    return consts.find(id) != consts.end();
+}
+
+bool Compiler::Context::isFunction(const std::string& id) {
+    for (auto& f : mod->getFunctionList()) {
+        if (!id.compare(f.getName().str())) return true;
+    }
+    return false;
+}
+
 Compiler::ctx_var_t Compiler::Context::getVar(const std::string& id) {
-    if (isVar(id)) return localVars[id];
+    if (isVar(id)) return vars[id];
     llvm::Function *f = mod->getFunction(id);
     if (f) return { f->getType(), f };
     return { nullptr, nullptr };
+}
+
+AST::Expr* Compiler::Context::getConst(const std::string& id) {
+    if (isConst(id)) return consts[id];
+    return nullptr;
+}
+
+llvm::Function* Compiler::Context::getFunction(const std::string& id) {
+    if (isFunction(id)) return mod->getFunction(id);
+    return nullptr;
 }
 
 std::string getFileName(const std::string& path) {
@@ -158,10 +179,12 @@ void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::stri
     llvm::Module mod(moduleId, ctx);
     llvm::IRBuilder<> builder(ctx);
 
+    mod.setSourceFileName(filename);
+
     Compiler::Context cctx(&mod, &builder);
     for (auto& expr : exprs) expr->llvmValue(cctx);
 
-    // mod.print(llvm::errs(), 0);
+    mod.print(llvm::errs(), 0);
 
     runMPM(&mod);
 

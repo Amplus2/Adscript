@@ -4,6 +4,8 @@
 (deft int8 i8)
 (deft xy '(int x int y))
 
+(def hww (fn [char** s] int (setptr s "Hello World")))
+
 (defn main [int a] int8
     (printf "%d\n" 42)
     (var hw "42")

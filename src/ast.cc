@@ -102,6 +102,13 @@ std::u32string AST::Deft::str() {
         + U" }";
 }
 
+std::u32string AST::Def::str() {
+    return std::u32string() + U"Def: {"
+        + U"id: '" + std::stou32(id) + U"'";
+        + U", val: " + val->str()
+        + U" }";
+}
+
 std::u32string AST::Var::str() {
     return std::u32string() + U"Var: {"
         + U"id: '" + std::stou32(id) + U"'";
@@ -226,17 +233,23 @@ llvm::Value* AST::Char::llvmValue(Compiler::Context& ctx) {
 
 llvm::Value* AST::Identifier::llvmValue(Compiler::Context& ctx) {
     // get var out of context
-    auto var = ctx.getVar(val);
-    
-    // error if var is not defined
-    if (!var.second)
-        Error::compiler(U"undefined reference to '" + std::stou32(val) + U"'");
-    
-    // return alloca if reference is needed
-    if (ctx.needsRef) return var.second;
+    if (ctx.isVar(val)) {
+        auto var = ctx.vars[val];
+        
+        // return alloca if reference is needed
+        if (ctx.needsRef) return var.second;
 
-    // return load to alloca
-    return ctx.builder->CreateLoad(var.first, var.second);
+        // return load to alloca
+        return ctx.builder->CreateLoad(var.first, var.second);
+    } else if (ctx.isConst(val)) {
+        return ctx.consts[val]->llvmValue(ctx);
+    } else if (ctx.isFunction(val)) {
+        return ctx.mod->getFunction(val);
+    }
+
+    Error::compiler(U"undefined reference to '" + std::stou32(val) + U"'");
+
+    return nullptr;
 }
 
 llvm::Value* AST::String::llvmValue(Compiler::Context& ctx) {
@@ -485,16 +498,38 @@ llvm::Value* AST::HeArray::llvmValue(Compiler::Context& ctx) {
 
 llvm::Value* AST::Deft::llvmValue(Compiler::Context& ctx) {
     // error if variable is already defined
-    if (ctx.isVar(id))
-        Error::compiler(U"var '" + std::stou32(id) + U"' already defined");
-    else if (ctx.isType(id))
-        Error::compiler(U"type '" + std::stou32(id) + U"' already defined");
+    if (ctx.isType(id))
+        Error::warning(U"data type '" + std::stou32(id) + U"' already defined");
+    else if (ctx.isVar(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as variable");
+    else if (ctx.isConst(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as constant");
+    else if (ctx.isFunction(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as function");
 
     // get llvm value for the stored value
     auto t = type->llvmType(ctx);
 
-    // add the alloca to the 'localVars' map
+    // add the alloca to the 'vars' map
     ctx.types[id] = t;
+
+    // return the alloca
+    return constInt(ctx, 0);
+}
+
+llvm::Value* AST::Def::llvmValue(Compiler::Context& ctx) {
+    // error if variable is already defined
+    if (ctx.isConst(id))
+        Error::warning(U"constant '" + std::stou32(id) + U"' already defined");
+    else if (ctx.isType(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as data type");
+    else if (ctx.isVar(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as variable");
+    else if (ctx.isFunction(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as function");
+
+    // add the alloca to the 'vars' map
+    ctx.consts[id] = val;
 
     // return the alloca
     return constInt(ctx, 0);
@@ -503,7 +538,13 @@ llvm::Value* AST::Deft::llvmValue(Compiler::Context& ctx) {
 llvm::Value* AST::Var::llvmValue(Compiler::Context& ctx) {
     // error if variable is already defined
     if (ctx.isVar(id))
-        Error::compiler(U"var '" + std::stou32(id) + U"' already defined");
+        Error::compiler(U"variable '" + std::stou32(id) + U"' already defined");
+    else if (ctx.isConst(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as constant");
+    else if (ctx.isType(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined data type");
+    else if (ctx.isFunction(id))
+        Error::warning(U"'" + std::stou32(id) + U"' already defined as function");
 
     // get llvm value for the stored value
     auto v = val->llvmValue(ctx);
@@ -514,8 +555,8 @@ llvm::Value* AST::Var::llvmValue(Compiler::Context& ctx) {
     // store the value
     ctx.builder->CreateStore(v, alloca);
 
-    // add the alloca to the 'localVars' map
-    ctx.localVars[id] = { v->getType(), alloca };
+    // add the alloca to the 'vars' map
+    ctx.vars[id] = { v->getType(), alloca };
 
     // return the alloca
     return alloca;
@@ -696,7 +737,7 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
 
         ctx.builder->CreateStore(&arg, alloca);
 
-        ctx.localVars[args[i++].first] = { arg.getType(), alloca };
+        ctx.vars[args[i++].first] = { arg.getType(), alloca };
     }
 
     for (size_t i = 0; i < body.size() - 1; i++)
@@ -705,7 +746,7 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
     auto retVal = body[body.size() - 1]->llvmValue(ctx);
     ctx.builder->CreateRet(cast(ctx, retVal, f->getReturnType()));
     
-    ctx.localVars.clear();
+    ctx.vars.clear();
 
     if (llvm::verifyFunction(*f)) {
         // f->print(llvm::errs());
@@ -734,8 +775,8 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
     
     ctx.builder->SetInsertPoint(fnBB);
 
-    auto prevVars = ctx.localVars;
-    ctx.localVars.clear();
+    auto prevVars = ctx.vars;
+    ctx.vars.clear();
     
     size_t i = 0;
     for (auto& arg : f->args()) {
@@ -749,7 +790,7 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
 
         ctx.builder->CreateStore(&arg, alloca);
 
-        ctx.localVars[args[i++].first] = { arg.getType(), alloca };
+        ctx.vars[args[i++].first] = { arg.getType(), alloca };
     }
 
     for (size_t i = 0; i < body.size() - 1; i++)
@@ -760,7 +801,7 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
 
     ctx.builder->SetInsertPoint(prevBB);
 
-    ctx.localVars = prevVars;
+    ctx.vars = prevVars;
 
     if (llvm::verifyFunction(*f)) {
         // f->print(llvm::errs());
@@ -777,16 +818,18 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
 
     llvm::Function *f = nullptr;
 
-    if (callee->isLambda()) f = (llvm::Function*) callee->llvmValue(ctx);
-
-    if (!f && (!id || ctx.isVar(id->getVal()))) {
+    if (callee->isLambda()) {
+        f = (llvm::Function*) callee->llvmValue(ctx);
+    } else if (!id && ctx.isFunction(id->getVal())) {
+        f = (llvm::Function*) ctx.mod->getFunction(id->getVal());
+    } else if (!id || ctx.isVar(id->getVal()) || ctx.isConst(id->getVal())) {
         auto ptr = callee->llvmValue(ctx);
 
-        if (Compiler::isFunctionTy(ptr->getType())) {
+        if (Compiler::isFunctionTy(ptr->getType()))
             f = (llvm::Function*) ptr;
-        } else if (!ptr->getType()->isPointerTy()) {
-            Error::compiler(U"pointer-index-calls only work with pointers");
-        } else {
+        else if (!ptr->getType()->isPointerTy())
+            Error::compiler(Compiler::llvmTypeStr(ptr->getType()) + U" is not a callable type");
+        else {
             if (args.size() != 1)
                 Error::compiler(
                     U"expected exactly 1 argument for pointer-index-call");
@@ -804,7 +847,6 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
                 v->getType()->getPointerElementType(), v);
         }
     }
-
     if (!f) f = ctx.mod->getFunction(id->getVal());
 
     if (!f) Error::compiler(U"undefined reference to '" + std::stou32(id->getVal()) + U"'");
