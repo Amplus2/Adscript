@@ -173,10 +173,6 @@ std::string Utils::makeOutputPath(const std::string &input, bool exe) {
     return exe ? mod : mod + ".o";
 }
 
-
-
-
-
 std::u32string AST::betToStr(AST::BinExprType bet) {
     switch (bet) {
     case AST::BINEXPR_ADD:   return U"+";

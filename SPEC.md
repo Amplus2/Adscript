@@ -54,7 +54,7 @@ By quoting a list you can create a struct data type.
 
 <!--TODO: a defn++ with c++ mangline-->
 
-#### `def` (not implemented yet)
+#### `defv` (not implemented yet)
 Defines a compile-time constant.
 
 ```adscript
@@ -62,12 +62,13 @@ Defines a compile-time constant.
 ```
 
 #### `deft`
-Defines a data type (only at compile time).
+Defines a data type.
 
 ```adscript
 (deft <identifier> <data type>)
 
-(deft xy '(int x int y))
+(deft int32 i32)
+(deft xy '(int32 x int32 y))
 ```
 
 #### `defn`
