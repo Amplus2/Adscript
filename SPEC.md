@@ -32,6 +32,9 @@ Functions can be created using the `fn` function and called using a `list`:
 
 ```adscript
 (fn [<parameters>] <return type> <body>)
+
+;; arguments of variable length
+(fn [<parameters>]' <return type> <body>)
 ```
 
 For example:
@@ -110,6 +113,7 @@ Sets the value for a pointer.
 (var i 21)
 (setptr (ref i) 42)
 ```
+(fn [<parameters>] <return type> <body>)
 
 ### `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `~`, `=`, `<`, `>`, `<=`, `>=`, `or`, `and`, `xor`, `not`
 These functions are so obvious that they will be documented later.

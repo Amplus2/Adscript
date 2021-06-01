@@ -9,11 +9,16 @@ void fine() {
     flag = true;
 }
 
+int not_fine(int (*a)()) {
+    return a();
+}
+
 int64_t test1();
 int64_t test2();
 bool test3(bool);
 void test4(int64_t *i);
 void test5();
+int test6();
 
 int main() {
     assert(test1() == 66);
@@ -31,5 +36,8 @@ int main() {
     test5();
     assert(flag);
     puts("Test 5 passed.");
+    assert(test6() == 1337);
+    puts("Test 6 passed.");
+
     return 0;
 }
