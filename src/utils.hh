@@ -54,6 +54,14 @@ std::u32string strReplaceAll(std::u32string str, const std::u32string& find,
                             const std::u32string& replace);
 std::u32string unescapeStr(const std::u32string& str);
 
+template<class T1, class T2>
+bool pairVectorKeyExists(const std::vector<std::pair<T1, T2>>& vec, const T1& key) {
+    for (auto& pair : vec) {
+        if (pair.first == key) return true;
+    }
+    return false;
+}
+
 bool isDigit(char c);
 bool isWhitespace(char c);
 bool isSpecialChar(char c);
@@ -70,7 +78,7 @@ namespace AST {
 std::u32string betToStr(BinExprType bet);
 std::u32string strVectorToStr(const std::vector<std::u32string>& vector);
 std::u32string exprVectorToStr(const std::vector<Expr*>& vector);
-std::u32string argVectorToStr(const std::vector<std::pair<Type*, std::string>>& vector);
+std::u32string argVectorToStr(const std::vector<std::pair<std::string, Type*>>& vector);
 std::u32string attrMapToStr(const std::map<std::string, Type*>& map);
 
 void print(const std::vector<Expr*>& ast);

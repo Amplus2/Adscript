@@ -6,15 +6,6 @@
 
 using namespace Adscript;
 
-bool Lexer::eofReached() {
-    return idx >= text.size();
-}
-
-char Lexer::getc(size_t idx) {
-    if (idx >= text.size()) return -1;
-    return text[idx];
-}
-
 Lexer::Token Lexer::nextT() {
     // section declaration for goto statement we need later on
     nextT_start:
@@ -167,30 +158,6 @@ Lexer::Token Lexer::nextT() {
     return Token(TT_ID, tmpStr);
 }
 
-size_t Lexer::getIdx() {
-    return idx;
-}
-
-void Lexer::setIdx(size_t idx) {
-    this->idx = idx;
-}
-
-std::u32string Lexer::pos() {
-    if (idx >= text.size()) return U"end of file";
-
-    size_t tmpIdx = 0, line = 1, col = 1;
-
-    while (tmpIdx < idx) {
-        if (text[tmpIdx + 1] == '\n' || text[tmpIdx + 1] == '\r') {
-            col = 1;
-            line += 1;
-        } else col += 1;
-        tmpIdx += 1;
-    }
-
-    return std::stou32(std::to_string(line) + ":" + std::to_string(col));
-}
-
 AST::Expr* tokenToExpr(Lexer::Token t) {
     switch (t.tt) {
     case Lexer::TT_ID:     return new AST::Identifier(std::to_string(t.val));
@@ -221,38 +188,56 @@ AST::Type* Parser::parseType(Lexer::Token& tmpT) {
         t = new AST::PrimType(AST::TYPE_DOUBLE);
     } else if (tmpT.tt == Lexer::TT_ID) {
         t = new AST::IdentifierType(std::to_string(tmpT.val));
-    } else return nullptr;
-
-    Lexer::Token tmpTmpT = tmpT;
-    size_t tmpIdx = lexer.getIdx();
-    tmpT = lexer.nextT();
-
-    if (tmpT.tt == Lexer::TT_STAR) {
-        tmpTmpT = tmpT;
-        tmpIdx = lexer.getIdx();
-
-        // eat up '*'
+    } else if (tmpT.tt == Lexer::TT_QUOTE) {
+        // eat up quote
         tmpT = lexer.nextT();
+
+        if (tmpT.tt != Lexer::TT_PO)
+            Error::parserExpected(U"'('", tmpT.val, lexer.pos());
         
-        uint8_t quanity = 1;
-        while (tmpT.tt == Lexer::TT_STAR) {
-            tmpTmpT = tmpT;
-            tmpIdx = lexer.getIdx();
+        tmpT = lexer.nextT();
 
-            // eat up '*' 
+        std::map<std::string, AST::Type*> attrs;
+
+        while (tmpT.tt != Lexer::TT_PC && tmpT.tt != Lexer::TT_EOF) {
+            auto t1 = parseType(tmpT);
+
+            if (!t1) Error::parserExpected(U"data type", tmpT.val, lexer.pos());
+
+            if (tmpT.tt != Lexer::TT_ID)
+                Error::parserExpected(U"identifier", tmpT.val, lexer.pos());
+            
+            auto id = std::to_string(tmpT.val);
+
+            if (attrs.find(id) != attrs.end())
+                Error::parserExpected(
+                    U"unique attribute identifier", tmpT.val, lexer.pos());
+            
+            attrs[id] = t1;
+
             tmpT = lexer.nextT();
-
-            quanity += 1;
         }
 
-        lexer.setIdx(tmpIdx);
-        tmpT = tmpTmpT;
+        if (tmpT.tt == Lexer::TT_EOF)
+            Error::parserExpected(U"')'", tmpT.val);
 
-        return new AST::PointerType(t, quanity);
+        //tmpT = lexer.nextT();
+
+        t = new AST::StructType(attrs);
+    } else return nullptr;
+
+    tmpT = lexer.nextT();
+        
+    uint8_t quantity = 0;
+    while (tmpT.tt == Lexer::TT_STAR) {
+        // eat up '*' 
+        tmpT = lexer.nextT();
+
+        quantity += 1;
     }
 
-    lexer.setIdx(tmpIdx);
-    tmpT = tmpTmpT;
+    if (quantity > 0) return new AST::PointerType(t, quantity);
+
     return t;
 }
 
@@ -380,9 +365,6 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
                 if (!t)
                     Error::parserExpected(U"data type", tmpT.val, lexer.pos());
 
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
                 auto ptr = parseExpr(tmpT);
 
                 // eat up remaining token
@@ -439,9 +421,6 @@ AST::Expr* Parser::parseTopLevelExpr(Lexer::Token& tmpT) {
                 // error if no type was parsed
                 if (!type) Error::parserExpected(U"data type", tmpT.val);
 
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
                 return new AST::Deft(type, std::to_string(id));
             }
             
@@ -453,7 +432,7 @@ AST::Expr* Parser::parseTopLevelExpr(Lexer::Token& tmpT) {
         Error::parserExpected(U"identifier", tmpT.val, lexer.pos());
     }
 
-    Error::parserExpected(U"top level expression", tmpT.val, lexer.pos());
+    Error::parserExpected(U"(", tmpT.val, lexer.pos());
 
     return nullptr;
 }
@@ -541,9 +520,6 @@ AST::Cast* Parser::parseCast(Lexer::Token& tmpT) {
 
     if (!type) Error::parserExpected(U"data type", tmpT.val);
 
-    // eat up remaining token
-    tmpT = lexer.nextT();
-
     auto expr = parseExpr(tmpT);
 
     // eat up remaining token
@@ -589,11 +565,13 @@ AST::Lambda* Parser::parseLambda(Lexer::Token& tmpT) {
     // eat up 'fn' (or any other previous token)
     tmpT = lexer.nextT();
 
-    std::vector<std::pair<AST::Type*, std::string>> args;
+    bool varArg = false;
+    std::vector<std::pair<std::string, AST::Type*>> args;
 
     auto retType = parseType(tmpT);
 
     if (!retType) {
+
         if (tmpT.tt != Lexer::TT_BRO) Error::parserExpected(U"'['", tmpT.val, lexer.pos());
 
         // eat up '['
@@ -605,13 +583,14 @@ AST::Lambda* Parser::parseLambda(Lexer::Token& tmpT) {
             auto t = parseType(tmpT);
             if (!t) Error::parserExpected(U"data type", tmpT.val, lexer.pos());
 
-            // eat up data type
-            tmpT = lexer.nextT();
-
             // get argument/parameter id
-            if (tmpT.tt != Lexer::TT_ID) Error::parserExpected(U"identifier", tmpT.val, lexer.pos());
+            if (tmpT.tt != Lexer::TT_ID)
+                Error::parserExpected(U"identifier", tmpT.val, lexer.pos());
 
-            args.push_back({ t, std::to_string(tmpT.val) });
+            if (Utils::pairVectorKeyExists(args, std::to_string(tmpT.val)))
+                Error::parserExpected(U"unique argument identifier", tmpT.val, lexer.pos());
+
+            args.push_back({ std::to_string(tmpT.val), t });
 
             // eat up identifier
             tmpT = lexer.nextT();
@@ -619,13 +598,15 @@ AST::Lambda* Parser::parseLambda(Lexer::Token& tmpT) {
 
         // eat up ']'
         tmpT = lexer.nextT();
+
+        if (tmpT.tt == Lexer::TT_QUOTE) {
+            varArg = true;
+            tmpT = lexer.nextT();
+        }
+
+        retType = parseType(tmpT);
+        if (!retType) Error::parserExpected(U"return type", tmpT.val, lexer.pos());
     }
-
-    retType = parseType(tmpT);
-    if (!retType) Error::parserExpected(U"return type", tmpT.val, lexer.pos());
-
-    // eat up return type
-    tmpT = lexer.nextT();
 
     // parse body
     std::vector<AST::Expr*> body;
@@ -638,7 +619,7 @@ AST::Lambda* Parser::parseLambda(Lexer::Token& tmpT) {
 
     if (tmpT.tt == Lexer::TT_EOF) Error::parser(U"unexpected end of file");
 
-    return new AST::Lambda(args, retType, body);
+    return new AST::Lambda(args, retType, body, varArg);
 }
 
 AST::Call* Parser::parseCall(Lexer::Token& tmpT) {

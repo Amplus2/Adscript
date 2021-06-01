@@ -7,20 +7,7 @@
 namespace Adscript {
 
 class Lexer {
-private:
-    size_t idx;
-    std::u32string text;
 public:
-    Lexer(const std::u32string& text) : idx(0), text(text) {}
-
-    char getc(size_t idx);
-
-    void setIdx(size_t idx);
-    size_t getIdx();
-
-    bool eofReached();
-
-    std::u32string pos();
 
     enum TokenType {
         TT_ERR,
@@ -54,6 +41,50 @@ public:
         //    : tt(tt), val(std::u32string(val.begin(), val.end())) {}
         Token(TokenType tt, std::u32string val) : tt(tt), val(val) {}
     };
+private:
+    std::u32string text;
+    size_t idx = 0, lastIdx = 0;
+    Token lastToken;
+public:
+    Lexer(const std::u32string& text) : text(text) {}
+
+    char getc(size_t idx) {
+        if (eofReached()) return -1;
+        return text[idx];
+    }
+
+    void setIdx(size_t idx) {
+        this->idx = idx;
+    }
+
+    size_t getIdx() {
+        return idx;
+    }
+
+    bool eofReached() {
+        return idx >= text.size();
+    }
+
+    Token back() {
+        this->idx = lastIdx;
+        return lastToken;
+    }
+
+    std::u32string pos() {
+        if (idx >= text.size()) return U"end of file";
+
+        size_t tmpIdx = 0, line = 1, col = 1;
+
+        while (tmpIdx < idx) {
+            if (text[tmpIdx + 1] == '\n' || text[tmpIdx + 1] == '\r') {
+                col = 1;
+                line += 1;
+            } else col += 1;
+            tmpIdx += 1;
+        }
+
+        return std::stou32(std::to_string(line) + ":" + std::to_string(col));
+    }
 
     Token nextT();
 };

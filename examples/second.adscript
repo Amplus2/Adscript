@@ -1,9 +1,11 @@
 (defn puts [char* s] int)
+(defn printf [char* s]' int)
 
 (deft int8 i8)
+(deft xy '(int x int y))
 
 (defn main [int a] int8
+    (printf "%d\n" 42)
     (var hw "42")
-    (puts hw)
     ((fn [char** s] int (setptr s "Hello World")) (ref hw))
     (puts hw))

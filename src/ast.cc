@@ -652,7 +652,7 @@ llvm::Value* AST::Cast::llvmValue(Compiler::Context& ctx) {
 llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
-        ftArgs.push_back(arg.first->llvmType(ctx));
+        ftArgs.push_back(arg.second->llvmType(ctx));
 
     auto f = ctx.mod->getFunction(id);
 
@@ -669,7 +669,7 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
                 
     } else {
         auto ft = llvm::FunctionType::get(
-            retType->llvmType(ctx), ftArgs, false);
+            retType->llvmType(ctx), ftArgs, varArg);
 
         f = llvm::Function::Create(
             ft, llvm::Function::ExternalLinkage, id, ctx.mod);
@@ -677,7 +677,7 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
 
     if (body.size() <= 0) {
         size_t i = 0;
-        for (auto& arg : f->args()) arg.setName(args[i].second);
+        for (auto& arg : f->args()) arg.setName(args[i].first);
         return f;
     }
 
@@ -686,17 +686,17 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
 
     size_t i = 0;
     for (auto& arg : f->args()) {
-        if (args[i].second.size() <= 0)
+        if (args[i].first.size() <= 0)
             Error::compiler(
                 U"function definiton with body must have named arguments");
 
-        arg.setName(args[i].second);
+        arg.setName(args[i].first);
 
         auto alloca = Compiler::createAlloca(f, ftArgs[i]);
 
         ctx.builder->CreateStore(&arg, alloca);
 
-        ctx.localVars[args[i++].second] = { arg.getType(), alloca };
+        ctx.localVars[args[i++].first] = { arg.getType(), alloca };
     }
 
     for (size_t i = 0; i < body.size() - 1; i++)
@@ -721,10 +721,10 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
 
     std::vector<llvm::Type*> ftArgs;
     for (auto& arg : args)
-        ftArgs.push_back(arg.first->llvmType(ctx));
+        ftArgs.push_back(arg.second->llvmType(ctx));
 
     auto ft = llvm::FunctionType::get(
-        retType->llvmType(ctx), ftArgs, false);
+        retType->llvmType(ctx), ftArgs, varArg);
 
     auto f = llvm::Function::Create(
         ft, llvm::Function::PrivateLinkage, "", ctx.mod);
@@ -739,17 +739,17 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
     
     size_t i = 0;
     for (auto& arg : f->args()) {
-        if (args[i].second.size() <= 0)
+        if (args[i].first.size() <= 0)
             Error::compiler(
                 U"lambda expression must have named arguments");
 
-        arg.setName(args[i].second);
+        arg.setName(args[i].first);
 
         auto alloca = Compiler::createAlloca(f, ftArgs[i]);
 
         ctx.builder->CreateStore(&arg, alloca);
 
-        ctx.localVars[args[i++].second] = { arg.getType(), alloca };
+        ctx.localVars[args[i++].first] = { arg.getType(), alloca };
     }
 
     for (size_t i = 0; i < body.size() - 1; i++)
@@ -809,23 +809,25 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
 
     if (!f) Error::compiler(U"undefined reference to '" + std::stou32(id->getVal()) + U"'");
 
-    if (args.size() > f->arg_size())
-        Error::compiler(U"too many arguments for function '"
-            + std::stou32(id->getVal()) + U"'");
-    else if (args.size() < f->arg_size())
-        Error::compiler(U"too few arguments for function '"
-            + std::stou32(id->getVal()) + U"'");
+    if (!f->isVarArg()) {
+        if (args.size() > f->arg_size())
+            Error::compiler(U"too many arguments for function '"
+                + std::stou32(id->getVal()) + U"'");
+        else if (args.size() < f->arg_size())
+            Error::compiler(U"too few arguments for function '"
+                + std::stou32(id->getVal()) + U"'");
+    }
 
     std::vector<llvm::Value*> callArgs;
 
-    size_t i = 0;
-    for (auto& arg : f->args()) {
-        auto v = args[i++]->llvmValue(ctx);
-        auto v1 = tryCast(ctx, v, arg.getType());
+    for (size_t i = 0; i < args.size(); i++) {
+        auto v = args[i]->llvmValue(ctx);
+        auto v1 = f->isVarArg() && i >= f->arg_size() 
+                    ? v : tryCast(ctx, v, f->getArg(i)->getType());
         if (!v1)
             Error::compiler(U"invalid argument type for function '"
                 + std::stou32(id->getVal()) + U"' (expected: '"
-                + Compiler::llvmTypeStr(arg.getType()) + U"', got: '"
+                + Compiler::llvmTypeStr(f->getArg(i)->getType()) + U"', got: '"
                 + Compiler::llvmTypeStr(v->getType()) + U"')");
         callArgs.push_back(v1);
     }

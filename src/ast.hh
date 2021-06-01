@@ -384,21 +384,23 @@ public:
 class Function : public Expr {
 private:
     const std::string id;
-    const std::vector<std::pair<Type*, std::string>> args;
+    const std::vector<std::pair<std::string, Type*>> args;
     Type *retType;
     std::vector<Expr*> body;
+
+    bool varArg = false;
 public:
     Function(const std::string& id, 
-                const std::vector<std::pair<Type*, std::string>>& args,
-                Type *retType, std::vector<Expr*>& body)
-        : id(id), args(args), retType(retType), body(body) {}
+                const std::vector<std::pair<std::string, Type*>>& args,
+                Type *retType, std::vector<Expr*>& body, bool varArg)
+        : id(id), args(args), retType(retType), body(body), varArg(varArg) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
 
     ~Function() {
         for (auto& arg : args)
-            delete arg.first;
+            delete arg.second;
         for (auto& expr : body)
             delete expr;
     }
@@ -406,13 +408,15 @@ public:
 
 class Lambda : public Expr {
 private:
-    const std::vector<std::pair<Type*, std::string>> args;
+    const std::vector<std::pair<std::string, Type*>> args;
     Type *retType;
     std::vector<Expr*> body;
+
+    bool varArg = false;
 public:
-    Lambda(std::vector<std::pair<Type*, std::string>>& args,
-            Type *retType, std::vector<Expr*>& body)
-        : args(args), retType(retType), body(body) {}
+    Lambda(std::vector<std::pair<std::string, Type*>>& args,
+            Type *retType, std::vector<Expr*>& body, bool varArg = false)
+        : args(args), retType(retType), body(body), varArg(varArg) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
@@ -420,12 +424,12 @@ public:
     bool isLambda() override { return true; }
 
     Function* toFunc(const std::string& id) {
-        return new Function(id, args, retType, body);
+        return new Function(id, args, retType, body, varArg);
     }
 
     ~Lambda() {
         for (auto& arg : args)
-            delete arg.first;
+            delete arg.second;
         for (auto& expr : body)
             delete expr;
     }

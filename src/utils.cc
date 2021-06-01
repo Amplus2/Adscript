@@ -174,6 +174,9 @@ std::string Utils::makeOutputPath(const std::string &input, bool exe) {
 }
 
 
+
+
+
 std::u32string AST::betToStr(AST::BinExprType bet) {
     switch (bet) {
     case AST::BINEXPR_ADD:   return U"+";
@@ -214,11 +217,11 @@ std::u32string AST::exprVectorToStr(const std::vector<AST::Expr*>& vector) {
     return AST::strVectorToStr(tmp);
 }
 
-std::u32string AST::argVectorToStr(const std::vector<std::pair<AST::Type*, std::string>>& vector) {
+std::u32string AST::argVectorToStr(const std::vector<std::pair<std::string, AST::Type*>>& vector) {
     std::vector<std::u32string> tmp;
     for (size_t i = 0; i < vector.size(); i++) {
         std::u32string str =
-            std::stou32(vector.at(i).second) + U": " + vector.at(i).first->str();
+            std::stou32(vector.at(i).first) + U": " + vector.at(i).second->str();
         tmp.push_back(str);
     }
     return AST::strVectorToStr(tmp);
