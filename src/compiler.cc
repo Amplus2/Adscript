@@ -184,7 +184,7 @@ void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::stri
     Compiler::Context cctx(&mod, &builder);
     for (auto& expr : exprs) expr->llvmValue(cctx);
 
-    mod.print(llvm::errs(), 0);
+    // mod.print(llvm::errs(), 0);
 
     runMPM(&mod);
 
