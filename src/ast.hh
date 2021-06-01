@@ -60,8 +60,10 @@ public:
     virtual ~Expr() = default;
     virtual std::u32string str() = 0;
     virtual llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) = 0;
+
     virtual bool isLambda() { return false; }
     virtual bool isIdentifier() { return false; }
+    virtual bool isPtrElementCall(::Adscript::Compiler::Context& ctx) { return false; }
 };
 
 }
@@ -274,17 +276,17 @@ public:
     }
 };
 
-class Def : public Expr {
+class Let : public Expr {
 private:
     Expr *val;
     const std::string id;
 public:
-    Def(Expr *val, const std::string& id) : val(val), id(id) {}
+    Let(Expr *val, const std::string& id) : val(val), id(id) {}
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
 
-    ~Def() {
+    ~Let() {
         delete val;
     }
 };
@@ -460,6 +462,8 @@ public:
 
     llvm::Value* llvmValue(::Adscript::Compiler::Context& ctx) override;
     std::u32string str() override;
+
+    bool isPtrElementCall(::Adscript::Compiler::Context& ctx) override;
 
     ~Call() {
         delete callee;

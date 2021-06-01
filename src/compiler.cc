@@ -36,8 +36,8 @@ bool Compiler::Context::isType(const std::string& id) {
     return types.find(id) != types.end();
 }
 
-bool Compiler::Context::isConst(const std::string& id) {
-    return consts.find(id) != consts.end();
+bool Compiler::Context::isFinal(const std::string& id) {
+    return finals.find(id) != finals.end();
 }
 
 bool Compiler::Context::isFunction(const std::string& id) {
@@ -49,14 +49,12 @@ bool Compiler::Context::isFunction(const std::string& id) {
 
 Compiler::ctx_var_t Compiler::Context::getVar(const std::string& id) {
     if (isVar(id)) return vars[id];
-    llvm::Function *f = mod->getFunction(id);
-    if (f) return { f->getType(), f };
     return { nullptr, nullptr };
 }
 
-AST::Expr* Compiler::Context::getConst(const std::string& id) {
-    if (isConst(id)) return consts[id];
-    return nullptr;
+Compiler::ctx_var_t Compiler::Context::getFinal(const std::string& id) {
+    if (isFinal(id)) return finals[id];
+    return { nullptr, nullptr };
 }
 
 llvm::Function* Compiler::Context::getFunction(const std::string& id) {

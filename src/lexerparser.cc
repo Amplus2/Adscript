@@ -322,6 +322,25 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
                 tmpT = lexer.nextT();
 
                 return new AST::Set(ptr, val);
+            } else if (!tmpT.val.compare(U"let")) {
+                // eat up 'def'
+                tmpT = lexer.nextT();
+
+                // error if token is not of type identifier
+                if (tmpT.tt != Lexer::TT_ID)
+                    Error::parserExpected(U"identifer", tmpT.val);
+                
+                auto id = tmpT.val;
+
+                // eat up identifier
+                tmpT = lexer.nextT();
+
+                auto expr = parseExpr(tmpT);
+
+                // eat up remaining token
+                tmpT = lexer.nextT();
+
+                return new AST::Let(expr, std::to_string(id));
             } else if (!tmpT.val.compare(U"setptr")) {
                 // eat up 'setptr'
                 tmpT = lexer.nextT();
@@ -403,29 +422,7 @@ AST::Expr* Parser::parseTopLevelExpr(Lexer::Token& tmpT) {
         else if (tmpT.tt == Lexer::TT_ID) {
             if (!tmpT.val.compare(U"defn"))
                 return parseFunction(tmpT);
-            else if (!tmpT.val.compare(U"def")) {
-                // eat up 'def'
-                tmpT = lexer.nextT();
-
-                // error if token is not of type identifier
-                if (tmpT.tt != Lexer::TT_ID)
-                    Error::parserExpected(U"identifer", tmpT.val);
-                
-                auto id = tmpT.val;
-
-                // eat up identifier
-                tmpT = lexer.nextT();
-
-                auto expr = parseExpr(tmpT);
-
-                // error if no type was parsed
-                if (!expr) Error::parserExpected(U"expression", tmpT.val);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                return new AST::Def(expr, std::to_string(id));
-            } else if (!tmpT.val.compare(U"deft")) {
+            else if (!tmpT.val.compare(U"deft")) {
                 // eat up 'deft'
                 tmpT = lexer.nextT();
 

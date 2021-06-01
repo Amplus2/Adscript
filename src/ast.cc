@@ -102,7 +102,7 @@ std::u32string AST::Deft::str() {
         + U" }";
 }
 
-std::u32string AST::Def::str() {
+std::u32string AST::Let::str() {
     return std::u32string() + U"Def: {"
         + U"id: '" + std::stou32(id) + U"'";
         + U", val: " + val->str()
@@ -241,8 +241,10 @@ llvm::Value* AST::Identifier::llvmValue(Compiler::Context& ctx) {
 
         // return load to alloca
         return ctx.builder->CreateLoad(var.first, var.second);
-    } else if (ctx.isConst(val)) {
-        return ctx.consts[val]->llvmValue(ctx);
+    } else if (ctx.isFinal(val)) {
+        return ctx.needsRef
+            ? ctx.finals[val].second
+            : ctx.builder->CreateLoad(ctx.finals[val].first, ctx.finals[val].second);
     } else if (ctx.isFunction(val)) {
         return ctx.mod->getFunction(val);
     }
@@ -502,7 +504,7 @@ llvm::Value* AST::Deft::llvmValue(Compiler::Context& ctx) {
         Error::warning(U"data type '" + std::stou32(id) + U"' already defined");
     else if (ctx.isVar(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined as variable");
-    else if (ctx.isConst(id))
+    else if (ctx.isFinal(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined as constant");
     else if (ctx.isFunction(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined as function");
@@ -517,9 +519,9 @@ llvm::Value* AST::Deft::llvmValue(Compiler::Context& ctx) {
     return constInt(ctx, 0);
 }
 
-llvm::Value* AST::Def::llvmValue(Compiler::Context& ctx) {
+llvm::Value* AST::Let::llvmValue(Compiler::Context& ctx) {
     // error if variable is already defined
-    if (ctx.isConst(id))
+    if (ctx.isFinal(id))
         Error::warning(U"constant '" + std::stou32(id) + U"' already defined");
     else if (ctx.isType(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined as data type");
@@ -528,8 +530,10 @@ llvm::Value* AST::Def::llvmValue(Compiler::Context& ctx) {
     else if (ctx.isFunction(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined as function");
 
+    auto v = val->llvmValue(ctx);
+
     // add the alloca to the 'vars' map
-    ctx.consts[id] = val;
+    ctx.finals[id] = { v->getType(), v };
 
     // return the alloca
     return constInt(ctx, 0);
@@ -539,7 +543,7 @@ llvm::Value* AST::Var::llvmValue(Compiler::Context& ctx) {
     // error if variable is already defined
     if (ctx.isVar(id))
         Error::compiler(U"variable '" + std::stou32(id) + U"' already defined");
-    else if (ctx.isConst(id))
+    else if (ctx.isFinal(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined as constant");
     else if (ctx.isType(id))
         Error::warning(U"'" + std::stou32(id) + U"' already defined data type");
@@ -563,42 +567,39 @@ llvm::Value* AST::Var::llvmValue(Compiler::Context& ctx) {
 }
 
 llvm::Value* AST::Set::llvmValue(Compiler::Context& ctx) {
-    // get the current 'needsRef' value
-    bool b = ctx.needsRef;
+    if (ptr->isIdentifier()) {
+        auto id = ((Identifier*) ptr)->getVal();
+        if (ctx.isFinal(id)) {
+            Error::compiler(U"unable to assign value to runtime constant");
+        } else if (ctx.isVar(id)) {
+            auto var = ctx.vars[id];
 
-    // set the 'needsRef' flag
-    ctx.needsRef = true;
+            auto llvmVal = cast(ctx, val->llvmValue(ctx), var.first);
 
-    // get pointer to store the value in
-    llvm::Value *ptr = this->ptr->llvmValue(ctx);
-    
-    // set 'needsRef' flag to the value stored in 'b'
-    ctx.needsRef = b;
+            ctx.builder->CreateStore(llvmVal, var.second);
 
-    // error if the value is not going to be stored in a pointer
-    if (!ptr->getType()->isPointerTy())
-        Error::compiler(U"expected pointer type for set expression as first argument");
-    
-    // get the type of the pointer
-    auto valT = ptr->getType()->getPointerElementType();
+            return llvmVal;
+        } else if (ctx.isFunction(id)) {
+            Error::compiler(U"'" + std::stou32(id) + U"' is defined as a function");
+        }
+    } else if (ptr->isPtrElementCall(ctx)) {
+        bool b = ctx.needsRef;
+        ctx.needsRef = true;
 
-    // get the value to store
-    auto val = this->val->llvmValue(ctx);
+        auto llvmPtr = ptr->llvmValue(ctx);
 
-    // try casting the value to the pointer's element type
-    auto val1 = tryCast(ctx, val, valT);
+        ctx.needsRef = b;
 
-    // error if casting failed
-    if (!val1)
-        Error::compiler(
-            U"pointer of set instruction is unable to store (expected: "
-            + Compiler::llvmTypeStr(valT) + U", got: "
-            + Compiler::llvmTypeStr(val->getType()) + U")");
+        auto llvmVal = cast(ctx, val->llvmValue(ctx), llvmPtr->getType()->getPointerElementType());
 
-    ctx.builder->CreateStore(val1, ptr);
+        ctx.builder->CreateStore(llvmVal, llvmPtr);
 
-    // return stored value
-    return val1;
+        return llvmVal;
+    }
+
+    Error::compiler(U"invalid 'set' expression");
+
+    return nullptr;
 }
 
 llvm::Value* AST::SetPtr::llvmValue(Compiler::Context& ctx) {
@@ -822,7 +823,10 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
         f = (llvm::Function*) callee->llvmValue(ctx);
     } else if (!id && ctx.isFunction(id->getVal())) {
         f = (llvm::Function*) ctx.mod->getFunction(id->getVal());
-    } else if (!id || ctx.isVar(id->getVal()) || ctx.isConst(id->getVal())) {
+    } else if (!id || ctx.isVar(id->getVal()) || ctx.isFinal(id->getVal())) {
+        bool needsRef = ctx.needsRef;
+        ctx.needsRef = false;
+
         auto ptr = callee->llvmValue(ctx);
 
         if (Compiler::isFunctionTy(ptr->getType()))
@@ -842,7 +846,7 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
 
             llvm::Value *v = ctx.builder->CreateGEP(ptr, idx);
 
-            if (ctx.needsRef) return v;
+            if (needsRef) return v;
             return ctx.builder->CreateLoad(
                 v->getType()->getPointerElementType(), v);
         }
@@ -877,4 +881,22 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
     auto call = ctx.builder->CreateCall(f, callArgs);
 
     return call;
+}
+
+bool AST::Call::isPtrElementCall(Compiler::Context& ctx) {
+    auto id = callee->isIdentifier() ? (Identifier*) callee : nullptr;
+    bool b = callee->isLambda() || (!id && ctx.isFunction(id->getVal()));
+
+    if (!b && (!id || ctx.isVar(id->getVal()) || ctx.isFinal(id->getVal()))) {
+        auto tmp = callee->llvmValue(ctx);
+
+        b = !::Adscript::Compiler::isFunctionTy(tmp->getType())
+            && tmp->getType()->isPointerTy();
+
+        //tmp->deleteValue();
+
+        return b;
+    }
+
+    return false;
 }
