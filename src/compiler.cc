@@ -8,8 +8,6 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 
-#include <llvm/Passes/PassBuilder.h>
-
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 
@@ -63,6 +61,11 @@ llvm::Function* Compiler::Context::getFunction(const std::string& id) {
     return nullptr;
 }
 
+void Compiler::Context::runFPM(llvm::Function *f) {
+    if (!f) return;
+    fpm.run(*f, fam);
+}
+
 std::string getFileName(const std::string& path) {
     auto s = path.find_last_of("/\\");
     return s == std::string::npos ? path : path.substr(s + 1);
@@ -78,33 +81,6 @@ std::string getModuleId(const std::string& filename) {
                 : filename.substr(1, filename.find_last_of('.'))
             : filename.substr(0, filename.find_last_of('.'))
         : filename;
-}
-
-void runMPM(llvm::Module *mod) {
-    llvm::PassBuilder passBuilder;
-
-    llvm::ModuleAnalysisManager          mam;
-    llvm::CGSCCAnalysisManager           gam;
-    llvm::FunctionAnalysisManager        fam;
-    llvm::LoopAnalysisManager            lam;
-
-    passBuilder.registerModuleAnalyses   (mam);
-    passBuilder.registerCGSCCAnalyses    (gam);
-    passBuilder.registerFunctionAnalyses (fam);
-    passBuilder.registerLoopAnalyses     (lam);
-
-    passBuilder.crossRegisterProxies(lam, fam, gam, mam);
-
-    // TODO: make configurable
-    auto mpm = passBuilder.buildPerModuleDefaultPipeline(
-        llvm::PassBuilder::OptimizationLevel::O3);
-
-    mpm.run(*mod, mam);
-
-    mam.clear();
-    gam.clear();
-    fam.clear();
-    lam.clear();
 }
 
 void compileModuleToFile(llvm::Module *mod, const std::string &output, const std::string &target) {
@@ -183,9 +159,7 @@ void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::stri
     Compiler::Context cctx(&mod, &builder);
     for (auto& expr : exprs) expr->llvmValue(cctx);
 
-    // mod.print(llvm::errs(), 0);
-
-    runMPM(&mod);
+    cctx.clear();
 
     if (emitLLVM) {
         auto idx = output.find_last_of('/');

@@ -255,31 +255,31 @@ llvm::Value* AST::Identifier::llvmValue(Compiler::Context& ctx) {
 }
 
 llvm::Value* AST::String::llvmValue(Compiler::Context& ctx) {
-    auto elementT =  Utils::isAscii(val)
+    auto charT =  Utils::isAscii(val)
         ? llvm::Type::getInt8Ty(ctx.mod->getContext()) 
         : llvm::Type::getInt32Ty(ctx.mod->getContext());
 
-    auto arrayT = llvm::ArrayType::get(elementT, val.size() + 1);
+    // create llvm value vector for array elements
+    std::vector<llvm::Constant*> chars;
 
-    auto array = (llvm::Value*) ctx.builder->CreateAlloca(arrayT);
+    // add characters to the 'elements' vector
+    for (auto& c : val) chars.push_back(llvm::ConstantInt::get(charT, c));
+    
+    // add NULL terminator to chars
+    chars.push_back(llvm::ConstantInt::get(charT, 0));
 
+    // create array type using the element type
+    auto arrT = llvm::ArrayType::get(charT, chars.size());
+
+    auto initializer = llvm::ConstantArray::get(arrT, chars);
+
+    auto arr = new llvm::GlobalVariable(
+        *(ctx.mod), arrT, false,
+        llvm::GlobalValue::PrivateLinkage, initializer);
+
+    // assign 'arr' to the pointer to the first element of the string
     auto zero = Compiler::constInt(ctx, 0);
-    array = ctx.builder->CreateGEP(array, { zero, zero });
-
-    for (size_t i = 0; i < val.size(); i++) {
-        auto idx = Compiler::constInt(ctx, i);
-        auto llvmVal = llvm::ConstantInt::get(elementT, val[i]);
-
-        auto ptr = ctx.builder->CreateGEP(array, idx);
-
-        ctx.builder->CreateStore(llvmVal, ptr);
-    }
-
-    auto ptr = ctx.builder->CreateGEP(array, Compiler::constInt(ctx, val.size()));
-
-    ctx.builder->CreateStore(llvm::ConstantInt::get(elementT, 0), ptr);
-
-    return array;
+    return ctx.builder->CreateGEP(arr, { zero, zero });
 }
 
 llvm::Value* AST::UExpr::llvmValue(Compiler::Context& ctx) {
@@ -429,10 +429,10 @@ llvm::Value* AST::HoArray::llvmValue(Compiler::Context& ctx) {
     // add llvm values to the 'elements' vector
     for (auto& expr : exprs) elements.push_back(expr->llvmValue(ctx));
 
-    // use void type if the size is equal to 0
+    // use i8 type if the size is equal to 0
     // else use the type of the first element
     auto elementT = elements.size() == 0
-            ? llvm::Type::getVoidTy(ctx.mod->getContext())
+            ? llvm::Type::getInt8Ty(ctx.mod->getContext())
             : elements[0]->getType();
 
     // create array type using the element type
@@ -627,7 +627,7 @@ llvm::Value* AST::SetPtr::llvmValue(Compiler::Context& ctx) {
     auto val1 = tryCast(ctx, val, valT);
 
     // error if casting failed
-    if (!val1)
+    if (!val1 || val1->getType() != valT)
         Error::compiler(
             U"pointer of setptr instruction is unable to store (expected: "
             + Compiler::llvmTypeStr(valT) + U", got: "
@@ -761,6 +761,8 @@ llvm::Value* AST::Function::llvmValue(Compiler::Context& ctx) {
         Error::compiler(U"error in function '" + std::stou32(id) + U"'");
     }
 
+    ctx.runFPM(f);
+
     return f;
 }
 
@@ -815,6 +817,8 @@ llvm::Value* AST::Lambda::llvmValue(Compiler::Context& ctx) {
         // f->print(llvm::errs());
         Error::compiler(U"error in lambda expression");
     }
+
+    ctx.runFPM(f);
 
     return f;
 }

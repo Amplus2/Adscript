@@ -18,26 +18,28 @@ int main(int argc, char **argv) {
     int opt, idx;
     opterr = 1;
     
-    static struct option long_getopt_options[] = {
+    static const struct option long_getopt_options[] = {
         {"executable",  no_argument,        nullptr, 'e'},
         {"llvm-ir",     no_argument,        nullptr, 'l'},
-        {"output",      required_argument,  nullptr, 'o'},
+        
         {"help",        no_argument,        nullptr, 'h'},
-        {"target",      required_argument,  nullptr, 't'},
         {"version",     no_argument,        nullptr, 'v'},
+
+        {"output",      required_argument,  nullptr, 'o'},
+        {"target",      required_argument,  nullptr, 't'},
         {nullptr, 0, nullptr, 0},
     };
 
-    const char *shortopts = "el:o:t:h:v";
+    const char *shortopts = "elvho:t:";
 
     while ((opt = getopt_long(argc, argv, shortopts, long_getopt_options, &idx)) != -1) {
         switch (opt) {
             case 'e': exe = true; break;
-            case 'h': Error::printUsage(argv, 1);
             case 'l': emitLLVM = true; break;
+            case 'v': std::cout << "0.4" << std::endl; exit(0);
+            case 'h': Error::printUsage(argv, 1);
             case 'o': output = optarg; break;
             case 't': target = optarg; break;
-            case 'v': std::cout << "0.4" << std::endl; exit(0);
         }
     }
 

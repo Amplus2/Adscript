@@ -276,16 +276,16 @@ llvm::Value* Compiler::tryCast(Compiler::Context& ctx, llvm::Value *v, llvm::Typ
         } else if (t->isFloatingPointTy()) {
             return ctx.builder->CreateFPCast(v, t);
         }
+    } else if (vT->isArrayTy()) {
+        if (t->isPointerTy()) {
+            auto zero = Compiler::constInt(ctx, 0);
+            return ctx.builder->CreateGEP(v, { zero, zero });
+        }
     } else if (vT->isPointerTy()) {
         if (t->isIntegerTy()) {
             return ctx.builder->CreatePtrToInt(v, t);
         } else if (t->isPointerTy()) {
             return ctx.builder->CreatePointerCast(v, t);
-        }
-    } else if (vT->isArrayTy()) {
-        if (t->isPointerTy()) {
-            return ctx.builder->CreateGEP(
-                v, { Compiler::constInt(ctx, 0), Compiler::constInt(ctx, 0) });
         }
     }
 

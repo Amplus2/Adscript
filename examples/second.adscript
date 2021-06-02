@@ -1,8 +1,10 @@
 (defn puts [char* s] int)
 
+(defn setHW [char** s] int
+    (setptr s "Hello World")
+    42)
+
 (defn main [int a] i8
-    (var hw "41")
-    (set (hw 1) \2)
-    (puts hw)
-    (setptr (ref hw) "Hello World")
+    (var hw "42");;#[\4\20])
+    (setHW (ref hw))
     (puts hw))
