@@ -255,25 +255,31 @@ llvm::Value* AST::Identifier::llvmValue(Compiler::Context& ctx) {
 }
 
 llvm::Value* AST::String::llvmValue(Compiler::Context& ctx) {
-    if (Utils::isAscii(val)) {
-        // create and return pointer to global constant char array (i8*)
-        return ctx.builder->CreateGlobalStringPtr(std::to_string(val));
-    }
+    auto elementT =  Utils::isAscii(val)
+        ? llvm::Type::getInt8Ty(ctx.mod->getContext()) 
+        : llvm::Type::getInt32Ty(ctx.mod->getContext());
 
-    auto elementT = llvm::Type::getInt32Ty(ctx.mod->getContext());
     auto arrayT = llvm::ArrayType::get(elementT, val.size() + 1);
 
-    std::vector<llvm::Constant*> elements;
+    auto array = (llvm::Value*) ctx.builder->CreateAlloca(arrayT);
 
-    for (auto& c : val) elements.push_back(llvm::ConstantInt::get(elementT, c));
+    auto zero = Compiler::constInt(ctx, 0);
+    array = ctx.builder->CreateGEP(array, { zero, zero });
 
-    auto array = llvm::ConstantArray::get(arrayT, elements);
+    for (size_t i = 0; i < val.size(); i++) {
+        auto idx = Compiler::constInt(ctx, i);
+        auto llvmVal = llvm::ConstantInt::get(elementT, val[i]);
 
-    auto var = new llvm::GlobalVariable(
-        *(ctx.mod), elementT->getPointerTo(), true,
-        llvm::GlobalValue::ExternalLinkage, array);
+        auto ptr = ctx.builder->CreateGEP(array, idx);
 
-    return ctx.builder->CreateLoad(elementT->getPointerTo(), var);
+        ctx.builder->CreateStore(llvmVal, ptr);
+    }
+
+    auto ptr = ctx.builder->CreateGEP(array, Compiler::constInt(ctx, val.size()));
+
+    ctx.builder->CreateStore(llvm::ConstantInt::get(elementT, 0), ptr);
+
+    return array;
 }
 
 llvm::Value* AST::UExpr::llvmValue(Compiler::Context& ctx) {
@@ -436,7 +442,8 @@ llvm::Value* AST::HoArray::llvmValue(Compiler::Context& ctx) {
     auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
 
     // assign 'arr' to the pointer to the first element of the array
-    arr = ctx.builder->CreateGEP(arr, { Compiler::constInt(ctx, 0), Compiler::constInt(ctx, 0) });
+    auto zero = Compiler::constInt(ctx, 0);
+    arr = ctx.builder->CreateGEP(arr, { zero, zero });
 
     for (size_t i = 0; i < elements.size(); i++) {
         // try casting the element to the array element type

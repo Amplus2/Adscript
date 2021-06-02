@@ -5,9 +5,8 @@
 (deft xy '(int x int y))
 
 (defn main [int a] int8
-    (var abc #[41 a 43])
-    (set (abc 1) 42)
-    (printf "%d\n" (abc 1))
-    (var hw "42")
-    ((fn [char** s] int (setptr s "Hello World")) (ref hw))
+    (var hw "41")
+    (set (hw 1) \2)
+    (puts hw)
+    (setptr (ref hw) "Hello World")
     (puts hw))
