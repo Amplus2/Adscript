@@ -22,6 +22,7 @@
 #include <llvm/CodeGen/MachineModuleInfo.h>
 
 #include <memory>
+#include <fstream>
 #include <iostream>
 
 #include <unistd.h>
@@ -169,7 +170,7 @@ std::string tempfile() {
     return file;
 }
 
-void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target) {
+void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target, bool emitLLVM) {
     std::string filename = getFileName(output);
     std::string moduleId = getModuleId(filename);
 
@@ -186,7 +187,20 @@ void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::stri
 
     runMPM(&mod);
 
-    // mod.print(llvm::errs(), 0);
+    if (emitLLVM) {
+        auto idx = output.find_last_of('/');
+        std::string fname;
+
+        if (idx != std::string::npos) fname = output.substr(0, idx + 1);
+
+        fname = fname + getFileName(getModuleId(output)) + ".ll";
+
+        std::error_code ec;
+        llvm::raw_fd_ostream dest(fname, ec, llvm::sys::fs::OF_None);
+
+        if (ec) Error::compiler(std::stou32(ec.message()));
+        mod.print(dest, 0);
+    }
 
     std::string obj = exe ? tempfile() : output;
     compileModuleToFile(&mod, obj, target);

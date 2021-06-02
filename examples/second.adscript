@@ -1,10 +1,6 @@
 (defn puts [char* s] int)
-(defn printf [char* s]' int)
 
-(deft int8 i8)
-(deft xy '(int x int y))
-
-(defn main [int a] int8
+(defn main [int a] i8
     (var hw "41")
     (set (hw 1) \2)
     (puts hw)

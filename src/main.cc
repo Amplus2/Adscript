@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <llvm/Support/Host.h>
 
@@ -11,17 +12,28 @@ using namespace Adscript;
 
 int main(int argc, char **argv) {
     if (argc < 2) return Error::printUsage(argv, 1);
+
     std::string output, target;
-    bool exe = false;
-    int opt;
-    opterr = 0;
-    while ((opt = getopt(argc, argv, "eo:t:h")) != -1) {
+    bool exe = false, emitLLVM = false;
+    int opt, idx;
+    opterr = 1;
+    
+    static struct option long_getopt_options[] = {
+        {"executable",  no_argument,        nullptr, 'e'},
+        {"llvm-ir",     no_argument,        nullptr, 'l'},
+        {"output",      required_argument,  nullptr, 'o'},
+        {"help",        no_argument,        nullptr, 'h'},
+        {"target",      required_argument,  nullptr, 't'},
+        {nullptr, 0, nullptr, 0},
+    };
+
+    while ((opt = getopt_long(argc, argv, "el:o:t:h", long_getopt_options, &idx)) != -1) {
         switch (opt) {
             case 'e': exe = true; break;
+            case 'h': Error::printUsage(argv, 1);
+            case 'l': emitLLVM = true; break;
             case 'o': output = optarg; break;
             case 't': target = optarg; break;
-            case 'h': return Error::printUsage(argv, 0);
-            case '?': return Error::printUsage(argv, 1);
         }
     }
 
@@ -43,7 +55,7 @@ int main(int argc, char **argv) {
 
             //printAST(exprs);
             
-            Compiler::compile(exprs, exe, output, target);
+            Compiler::compile(exprs, exe, output, target, emitLLVM);
             
             for (auto& expr : exprs) expr->~Expr();
         }
@@ -60,7 +72,7 @@ int main(int argc, char **argv) {
 
         //printAST(exprs);
 
-        Compiler::compile(exprs, exe, output, target);
+        Compiler::compile(exprs, exe, output, target, emitLLVM);
 
         for (auto& expr : exprs) expr->~Expr();
     }

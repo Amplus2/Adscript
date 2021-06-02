@@ -34,7 +34,7 @@ public:
     llvm::Function* getFunction(const std::string& id);
 };
 
-void compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target);
+void compile(std::vector<AST::Expr*>& exprs, bool exe, const std::string &output, const std::string &target, bool emitLLVM);
 
 }
 }
