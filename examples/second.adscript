@@ -5,6 +5,7 @@
     42)
 
 (defn main [int a] i8
-    (var hw "42");;#[\4\20])
+    (var hw "41")
+    ((fn [i8** s] i8* (setptr s "42")) (ref hw))
     (setHW (ref hw))
     (puts hw))
