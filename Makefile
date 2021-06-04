@@ -27,13 +27,17 @@ $(OUTPUT): $(OFILES)
 	$(OUTPUT) -o $@ $<
 
 test/test.out: test/main.o test/basic.o
-	clang test/*.o -o test/test.out
+	clang++ $^ -o $@
 
-test: test/test.out
+test/bench.out: test/lel.o test/bench.o
+	clang++ $^ -o $@
+
+test: test/test.out test/bench.out
 	test/test.out
+	test/bench.out
 
 clean:
-	rm -f $(OUTPUT) $(OFILES)
+	rm -f $(OUTPUT) $(OFILES) test/*.o test/*.out
 
 install: all
 	cp -f $(OUTPUT) $(PREFIX)/bin/$(EXE_NAME)
