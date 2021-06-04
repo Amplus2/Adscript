@@ -39,9 +39,19 @@ public:
 
         passBuilder.crossRegisterProxies(lam, fam, gam, mam);
 
+        #if NO_LLVM11 == 1
+
         fpm = passBuilder.buildFunctionSimplificationPipeline(
             llvm::PassBuilder::OptimizationLevel::O3,
             llvm::ThinOrFullLTOPhase::None);
+
+        #else
+
+        fpm = passBuilder.buildFunctionSimplificationPipeline(
+            llvm::PassBuilder::OptimizationLevel::O3,
+            llvm::PassBuilder::ThinLTOPhase::None, false);
+
+        #endif
     }
     
     bool isVar(const std::string& id);

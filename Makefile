@@ -11,6 +11,12 @@ PREFIX ?= /usr/local
 SFILES = $(wildcard src/*.cc)
 OFILES = $(SFILES:.cc=.o)
 
+
+LLVMV ?= $(shell llvm-config --version | cut -d. -f1)
+NO_LLVM11 ?= $(shell test $(LLVMV) -eq "11"; echo $$?)
+
+CXXFLAGS += -DNO_LLVM11=$(NO_LLVM11)
+
 all: $(OUTPUT)
 
 $(OUTPUT): $(OFILES)

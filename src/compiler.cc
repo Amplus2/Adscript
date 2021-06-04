@@ -67,7 +67,7 @@ void Compiler::Context::runFPM(llvm::Function *f) {
 }
 
 std::string getFileName(const std::string& path) {
-    auto s = path.find_last_of("/\\");
+    auto s = path.find_last_of("/");
     return s == std::string::npos ? path : path.substr(s + 1);
 }
 
@@ -153,8 +153,6 @@ void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::stri
     llvm::LLVMContext ctx;
     llvm::Module mod(moduleId, ctx);
     llvm::IRBuilder<> builder(ctx);
-
-    mod.setSourceFileName(filename);
 
     Compiler::Context cctx(&mod, &builder);
     for (auto& expr : exprs) expr->llvmValue(cctx);
