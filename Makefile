@@ -13,9 +13,9 @@ OFILES = $(SFILES:.cc=.o)
 
 
 LLVMV ?= $(shell llvm-config --version | cut -d. -f1)
-NO_LLVM11 ?= $(shell test $(LLVMV) -eq "11"; echo $$?)
+LT_LLVM12 ?= $(shell test $(LLVMV) -lt 12; echo $$?)
 
-CXXFLAGS += -DNO_LLVM11=$(NO_LLVM11)
+CXXFLAGS += -DLT_LLVM12=$(LT_LLVM12)
 
 all: $(OUTPUT)
 

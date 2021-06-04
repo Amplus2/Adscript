@@ -39,7 +39,7 @@ public:
 
         passBuilder.crossRegisterProxies(lam, fam, gam, mam);
 
-        #if NO_LLVM11 == 1
+        #if LT_LLVM12 == 1
 
         fpm = passBuilder.buildFunctionSimplificationPipeline(
             llvm::PassBuilder::OptimizationLevel::O3,
