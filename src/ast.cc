@@ -424,44 +424,50 @@ llvm::Value* AST::If::llvmValue(Compiler::Context& ctx) {
 
 llvm::Value* AST::HoArray::llvmValue(Compiler::Context& ctx) {
     // create llvm value vector for array elements
-    std::vector<llvm::Value*> elements;
+    std::vector<llvm::Constant*> constants;
+    std::vector<std::pair<size_t, llvm::Value*>> values;
+
+    llvm::Type *elementT = nullptr;
 
     // add llvm values to the 'elements' vector
-    for (auto& expr : exprs) elements.push_back(expr->llvmValue(ctx));
+    for (size_t i = 0; i < exprs.size(); i++) {
+        auto val = exprs[i]->llvmValue(ctx);
 
-    // use i8 type if the size is equal to 0
-    // else use the type of the first element
-    auto elementT = elements.size() == 0
-            ? llvm::Type::getInt8Ty(ctx.mod->getContext())
-            : elements[0]->getType();
+        if (!elementT) elementT = val->getType();
 
-    // create array type using the element type
-    auto arrT = llvm::ArrayType::get(elementT, elements.size());
+        val = Compiler::tryCast(ctx, val, elementT);
 
-    // create array alloca
-    auto arr = (llvm::Value*) ctx.builder->CreateAlloca(arrT);
-
-    // assign 'arr' to the pointer to the first element of the array
-    auto zero = Compiler::constInt(ctx, 0);
-    arr = ctx.builder->CreateGEP(arr, { zero, zero });
-
-    for (size_t i = 0; i < elements.size(); i++) {
-        // try casting the element to the array element type
-        auto v = tryCast(ctx, elements[i], elementT);
-
-        // error if casting fails
-        if (!v)
+        if (!val) {
             Error::compiler(U"element types do not match in homogenous array");
+        }
 
-        // get pointer to the element at index 'i'
-        auto ptr = ctx.builder->CreateGEP(arr, Compiler::constInt(ctx, i));
-
-        // store the element's value into the pointer at index 'i'
-        ctx.builder->CreateStore(v, ptr);
+        if (llvm::isa<llvm::Constant>(val)) {
+            constants.push_back((llvm::Constant*) val);
+        } else {
+            constants.push_back(llvm::UndefValue::get(elementT));
+            values.push_back({ i, val });
+        }
     }
 
-    // return the pointer to the first element
-    return arr;
+    if (!elementT) elementT = llvm::Type::getInt8Ty(ctx.mod->getContext());
+
+    auto arrT = llvm::ArrayType::get(elementT, constants.size());
+
+    auto initializer = llvm::ConstantArray::get(arrT, constants);
+
+    auto arr = new llvm::GlobalVariable(
+        *(ctx.mod), arrT, false,
+        llvm::GlobalValue::PrivateLinkage, initializer);
+
+    auto zero = Compiler::constInt(ctx, 0);
+    for (auto& pair : values) {
+        auto idx = Compiler::constInt(ctx, pair.first);
+        auto ptr = ctx.builder->CreateInBoundsGEP(arr, { zero, idx });
+
+        ctx.builder->CreateStore(pair.second, ptr);
+    }
+
+    return ctx.builder->CreateInBoundsGEP(arr, { zero, zero });
 }
 
 llvm::Value* AST::HeArray::llvmValue(Compiler::Context& ctx) {
@@ -872,6 +878,9 @@ llvm::Value* AST::Call::llvmValue(Compiler::Context& ctx) {
                 + std::stou32(id->getVal()) + U"'");
         else if (args.size() < f->arg_size())
             Error::compiler(U"too few arguments for function '"
+                + std::stou32(id->getVal()) + U"'");
+        else if (args.size() != f->arg_size())
+            Error::compiler(U"invalid argument size for function '"
                 + std::stou32(id->getVal()) + U"'");
     }
 

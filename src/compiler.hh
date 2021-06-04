@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include <llvm/ADT/Hashing.h>
 #include <llvm/Passes/PassBuilder.h>
 
 namespace Adscript {
@@ -40,7 +41,7 @@ public:
 
         fpm = passBuilder.buildFunctionSimplificationPipeline(
             llvm::PassBuilder::OptimizationLevel::O3,
-            llvm::PassBuilder::ThinLTOPhase::None, false);
+            llvm::ThinOrFullLTOPhase::None);
     }
     
     bool isVar(const std::string& id);

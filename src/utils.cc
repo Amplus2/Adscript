@@ -259,7 +259,10 @@ std::u32string Compiler::llvmTypeStr(llvm::Type *t) {
 }
 
 llvm::Value* Compiler::tryCast(Compiler::Context& ctx, llvm::Value *v, llvm::Type *t) {
+    if (!t) return nullptr;
+
     llvm::Type *vT = v->getType();
+    
     if (vT->getPointerTo() == t->getPointerTo()) return v;
 
     if (vT->isIntegerTy()) {
