@@ -9,8 +9,8 @@ jobs:
       - uses: actions/checkout@v2
         #with:
         #  submodules: recursive
-      - run: sudo apt install -y llvm-11 clang-11
-      - run: sudo ln -s /usr/bin/llvm-config-11 /usr/bin/llvm-config
+      - run: sudo apt install -y llvm-12 clang-12
+      - run: sudo ln -s /usr/bin/llvm-config-12 /usr/bin/llvm-config
       - name: build
         run: make -j$(nproc)
       - name: test
