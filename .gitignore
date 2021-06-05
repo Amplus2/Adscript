@@ -1,5 +1,8 @@
-.vscode/
-build/
+
+.idea
+.vscode
+
+build
 
 adscript
 first
