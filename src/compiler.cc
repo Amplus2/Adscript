@@ -160,7 +160,7 @@ void Compiler::compile(std::vector<AST::Expr*>& exprs, bool exe, const std::stri
     cctx.clear();
 
     if (emitLLVM) {
-        auto idx = output.find_last_of('/');
+        auto idx = output.find_last_of("/\\");
         std::string fname;
 
         if (idx != std::string::npos) fname = output.substr(0, idx + 1);
