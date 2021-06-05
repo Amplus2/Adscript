@@ -13,15 +13,18 @@ OFILES = $(SFILES:.cc=.o)
 
 
 LLVMV ?= $(shell llvm-config --version | cut -d. -f1)
-LT_LLVM12 ?= $(shell test $(LLVMV) -lt 12; echo $$?)
+HT_LLVM11 ?= $(shell test $(LLVMV) -lt 12; echo $$?)
 
-CXXFLAGS += -DLT_LLVM12=$(LT_LLVM12)
+CXXFLAGS += -DHT_LLVM11=$(HT_LLVM11)
 
 all: $(OUTPUT)
 
 $(OUTPUT): $(OFILES)
 	clang++ $(LDFLAGS) $(OFILES) -o $(OUTPUT)
 	strip $(OUTPUT)
+
+test/bench.o: test/bench.cc
+	clang++ -O3 -Wall test/bench.cc -c -o test/bench.o
 
 %.o: %.cc
 	clang++ $(CXXFLAGS) -c $< -o $@
