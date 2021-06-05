@@ -41,8 +41,10 @@ test/test.out: test/main.o test/basic.o
 test/bench.out: test/lel.o test/bench.o
 	clang++ $^ -o $@
 
-test: test/test.out test/bench.out
+test: test/test.out
 	test/test.out
+
+bench: test/bench.out
 	test/bench.out
 
 clean:

@@ -1,1 +1,1 @@
-(defn ads_fib [i32 n] i32 (if (< n 2) 1 (+ (ads_fib (- n 1)) (ads_fib (- n 2)))))
+(defn ads_fib [i64 n] i64 (if (< n 2) 1 (+ (ads_fib (- n 1)) (ads_fib (- n 2)))))

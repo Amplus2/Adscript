@@ -409,17 +409,40 @@ llvm::Value* AST::If::llvmValue(Compiler::Context& ctx) {
     // get condition llvm value
     auto condV = createLogicalVal(ctx, cond->llvmValue(ctx));
 
-    // get conditional llvm values
+    auto f = ctx.builder->GetInsertBlock()->getParent();
+
+    auto ifBB = llvm::BasicBlock::Create(ctx.mod->getContext(), "", f);
+    auto elseBB = llvm::BasicBlock::Create(ctx.mod->getContext(), "", f);
+    auto mergeBB = llvm::BasicBlock::Create(ctx.mod->getContext(), "", f);
+
+    ctx.builder->CreateCondBr(condV, ifBB, elseBB);
+
+    ctx.builder->SetInsertPoint(ifBB);
     auto trueV = exprTrue->llvmValue(ctx);
+
+    ctx.builder->CreateBr(mergeBB);
+    ifBB = ctx.builder->GetInsertBlock();
+
+    ctx.builder->SetInsertPoint(elseBB);
     auto falseV = exprFalse->llvmValue(ctx);
 
+    ctx.builder->CreateBr(mergeBB);
+    elseBB = ctx.builder->GetInsertBlock();
+    
+    ctx.builder->SetInsertPoint(mergeBB);
+
+    auto phiNode = ctx.builder->CreatePHI(trueV->getType(), 2);
+
+    phiNode->addIncoming(trueV, ifBB);
+    phiNode->addIncoming(falseV, elseBB);
+
     // error if condition types do not match
-    if (trueV->getType()->getPointerTo() != falseV->getType()->getPointerTo())
+    if (trueV->getType() != falseV->getType())
         Error::compiler(
             U"conditional expression operand types do not match");
 
     // create and return llvm value
-    return ctx.builder->CreateSelect(condV, trueV, falseV);
+    return phiNode;
 }
 
 llvm::Value* AST::HoArray::llvmValue(Compiler::Context& ctx) {
