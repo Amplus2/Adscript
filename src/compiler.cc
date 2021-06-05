@@ -67,7 +67,7 @@ void Compiler::Context::runFPM(llvm::Function *f) {
 }
 
 std::string getFileName(const std::string& path) {
-    auto s = path.find_last_of("/");
+    auto s = path.find_last_of("/\\");
     return s == std::string::npos ? path : path.substr(s + 1);
 }
 
