@@ -12,9 +12,9 @@ jobs:
       - run: sudo apt install -y llvm-12 clang-12
       - run: sudo ln -s /usr/bin/llvm-config-12 /usr/bin/llvm-config
       - name: build
-        run: make -j$(nproc)
+        run: make -j 5
       - name: test
-        run: make -j$(nproc) test
+        run: make test
       - uses: actions/upload-artifact@v2
         with:
           name: adscript
