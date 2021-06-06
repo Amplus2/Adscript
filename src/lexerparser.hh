@@ -91,7 +91,7 @@ public:
 
 
 class Parser {
-private:
+public:
     Lexer lexer;
 
     AST::Type* parseType(Lexer::Token& tmpT);
@@ -108,7 +108,7 @@ private:
     AST::Function* parseFunction(Lexer::Token& tmpT);
     AST::Lambda* parseLambda(Lexer::Token& tmpT);
     AST::Call* parseCall(Lexer::Token& tmpT);
-public:
+
     Parser(const Lexer& lexer) : lexer(lexer) {}
     std::vector<AST::Expr*> parse();
 };

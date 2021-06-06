@@ -241,6 +241,60 @@ AST::Type* Parser::parseType(Lexer::Token& tmpT) {
     return t;
 }
 
+template<class T>
+AST::Expr* parseTExpr1(Parser *p, Lexer::Token& tmpT) {
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    auto expr1 = p->parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    return new T(expr1);
+}
+
+template<class T>
+AST::Expr* parseTExpr2(Parser *p, Lexer::Token& tmpT) {
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    auto expr1 = p->parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    auto expr2 = p->parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    return new T(expr1, expr2);
+}
+
+template<class T>
+AST::Expr* parseTExpr3(Parser *p, Lexer::Token& tmpT) {
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    auto expr1 = p->parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    auto expr2 = p->parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    auto expr3 = p->parseExpr(tmpT);
+
+    // eat up remaining token
+    tmpT = p->lexer.nextT();
+
+    return new T(expr1, expr2, expr3);
+}
+
 
 AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
     if (tmpT.tt == Lexer::TT_PO) {
@@ -285,12 +339,20 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
             else if (!tmpT.val.compare(U"not"))
                 return parseBinExpr(tmpT, AST::BINEXPR_LNOT);
             else if (!tmpT.val.compare(U"if"))
-                return parseIf(tmpT);
+                return parseTExpr3<AST::If>(this, tmpT);
             else if (!tmpT.val.compare(U"fn"))
                 return parseLambda(tmpT);
             else if (!tmpT.val.compare(U"cast"))
                 return parseCast(tmpT);
-            else if (!tmpT.val.compare(U"var")) {
+            else if (!tmpT.val.compare(U"ref")) {
+                return parseTExpr1<AST::Ref>(this, tmpT);
+            } else if (!tmpT.val.compare(U"deref")) {
+                return parseTExpr1<AST::Deref>(this, tmpT);
+            } else if (!tmpT.val.compare(U"set")) {
+                return parseTExpr2<AST::Set>(this, tmpT);
+            } else if (!tmpT.val.compare(U"setptr")) {
+                return parseTExpr2<AST::SetPtr>(this, tmpT);
+            } else if (!tmpT.val.compare(U"var")) {
                 // eat up 'var'
                 tmpT = lexer.nextT();
 
@@ -307,21 +369,6 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
                 tmpT = lexer.nextT();
 
                 return new AST::Var(val, std::to_string(id));
-            } else if (!tmpT.val.compare(U"set")) {
-                // eat up 'set'
-                tmpT = lexer.nextT();
-
-                auto ptr = parseExpr(tmpT);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                auto val = parseExpr(tmpT);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                return new AST::Set(ptr, val);
             } else if (!tmpT.val.compare(U"let")) {
                 // eat up 'def'
                 tmpT = lexer.nextT();
@@ -341,41 +388,6 @@ AST::Expr* Parser::parseExpr(Lexer::Token& tmpT) {
                 tmpT = lexer.nextT();
 
                 return new AST::Let(expr, std::to_string(id));
-            } else if (!tmpT.val.compare(U"setptr")) {
-                // eat up 'setptr'
-                tmpT = lexer.nextT();
-
-                auto ptr = parseExpr(tmpT);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                auto val = parseExpr(tmpT);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                return new AST::SetPtr(ptr, val);
-            } else if (!tmpT.val.compare(U"ref")) {
-                // eat up 'set'
-                tmpT = lexer.nextT();
-
-                auto val = parseExpr(tmpT);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                return new AST::Ref(val);
-            } else if (!tmpT.val.compare(U"deref")) {
-                // eat up 'deref'
-                tmpT = lexer.nextT();
-
-                auto ptr = parseExpr(tmpT);
-
-                // eat up remaining token
-                tmpT = lexer.nextT();
-
-                return new AST::Deref(ptr);
             } else if (!tmpT.val.compare(U"heget")) {
                 // eat up 'heget'
                 tmpT = lexer.nextT();
