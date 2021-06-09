@@ -11,12 +11,6 @@ PREFIX ?= /usr/local
 SFILES = $(wildcard src/*.cc)
 OFILES = $(SFILES:.cc=.o)
 
-
-LLVMV ?= $(shell llvm-config --version | cut -d. -f1)
-HT_LLVM11 ?= $(shell test $(LLVMV) -lt 12; echo $$?)
-
-CXXFLAGS += -DHT_LLVM11=$(HT_LLVM11)
-
 all: $(OUTPUT)
 
 $(OUTPUT): $(OFILES)
