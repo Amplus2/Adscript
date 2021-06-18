@@ -124,7 +124,7 @@ void compileModuleToFile(llvm::Module *mod, const std::string &output, const std
         pm, dest, nullptr, llvm::CGFT_ObjectFile);
 
     if (objResult)
-        Error::compiler(std::stou32("cannot write to file '" + output + "'"));
+        Error::compiler(U"cannot write to file '" + std::stou32(output) + U"'");
 
     pm.run(*mod);
     dest.flush();
