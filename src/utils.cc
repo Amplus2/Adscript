@@ -11,6 +11,10 @@ std::ostream& operator << (std::ostream& os, const std::u32string& s) {
     return (os << std::to_string(s));
 }
 
+bool operator == (const std::string& s, const char *cmp) {
+    return !s.compare(cmp);
+}
+
 std::u32string operator + (const std::u32string& us, const std::string& s) {
     return us + std::stou32(s);
 }

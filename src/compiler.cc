@@ -28,7 +28,7 @@
 using namespace Adscript;
 
 bool Compiler::Context::isVar(const std::string& id) {
-    return vars.find(id) != vars.end();
+    return varScope.find(id) != varScope.end();
 }
 
 bool Compiler::Context::isType(const std::string& id) {
@@ -36,7 +36,7 @@ bool Compiler::Context::isType(const std::string& id) {
 }
 
 bool Compiler::Context::isFinal(const std::string& id) {
-    return finals.find(id) != finals.end();
+    return finalScope.find(id) != finalScope.end();
 }
 
 bool Compiler::Context::isFunction(const std::string& id) {
@@ -47,12 +47,12 @@ bool Compiler::Context::isFunction(const std::string& id) {
 }
 
 Compiler::ctx_var_t Compiler::Context::getVar(const std::string& id) {
-    if (isVar(id)) return vars[id];
+    if (isVar(id)) return varScope[id];
     return { nullptr, nullptr };
 }
 
 Compiler::ctx_var_t Compiler::Context::getFinal(const std::string& id) {
-    if (isFinal(id)) return finals[id];
+    if (isFinal(id)) return finalScope[id];
     return { nullptr, nullptr };
 }
 

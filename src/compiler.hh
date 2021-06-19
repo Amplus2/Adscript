@@ -12,6 +12,7 @@ namespace Adscript {
 namespace Compiler {
 
 typedef std::pair<llvm::Type*, llvm::Value*> ctx_var_t;
+typedef std::map<std::string, ctx_var_t> scope;
 
 class Context {
 private:
@@ -23,8 +24,8 @@ private:
 public:
     llvm::Module *mod;
     llvm::IRBuilder<> *builder;
-    std::map<std::string, ctx_var_t> vars;
-    std::map<std::string, ctx_var_t> finals;
+    scope varScope;
+    scope finalScope;
     std::map<std::string, llvm::Type*> types;
 
     bool needsRef = false;
