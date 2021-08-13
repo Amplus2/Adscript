@@ -93,7 +93,7 @@ void Error::warning(const std::u32string& msg, const std::u32string& pos) {
 }
 
 int Error::printUsage(char **argv, int r) {
-    std::cout << "usage: " << argv[0] << " [-eh] [-o <file>] [-t <target-triple>] <files>" << std::endl;
+    std::cout << "usage: " << argv[0] << " [-ehl] [-o <file>] [-t <target-triple>] <files>" << std::endl;
     return r;
 }
 
