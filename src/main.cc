@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
         switch (opt) {
             case 'e': exe = true; break;
             case 'l': emitLLVM = true; break;
-            case 'v': std::puts("0.6"); exit(0);
+            case 'v': std::puts("Adscript 0.6 by Amplus 2.0"); exit(0);
             case 'h': Error::printUsage(argv, 1);
             case 'o': output = optarg; break;
             case 't': target = optarg; break;
