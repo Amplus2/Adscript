@@ -1,7 +1,7 @@
 CFLAGS   ?= -O3 -Wall
 CXXFLAGS ?= -O3 -Wall
-CXXFLAGS += `llvm-config --cxxflags`
-LDFLAGS  += `llvm-config --ldflags --system-libs --libs all` -flto -lLLVM
+CXXFLAGS += $(shell llvm-config --cxxflags)
+LDFLAGS  += $(shell llvm-config --ldflags --system-libs --libs all) -flto -lLLVM
 
 EXE_NAME ?= adscript
 OUTPUT   ?= ./$(EXE_NAME)
@@ -11,14 +11,14 @@ PREFIX ?= /usr/local
 SFILES = $(wildcard src/*.cc)
 OFILES = $(SFILES:.cc=.o)
 
-all: $(OUTPUT)
+all: $(OUTPUT) compile_flags.txt
 
 $(OUTPUT): $(OFILES)
 	clang++ $(LDFLAGS) $(OFILES) -o $(OUTPUT)
 	strip $(OUTPUT)
 
-test/bench.o: test/bench.cc
-	clang++ -O3 -Wall test/bench.cc -c -o test/bench.o
+compile_flags.txt: Makefile
+	echo '$(CXXFLAGS)' | tr ' ' '\n' > compile_flags.txt
 
 %.o: %.cc
 	clang++ $(CXXFLAGS) -c $< -o $@

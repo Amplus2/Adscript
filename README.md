@@ -4,7 +4,7 @@ based programming language that is natively compiled through llvm >= 12.
 
 We have [a rough spec](SPEC.md).
 
-# Usage
+## Usage
 
 ```sh
 adscript [-ehlv] [-o <file>] [-t <target-triple>] <files>
@@ -17,7 +17,7 @@ adscript [-ehlv] [-o <file>] [-t <target-triple>] <files>
 - `-h`, `--help`: print a bit of help
 - `-v`, `--version`: print information about your adscript version
 
-# Installation
+## Installation
 ```sh
 make install
 ```

@@ -17,11 +17,11 @@ int main(int argc, char **argv) {
     bool exe = false, emitLLVM = false;
     int opt, idx;
     opterr = 1;
-    
+
     static const struct option long_getopt_options[] = {
         {"executable",  no_argument,        nullptr, 'e'},
         {"llvm-ir",     no_argument,        nullptr, 'l'},
-        
+
         {"help",        no_argument,        nullptr, 'h'},
         {"version",     no_argument,        nullptr, 'v'},
 
@@ -60,9 +60,9 @@ int main(int argc, char **argv) {
             auto exprs = parser.parse();
 
             //printAST(exprs);
-            
+
             Compiler::compile(exprs, exe, output, target, emitLLVM);
-            
+
             for (auto& expr : exprs) expr->~Expr();
         }
     } else {

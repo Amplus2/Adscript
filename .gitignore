@@ -1,8 +1,6 @@
-
 .idea
 .vscode
-
-build
+compile_flags.txt
 
 adscript
 first
