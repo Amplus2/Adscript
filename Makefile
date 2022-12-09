@@ -11,7 +11,7 @@ PREFIX ?= /usr/local
 SFILES = $(wildcard src/*.cc)
 OFILES = $(SFILES:.cc=.o)
 
-all: $(OUTPUT) compile_flags.txt
+all: $(OUTPUT) compile_flags.txt SPEC.pdf
 
 $(OUTPUT): $(OFILES)
 	clang++ $(LDFLAGS) $(OFILES) -o $(OUTPUT)
@@ -34,6 +34,9 @@ test/test.out: test/main.o test/basic.o
 
 test/bench.out: test/lel.o test/bench.o
 	clang++ $^ -o $@
+
+%.pdf: %.md
+	pandoc $< -o $@
 
 test: test/test.out
 	test/test.out
